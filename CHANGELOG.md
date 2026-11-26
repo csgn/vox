@@ -5,6 +5,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.16.3] - 2026-11-27 — update check fix
+
 ### Fixed
 - `:update check` after `:update install` no longer offers the version just installed; it
   says `vox X is installed — restart vox to use it` (`Editor::update_installed`).

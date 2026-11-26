@@ -34,7 +34,7 @@ commands (`crates/vox-editor/src/builtin.rs`) can be overridden.
 `Value::table([("name", "x".into()), ...])`). `editor.execute(line)` runs a command line and
 returns `Ok(Some(value))`, `Ok(None)`, or `Err(message)` without showing anything; this is
 what `vox run` and tests use. `run_command` shows the reply instead: one line in the message
-line, more in a modal (`Value::to_text`).
+line, more in a modal (`Value::to_text`). `vox run --json` prints it with `Value::to_json`.
 
 **Without a person:** `editor.set_interactive(false)` (for `vox run`). Then `open_modal` and
 `open_panel` open nothing and the command fails with "needs the editor UI". A command that

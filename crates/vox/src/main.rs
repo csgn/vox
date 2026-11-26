@@ -1,8 +1,9 @@
 //! vox: a Vim-like terminal editor. Picks the scope from the command line, wires adapter
-//! crates into the editor, and runs it.
+//! crates into the editor, and runs it, or runs commands without a terminal (`vox run`).
 
 mod cli;
 
+use std::io::BufRead;
 use std::path::Path;
 use std::process::ExitCode;
 use std::rc::Rc;
@@ -12,16 +13,17 @@ use vox_core::Document;
 use vox_editor::plugin::{HealthStatus, PluginInfo, Version};
 use vox_editor::scope::{self, Scope};
 use vox_editor::update::UpdateSource;
-use vox_editor::{Editor, Level, ScopeKind, Services};
+use vox_editor::{Editor, Level, NoClipboard, ScopeKind, Services};
 use vox_storage::Storage;
 use vox_width::UnicodeWidth;
 
-use cli::{Exit, Mode};
+use cli::{Exit, Mode, Run};
 
 /// Where vox releases come from: `vX.Y.Z` tags of this repository.
 const REPO: &str = "https://github.com/csgn/vox.git";
 
-/// Parse arguments, open the file, load the scope's config and plugins, run the editor.
+/// Parse arguments, open the file, load the scope's config and plugins, run the editor (or
+/// the commands of `vox run`).
 fn main() -> ExitCode {
     let args = std::env::args_os().skip(1).collect();
     let cli = match cli::parse(args, Path::is_dir) {
@@ -30,13 +32,17 @@ fn main() -> ExitCode {
             println!("{}", cli::HELP);
             return ExitCode::SUCCESS;
         }
+        Err(Exit::RunHelp) => {
+            println!("{}", cli::RUN_HELP);
+            return ExitCode::SUCCESS;
+        }
         Err(Exit::Version) => {
             println!("vox {}", env!("CARGO_PKG_VERSION"));
             return ExitCode::SUCCESS;
         }
         Err(Exit::Error(e)) => {
             eprintln!("vox: {e}");
-            return ExitCode::FAILURE;
+            return ExitCode::from(2);
         }
     };
     let doc = match &cli.file {
@@ -52,7 +58,11 @@ fn main() -> ExitCode {
     let services = Services {
         storage: Storage::boxed,
         width: Box::new(UnicodeWidth),
-        clipboard: Box::new(SystemClipboard::default()),
+        clipboard: if cli.run.is_some() {
+            Box::new(NoClipboard)
+        } else {
+            Box::new(SystemClipboard::default())
+        },
         clock: Box::new(std::time::Instant::now),
     };
     let mut editor = Editor::with_services(doc, services);
@@ -70,16 +80,22 @@ fn main() -> ExitCode {
         }
     };
     editor.set_scope(active.clone(), global);
+    // Without a terminal nobody can answer a dialog.
+    editor.set_interactive(cli.run.is_none());
     editor.set_config_writer(vox_config_file::write_edits);
     editor.set_file_format(vox_config_file::parse, vox_config_file::format);
     load_config(&mut editor, &active);
     load_plugins(&mut editor, &active);
     vox_editor::plugin::manage::lock_status_notice(&mut editor);
     editor.set_update_source(update_source());
+    register_plugin_new(&mut editor);
+    if let Some(run) = &cli.run {
+        editor.start();
+        return run_commands(&mut editor, run);
+    }
     if active.kind != ScopeKind::Vanilla {
         vox_editor::update::check_on_start(&mut editor);
     }
-    register_plugin_new(&mut editor);
     if active.kind == ScopeKind::Local && !active.exists() {
         editor.run_command("scope setup");
     }
@@ -89,6 +105,63 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
     ExitCode::SUCCESS
+}
+
+/// `vox run`: run each command line, wait for its background jobs, print its reply to stdout
+/// and its messages to stderr. Stops at the first command that fails (its error, or an
+/// error message such as a failed install); exit status 1 then.
+fn run_commands(editor: &mut Editor, run: &Run) -> ExitCode {
+    let mut lines = run.commands.clone();
+    if run.stdin {
+        for line in std::io::stdin().lock().lines() {
+            match line {
+                Ok(l) if l.trim().is_empty() => {}
+                Ok(l) => lines.push(l),
+                Err(e) => {
+                    eprintln!("vox: stdin: {e}");
+                    return ExitCode::FAILURE;
+                }
+            }
+        }
+    }
+    let mut shown = print_messages(editor, 0);
+    for line in &lines {
+        let result = editor.execute(line);
+        while editor.jobs_running() > 0 {
+            std::thread::sleep(std::time::Duration::from_millis(20));
+            editor.tick();
+        }
+        let failed = editor.history()[shown..]
+            .iter()
+            .any(|(level, _)| *level == Level::Error);
+        shown = print_messages(editor, shown);
+        match result {
+            Ok(Some(v)) if run.json => println!("{}", v.to_json()),
+            Ok(Some(v)) => println!("{}", v.to_text()),
+            Ok(None) => {}
+            Err(e) => {
+                eprintln!("vox: {}: {e}", line.trim());
+                return ExitCode::FAILURE;
+            }
+        }
+        if failed {
+            return ExitCode::FAILURE;
+        }
+        if editor.should_quit() {
+            break;
+        }
+    }
+    ExitCode::SUCCESS
+}
+
+/// Print messages and notifications after the first `from` to stderr; returns how many
+/// there are now.
+fn print_messages(editor: &Editor, from: usize) -> usize {
+    let history = editor.history();
+    for (level, text) in &history[from..] {
+        eprintln!("vox: {}: {text}", level.name());
+    }
+    history.len()
 }
 
 /// vox's repository (the one install.sh uses), this version, and where it is installed.

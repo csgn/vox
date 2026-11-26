@@ -13,6 +13,7 @@
 - [Plugins](user/plugins.md)
 - [Developer mode](user/developer-mode.md)
 - [Updating vox](user/updating.md)
+- [Running commands from a shell](user/scripting.md)
 
 # Code tour
 - [Crate map](tour/README.md)

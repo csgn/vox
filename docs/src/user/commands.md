@@ -61,7 +61,7 @@ none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
 
 Commands like `:plugin list` and `:settings get KEY` return data. A one-line result is shown
 in the message line; a longer one in a modal, as `key: value` lines. The same commands will
-be runnable from a shell with `vox run` (M13), which prints the data as text or JSON.
+be run from a shell with [`vox run`](scripting.md), which prints the data as text or JSON.
 
 Every action has a command that needs no dialog, so it can run without a person at the
 keyboard: `:plugin add SOURCE` (not `:plugin add`), `:plugin remove! NAME` (no question),

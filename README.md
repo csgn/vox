@@ -2,7 +2,7 @@
 
 Vim-like modal terminal editor written in Rust. Planned: built-in Claude integration (via the `claude` CLI) and Rust plugins compiled to WASM.
 
-Status: **v0.15.0** — updater (`:update check|install`, asks at start-up); command API (`:settings set|get`, `:plugin list|info`, data replies); plugin manager (`:plugins`, `<leader>p`); plugin installer and `vox.lock` (`:plugin add PATH|GIT_URL`,
+Status: **v0.16.0** — `vox run` (editor commands from a shell, `--json`); updater (`:update check|install`, asks at start-up); command API (`:settings set|get`, `:plugin list|info`, data replies); plugin manager (`:plugins`, `<leader>p`); plugin installer and `vox.lock` (`:plugin add PATH|GIT_URL`,
 `:plugins sync`); `:settings` dialog (edits config.toml, keeps comments); plugin packages
 with manifests, settings, and health checks; project
 setups (`--local-config`, `--vanilla`); Vim editing, panels / modal / notifications, developer mode (log, reload), a developer API (commands,
@@ -29,7 +29,7 @@ curl -fsSL https://raw.githubusercontent.com/csgn/vox/master/install.sh | sh
 ```
 
 Builds the latest release with `cargo` (needs `git` and [Rust](https://rustup.rs)) into
-`~/.cargo/bin`. Options: `VOX_VERSION=v0.15.0`, `VOX_INSTALL_ROOT=DIR` (installs to `DIR/bin`).
+`~/.cargo/bin`. Options: `VOX_VERSION=v0.16.0`, `VOX_INSTALL_ROOT=DIR` (installs to `DIR/bin`).
 
 ## Build from a checkout
 

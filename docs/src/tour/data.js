@@ -13,16 +13,16 @@ window.VOX_TOUR = {
     "vox-width"
    ],
    "third_party": [],
-   "doc": "vox: a Vim-like terminal editor. Picks the scope from the command line, wires adapter crates into the editor, and runs it.",
+   "doc": "vox: a Vim-like terminal editor. Picks the scope from the command line, wires adapter crates into the editor, and runs it, or runs commands without a terminal (`vox run`).",
    "binary": true,
    "files": [
     {
      "path": "crates/vox/src/cli.rs",
-     "lines": 146
+     "lines": 271
     },
     {
      "path": "crates/vox/src/main.rs",
-     "lines": 185
+     "lines": 258
     }
    ],
    "used_by": [],
@@ -127,7 +127,7 @@ window.VOX_TOUR = {
     },
     {
      "path": "crates/vox-editor/src/config.rs",
-     "lines": 466
+     "lines": 542
     },
     {
      "path": "crates/vox-editor/src/editor.rs",
@@ -390,7 +390,7 @@ window.VOX_TOUR = {
    "qual": "cli::parse",
    "crate": "vox",
    "file": "crates/vox/src/cli.rs",
-   "line": 54,
+   "line": 90,
    "public": true,
    "owner": null,
    "trait": null,
@@ -408,20 +408,21 @@ window.VOX_TOUR = {
    "qual": "main",
    "crate": "vox",
    "file": "crates/vox/src/main.rs",
-   "line": 25,
+   "line": 27,
    "public": false,
    "owner": null,
    "trait": null,
    "decl_only": false,
    "sig": "fn main() -> ExitCode",
-   "doc": "Parse arguments, open the file, load the scope's config and plugins, run the editor.",
+   "doc": "Parse arguments, open the file, load the scope's config and plugins, run the editor (or the commands of `vox run`).",
    "calls": [
     "vox-editor::Editor::set_scope",
+    "vox-editor::Editor::set_interactive",
     "vox-editor::Editor::set_config_writer",
     "vox-editor::Editor::set_file_format",
     "vox-editor::Editor::set_update_source",
-    "vox-editor::Editor::run_command",
     "vox-editor::Editor::start",
+    "vox-editor::Editor::run_command",
     "vox::cli::parse",
     "vox-core::Document::new",
     "vox-core::Document::open",
@@ -436,9 +437,55 @@ window.VOX_TOUR = {
     "vox::load_config",
     "vox::load_plugins",
     "vox::update_source",
-    "vox::register_plugin_new"
+    "vox::register_plugin_new",
+    "vox::run_commands"
    ],
    "called_by": []
+  },
+  {
+   "id": "vox::run_commands",
+   "name": "run_commands",
+   "qual": "run_commands",
+   "crate": "vox",
+   "file": "crates/vox/src/main.rs",
+   "line": 113,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn run_commands(editor: &mut Editor, run: &Run) -> ExitCode",
+   "doc": "`vox run`: run each command line, wait for its background jobs, print its reply to stdout and its messages to stderr. Stops at the first command that fails (its error, or an error message such as a failed install); exit status 1 then.",
+   "calls": [
+    "vox-editor::Editor::execute",
+    "vox-editor::Editor::jobs_running",
+    "vox-editor::Editor::tick",
+    "vox-editor::Editor::history",
+    "vox-editor::Editor::should_quit",
+    "vox::print_messages"
+   ],
+   "called_by": [
+    "vox::main"
+   ]
+  },
+  {
+   "id": "vox::print_messages",
+   "name": "print_messages",
+   "qual": "print_messages",
+   "crate": "vox",
+   "file": "crates/vox/src/main.rs",
+   "line": 159,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn print_messages(editor: &Editor, from: usize) -> usize",
+   "doc": "Print messages and notifications after the first `from` to stderr; returns how many there are now.",
+   "calls": [
+    "vox-editor::Editor::history"
+   ],
+   "called_by": [
+    "vox::run_commands"
+   ]
   },
   {
    "id": "vox::update_source",
@@ -446,7 +493,7 @@ window.VOX_TOUR = {
    "qual": "update_source",
    "crate": "vox",
    "file": "crates/vox/src/main.rs",
-   "line": 95,
+   "line": 168,
    "public": false,
    "owner": null,
    "trait": null,
@@ -467,7 +514,7 @@ window.VOX_TOUR = {
    "qual": "load_config",
    "crate": "vox",
    "file": "crates/vox/src/main.rs",
-   "line": 105,
+   "line": 178,
    "public": false,
    "owner": null,
    "trait": null,
@@ -488,7 +535,7 @@ window.VOX_TOUR = {
    "qual": "load_plugins",
    "crate": "vox",
    "file": "crates/vox/src/main.rs",
-   "line": 115,
+   "line": 188,
    "public": false,
    "owner": null,
    "trait": null,
@@ -511,7 +558,7 @@ window.VOX_TOUR = {
    "qual": "register_plugin_new",
    "crate": "vox",
    "file": "crates/vox/src/main.rs",
-   "line": 155,
+   "line": 228,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2766,12 +2813,30 @@ window.VOX_TOUR = {
    "called_by": []
   },
   {
+   "id": "vox-editor::Value::to_json",
+   "name": "to_json",
+   "qual": "Value::to_json",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/config.rs",
+   "line": 63,
+   "public": true,
+   "owner": "Value",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn to_json(&self) -> String",
+   "doc": "The value as JSON on one line. Non-finite floats become `null`.",
+   "calls": [
+    "vox-editor::config::write_json"
+   ],
+   "called_by": []
+  },
+  {
    "id": "vox-editor::Value::scalar_text",
    "name": "scalar_text",
    "qual": "Value::scalar_text",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 63,
+   "line": 70,
    "public": false,
    "owner": "Value",
    "trait": null,
@@ -2784,12 +2849,50 @@ window.VOX_TOUR = {
    ]
   },
   {
+   "id": "vox-editor::config::write_json",
+   "name": "write_json",
+   "qual": "config::write_json",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/config.rs",
+   "line": 85,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn write_json(v: &Value, out: &mut String)",
+   "doc": "Append `v` as JSON to `out` (see [`Value::to_json`]).",
+   "calls": [
+    "vox-editor::config::json_string"
+   ],
+   "called_by": [
+    "vox-editor::Value::to_json"
+   ]
+  },
+  {
+   "id": "vox-editor::config::json_string",
+   "name": "json_string",
+   "qual": "config::json_string",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/config.rs",
+   "line": 118,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn json_string(s: &str, out: &mut String)",
+   "doc": "Append `s` as a JSON string literal, escaping quotes, backslashes, and control chars.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::config::write_json"
+   ]
+  },
+  {
    "id": "vox-editor::config::write_text",
    "name": "write_text",
    "qual": "config::write_text",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 78,
+   "line": 135,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2807,7 +2910,7 @@ window.VOX_TOUR = {
    "qual": "From::from",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 111,
+   "line": 168,
    "public": false,
    "owner": "From",
    "trait": null,
@@ -2823,7 +2926,7 @@ window.VOX_TOUR = {
    "qual": "From::from",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 118,
+   "line": 175,
    "public": false,
    "owner": "From",
    "trait": null,
@@ -2839,7 +2942,7 @@ window.VOX_TOUR = {
    "qual": "From::from",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 125,
+   "line": 182,
    "public": false,
    "owner": "From",
    "trait": null,
@@ -2855,7 +2958,7 @@ window.VOX_TOUR = {
    "qual": "From::from",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 132,
+   "line": 189,
    "public": false,
    "owner": "From",
    "trait": null,
@@ -2871,7 +2974,7 @@ window.VOX_TOUR = {
    "qual": "Config::default",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 158,
+   "line": 215,
    "public": true,
    "owner": "Config",
    "trait": "Default",
@@ -2893,7 +2996,7 @@ window.VOX_TOUR = {
    "qual": "Config::from_value",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 174,
+   "line": 231,
    "public": true,
    "owner": "Config",
    "trait": null,
@@ -2915,7 +3018,7 @@ window.VOX_TOUR = {
    "qual": "config::parse_ui",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 266,
+   "line": 323,
    "public": false,
    "owner": null,
    "trait": null,
@@ -3022,6 +3125,7 @@ window.VOX_TOUR = {
    "doc": "Whether the app has been asked to quit.",
    "calls": [],
    "called_by": [
+    "vox::run_commands",
     "vox-term::run"
    ]
   },
@@ -3671,7 +3775,10 @@ window.VOX_TOUR = {
    "sig": "pub fn history(&self) -> &[(Level, String)]",
    "doc": "Messages and notifications so far, oldest first.",
    "calls": [],
-   "called_by": []
+   "called_by": [
+    "vox::run_commands",
+    "vox::print_messages"
+   ]
   },
   {
    "id": "vox-editor::Editor::next_deadline",
@@ -3776,7 +3883,9 @@ window.VOX_TOUR = {
    "sig": "pub fn jobs_running(&self) -> usize",
    "doc": "Number of background jobs still running.",
    "calls": [],
-   "called_by": []
+   "called_by": [
+    "vox::run_commands"
+   ]
   },
   {
    "id": "vox-editor::Editor::set_file_format",
@@ -3832,6 +3941,7 @@ window.VOX_TOUR = {
     "vox-editor::Editor::timeout"
    ],
    "called_by": [
+    "vox::run_commands",
     "vox-term::run"
    ]
   },
@@ -4960,7 +5070,9 @@ window.VOX_TOUR = {
     "vox-editor::Editor::with_change_events",
     "vox-editor::Editor::refresh_if_stale"
    ],
-   "called_by": []
+   "called_by": [
+    "vox::run_commands"
+   ]
   },
   {
    "id": "vox-editor::Editor::reply",
@@ -5008,7 +5120,9 @@ window.VOX_TOUR = {
    "sig": "pub fn set_interactive(&mut self, on: bool)",
    "doc": "Set whether a person is at the keyboard (see [`Editor::interactive`]).",
    "calls": [],
-   "called_by": []
+   "called_by": [
+    "vox::main"
+   ]
   },
   {
    "id": "vox-editor::Editor::refresh_if_stale",
@@ -12127,12 +12241,22 @@ window.VOX_TOUR = {
    "doc": "Parsed arguments."
   },
   {
+   "id": "vox::Run",
+   "name": "Run",
+   "kind": "struct",
+   "crate": "vox",
+   "file": "crates/vox/src/cli.rs",
+   "line": 30,
+   "public": true,
+   "doc": "What `vox run` should do."
+  },
+  {
    "id": "vox::Exit",
    "name": "Exit",
    "kind": "enum",
    "crate": "vox",
    "file": "crates/vox/src/cli.rs",
-   "line": 28,
+   "line": 41,
    "public": true,
    "doc": "What to do instead of starting the editor."
   },
@@ -12332,7 +12456,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 139,
+   "line": 196,
    "public": true,
    "doc": "Validated settings."
   },

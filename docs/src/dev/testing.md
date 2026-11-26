@@ -10,6 +10,7 @@ cargo test --workspace
 | Key sequences | `crates/vox-editor/tests/editing.rs` | `parse_keys` |
 | Vim golden tests | `crates/vox-editor/tests/vim.rs` | `(before, keys, after)` tables |
 | Render snapshots | `crates/vox-editor/tests/render.rs`, `snapshots/*.snap` | `insta` on `Surface` |
+| `vox run` (real binary) | `crates/vox/tests/run.rs` | `CARGO_BIN_EXE_vox` |
 | Adapter conformance | `crates/vox-storage` (`storage::conformance`), `vox-width`, `vox-term` | std |
 | Dependency rule | `scripts/check-deps.sh` | `cargo tree` |
 

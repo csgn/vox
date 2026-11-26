@@ -68,6 +68,10 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
 - The binary (`crates/vox/src/cli.rs`, `main.rs`) parses `--local-config [DIR]` /
   `--vanilla`, builds the active scope, and loads config and plugins only from its paths.
   The editor only stores the scope (for `:scope`, the badge, and the set-up dialog).
+- `vox run …` (`cli::Run`, `main::run_commands`) builds the same editor without a terminal:
+  `set_interactive(false)`, no clipboard, no update check. Each command goes through
+  `Editor::execute`; the loop calls `tick` until `jobs_running() == 0`, prints the reply
+  (stdout) and new `history()` entries (stderr), and stops at the first error.
 
 ## Plugin packages (`vox-editor/src/plugin/`)
 - `version.rs`: `Version`, `VersionReq` (`>=`, `^`, ranges).

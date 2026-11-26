@@ -5,6 +5,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-27 — M14 vox run
+
+### Added
+- `vox run [--local-config [DIR] | --vanilla] [--json] [--file FILE] COMMAND... | -`: run
+  editor commands without a terminal. Waits for background jobs; replies go to stdout
+  (text, or one JSON line each with `--json`), messages to stderr; the first failure stops
+  with exit status 1. `-` reads command lines from stdin. `vox run --help`.
+- `Value::to_json`.
+
+### Changed
+- Bad command-line arguments exit with status 2 (was 1).
+
 ## [0.15.0] - 2026-11-27 — M13 updater
 
 ### Added

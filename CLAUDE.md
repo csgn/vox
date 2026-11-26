@@ -52,5 +52,6 @@ See `ARCHITECTURE.md` for the crate table. Key points:
 | Vim golden tables (`"foo \|bar"`, `\|` = cursor) | `crates/vox-editor/tests/vim.rs` |
 | Render snapshots | `crates/vox-editor/tests/render.rs`, `tests/snapshots/` |
 | Plugins / install / manager (real WASM) | `crates/vox-plugin-host/tests/` |
+| `vox run` (real binary) | `crates/vox/tests/run.rs` |
 
 Core tests use `SimpleStorage`, `Monospace` widths, and an in-memory clipboard.

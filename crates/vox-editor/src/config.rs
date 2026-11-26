@@ -59,6 +59,13 @@ impl Value {
         out
     }
 
+    /// The value as JSON on one line. Non-finite floats become `null`.
+    pub fn to_json(&self) -> String {
+        let mut out = String::new();
+        write_json(self, &mut out);
+        out
+    }
+
     /// Text of a value that fits on one line (scalars, empty tables and lists).
     fn scalar_text(&self) -> Option<String> {
         match self {
@@ -72,6 +79,56 @@ impl Value {
             Value::Array(_) | Value::Table(_) => None,
         }
     }
+}
+
+/// Append `v` as JSON to `out` (see [`Value::to_json`]).
+fn write_json(v: &Value, out: &mut String) {
+    match v {
+        Value::String(s) => json_string(s, out),
+        Value::Integer(n) => out.push_str(&n.to_string()),
+        Value::Float(f) if f.is_finite() => out.push_str(&f.to_string()),
+        Value::Float(_) => out.push_str("null"),
+        Value::Bool(b) => out.push_str(if *b { "true" } else { "false" }),
+        Value::Array(a) => {
+            out.push('[');
+            for (i, item) in a.iter().enumerate() {
+                if i > 0 {
+                    out.push(',');
+                }
+                write_json(item, out);
+            }
+            out.push(']');
+        }
+        Value::Table(t) => {
+            out.push('{');
+            for (i, (k, item)) in t.iter().enumerate() {
+                if i > 0 {
+                    out.push(',');
+                }
+                json_string(k, out);
+                out.push(':');
+                write_json(item, out);
+            }
+            out.push('}');
+        }
+    }
+}
+
+/// Append `s` as a JSON string literal, escaping quotes, backslashes, and control chars.
+fn json_string(s: &str, out: &mut String) {
+    out.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
 }
 
 /// Write a table or list as lines indented by `indent` (see [`Value::to_text`]).
@@ -313,6 +370,25 @@ fn parse_ui(t: &BTreeMap<String, Value>, ui: &mut UiConfig, errors: &mut Vec<Str
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn value_as_json() {
+        let v = Value::table([
+            ("s", Value::from("a\"b\\c\nd\u{1}é")),
+            ("n", Value::from(-3)),
+            ("f", Value::Float(0.5)),
+            ("inf", Value::Float(f64::INFINITY)),
+            (
+                "list",
+                Value::Array(vec![true.into(), Value::table(Vec::<(&str, Value)>::new())]),
+            ),
+        ]);
+        assert_eq!(
+            v.to_json(),
+            r#"{"f":0.5,"inf":null,"list":[true,{}],"n":-3,"s":"a\"b\\c\nd\u0001é"}"#
+        );
+        assert_eq!(Value::Array(vec![]).to_json(), "[]");
+    }
 
     #[test]
     fn value_as_text() {

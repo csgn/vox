@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use vox_clipboard::SystemClipboard;
 use vox_core::Document;
-use vox_editor::{Editor, Services};
+use vox_editor::{Config, Editor, Services};
 use vox_storage::Storage;
 use vox_width::UnicodeWidth;
 
@@ -31,9 +31,35 @@ fn main() -> ExitCode {
         clipboard: Box::new(SystemClipboard::default()),
     };
     let mut editor = Editor::with_services(doc, services);
+    load_config(&mut editor);
     if let Err(e) = vox_term::run(&mut editor) {
         eprintln!("vox: terminal error: {e}");
         return ExitCode::FAILURE;
     }
     ExitCode::SUCCESS
+}
+
+/// Read the user's config file, if any, and apply it. Problems are shown as the
+/// editor's first message.
+fn load_config(editor: &mut Editor) {
+    let Some(path) = vox_config_file::default_path() else {
+        return;
+    };
+    let value = match vox_config_file::load(&path) {
+        Ok(Some(value)) => value,
+        Ok(None) => return,
+        Err(e) => {
+            editor.set_message(format!("config: {e}"));
+            return;
+        }
+    };
+    let (config, errors) = Config::from_value(&value);
+    editor.apply_config(&config);
+    if let Some(first) = errors.first() {
+        let more = match errors.len() {
+            1 => String::new(),
+            n => format!(" ({} more)", n - 1),
+        };
+        editor.set_message(format!("config {}: {first}{more}", path.display()));
+    }
 }

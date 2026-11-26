@@ -4,6 +4,12 @@ use vox_core::storage::{SimpleStorage, StorageFactory};
 use vox_core::{Document, Position, motion, search};
 use vox_view::{CharWidth, Monospace, Viewport, display_col};
 
+use std::time::Duration;
+
+use crate::builtin;
+use crate::command::{self, Commands};
+use crate::config::Config;
+use crate::keymap::{self, Binding, Keymap, Lookup, MapMode};
 use crate::keys::{Key, KeyCode};
 
 use crate::normal::{self, Action, Cmd, InsertAt, Motion, Operator, Parse, Scroll, Target};
@@ -11,8 +17,6 @@ use crate::register::{self, Clipboard, NoClipboard, Reg, Registers};
 
 /// Rows reserved below the text area: statusline + command line.
 pub(crate) const CHROME_ROWS: u16 = 2;
-
-const E37: &str = "E37: No write since last change (add ! to override)";
 
 /// Editor input mode.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -90,6 +94,11 @@ pub struct Editor {
     quit: bool,
     storage: StorageFactory,
     pub(crate) width: Box<dyn CharWidth>,
+    commands: Commands,
+    keymap: Keymap,
+    /// Typed keys that may still become a mapping.
+    map_pending: Vec<Key>,
+    key_timeout: Duration,
 }
 
 impl std::fmt::Debug for Editor {
@@ -112,6 +121,8 @@ impl Editor {
     pub fn with_services(doc: Document, services: Services) -> Self {
         let mut registers = Registers::default();
         registers.clipboard = services.clipboard;
+        let mut commands = Commands::default();
+        builtin::register(&mut commands);
         Self {
             doc,
             view: Viewport::default(),
@@ -127,6 +138,10 @@ impl Editor {
             quit: false,
             storage: services.storage,
             width: services.width,
+            commands,
+            keymap: Keymap::default(),
+            map_pending: Vec::new(),
+            key_timeout: Duration::from_millis(1000),
         }
     }
 
@@ -211,12 +226,78 @@ impl Editor {
 
     /// Handle one key press.
     pub fn handle_key(&mut self, key: Key) {
+        self.map_pending.push(key);
+        self.resolve_mappings(false);
+        self.follow_cursor();
+    }
+
+    /// Whether typed keys are waiting to see if they complete a mapping. The run loop
+    /// should call [`Editor::timeout`] if no key arrives within [`Editor::key_timeout`].
+    pub fn has_pending_keys(&self) -> bool {
+        !self.map_pending.is_empty()
+    }
+
+    /// How long to wait for the rest of a mapping.
+    pub fn key_timeout(&self) -> Duration {
+        self.key_timeout
+    }
+
+    /// No key arrived in time: use the mapping typed so far, or treat the keys as unmapped.
+    pub fn timeout(&mut self) {
+        self.resolve_mappings(true);
+        self.follow_cursor();
+    }
+
+    /// Mapping mode for the current editor mode; prompts have no mappings.
+    fn map_mode(&self) -> Option<MapMode> {
+        match self.mode {
+            Mode::Normal => Some(MapMode::Normal),
+            Mode::Insert => Some(MapMode::Insert),
+            Mode::Visual { .. } => Some(MapMode::Visual),
+            Mode::Command(_) | Mode::Search(_) => None,
+        }
+    }
+
+    /// Match pending keys against mappings. Runs a mapping when one matches; sends keys that
+    /// cannot start a mapping to the mode handlers. `timed_out` stops waiting for longer
+    /// mappings.
+    fn resolve_mappings(&mut self, timed_out: bool) {
+        while !self.map_pending.is_empty() {
+            let lookup = match self.map_mode() {
+                Some(m) => self.keymap.lookup(m, &self.map_pending),
+                None => Lookup::None,
+            };
+            match lookup {
+                Lookup::Prefix | Lookup::ExactAndPrefix(_) if !timed_out => return,
+                Lookup::Exact(b) | Lookup::ExactAndPrefix(b) => {
+                    let b = b.clone();
+                    self.map_pending.clear();
+                    self.run_binding(b);
+                }
+                Lookup::None | Lookup::Prefix => {
+                    // The first key starts no mapping: handle it as typed, retry the rest.
+                    let key = self.map_pending.remove(0);
+                    self.dispatch(key);
+                }
+            }
+        }
+    }
+
+    /// Run a mapping's binding: feed its keys (not re-mapped) or run its command.
+    fn run_binding(&mut self, b: Binding) {
+        match b {
+            Binding::Keys(keys) => keys.into_iter().for_each(|k| self.dispatch(k)),
+            Binding::Command(line) => self.run_command(&line),
+        }
+    }
+
+    /// Send one key to the handler of the current mode, without mappings.
+    fn dispatch(&mut self, key: Key) {
         match self.mode {
             Mode::Normal | Mode::Visual { .. } => self.handle_normal(key),
             Mode::Insert => self.handle_insert(key),
             Mode::Command(_) | Mode::Search(_) => self.handle_prompt(key),
         }
-        self.follow_cursor();
     }
 
     /// Index of the last line.
@@ -715,7 +796,7 @@ impl Editor {
                 let mode = std::mem::replace(&mut self.mode, Mode::Normal);
                 match mode {
                     Mode::Search(_) => self.search(input),
-                    _ => self.execute(input.trim()),
+                    _ => self.run_command(&input),
                 }
             }
             KeyCode::Char(c) => input.push(c),
@@ -733,43 +814,62 @@ impl Editor {
         }
     }
 
-    /// Run a `:` command line (`w`, `q`, `wq`, `x`, `e`, with optional `!` and argument).
-    fn execute(&mut self, cmd: &str) {
-        let (name, arg) = match cmd.split_once(char::is_whitespace) {
-            Some((n, a)) => (n, Some(a.trim()).filter(|a| !a.is_empty())),
-            None => (cmd, None),
+    /// Run a command line such as `w`, `e! notes.txt`, or a user/plugin command.
+    /// Errors are shown as the message.
+    pub fn run_command(&mut self, line: &str) {
+        let (name, args) = command::parse_line(line);
+        if name.is_empty() {
+            return;
+        }
+        let Some(cmd) = self.commands.get(name) else {
+            self.message = Some(format!("E492: Not an editor command: {}", line.trim()));
+            return;
         };
-        let (name, force) = match name.strip_suffix('!') {
-            Some(n) => (n, true),
-            None => (name, false),
-        };
-        match name {
-            "" => {}
-            "q" | "quit" | "qa" | "qall" => {
-                if self.doc.is_modified() && !force {
-                    self.message = Some(E37.into());
-                } else {
-                    self.quit = true;
-                }
-            }
-            "w" | "write" => {
-                self.write(arg);
-            }
-            "wq" | "x" | "xit" => {
-                if (name != "wq" && !self.doc.is_modified()) || self.write(arg) {
-                    self.quit = true;
-                }
-            }
-            "e" | "edit" => self.edit(arg, force),
-            _ => self.message = Some(format!("E492: Not an editor command: {cmd}")),
+        let handler = cmd.handler.clone();
+        if let Err(e) = handler(self, args) {
+            self.message = Some(e);
         }
     }
 
-    /// Save, optionally to a new path. Returns whether the write succeeded.
-    fn write(&mut self, path: Option<&str>) -> bool {
+    /// The command registry, to look up or list commands.
+    pub fn commands(&self) -> &Commands {
+        &self.commands
+    }
+
+    /// The command registry, to add commands.
+    pub fn commands_mut(&mut self) -> &mut Commands {
+        &mut self.commands
+    }
+
+    /// The user key mappings.
+    pub fn keymap_mut(&mut self) -> &mut Keymap {
+        &mut self.keymap
+    }
+
+    /// Apply settings: leader, mapping timeout, and key mappings.
+    pub fn apply_config(&mut self, cfg: &Config) {
+        self.key_timeout = Duration::from_millis(cfg.timeout_ms);
+        for (mode, lhs, rhs) in &cfg.keymaps {
+            let lhs = keymap::parse_lhs(lhs, &cfg.leader);
+            let binding = keymap::parse_binding(rhs, &cfg.leader);
+            self.keymap.set(*mode, lhs, binding);
+        }
+    }
+
+    /// Show `msg` on the bottom line.
+    pub fn set_message(&mut self, msg: impl Into<String>) {
+        self.message = Some(msg.into());
+    }
+
+    /// Ask the editor to exit; the run loop stops after the current key.
+    pub fn quit(&mut self) {
+        self.quit = true;
+    }
+
+    /// Save, optionally to a new path. Sets the success message; returns bytes written.
+    pub(crate) fn write(&mut self, path: Option<&str>) -> Result<usize, String> {
         if path.is_none() && self.doc.path().is_none() {
-            self.message = Some("E32: No file name".into());
-            return false;
+            return Err("E32: No file name".into());
         }
         let result = match path {
             Some(p) => self.doc.save_as(p),
@@ -786,40 +886,29 @@ impl Editor {
                     "\"{name}\" {}L, {bytes}B written",
                     self.doc.line_count()
                 ));
-                true
+                Ok(bytes)
             }
-            Err(e) => {
-                self.message = Some(format!("E212: Can't open file for writing: {name}: {e}"));
-                false
-            }
+            Err(e) => Err(format!("E212: Can't open file for writing: {name}: {e}")),
         }
     }
 
-    /// Open `path`, or reload the current file when `path` is `None`.
-    fn edit(&mut self, path: Option<&str>, force: bool) {
-        if self.doc.is_modified() && !force {
-            self.message = Some(E37.into());
-            return;
-        }
+    /// Open `path`, or reload the current file when `path` is `None`. Discards changes;
+    /// callers check [`Document::is_modified`] first.
+    pub(crate) fn edit(&mut self, path: Option<&str>) -> Result<(), String> {
         let path = match path.map(std::path::PathBuf::from) {
             Some(p) => p,
             None => match self.doc.path() {
                 Some(p) => p.to_path_buf(),
-                None => {
-                    self.message = Some("E32: No file name".into());
-                    return;
-                }
+                None => return Err("E32: No file name".into()),
             },
         };
-        match Document::open(&path, self.storage) {
-            Ok(doc) => {
-                self.message = Some(format!("\"{}\" {}L", path.display(), doc.line_count()));
-                self.doc = doc;
-                self.view = Viewport::default();
-                self.set_cursor(Position::default());
-            }
-            Err(e) => self.message = Some(format!("E484: Can't open file {}: {e}", path.display())),
-        }
+        let doc = Document::open(&path, self.storage)
+            .map_err(|e| format!("E484: Can't open file {}: {e}", path.display()))?;
+        self.message = Some(format!("\"{}\" {}L", path.display(), doc.line_count()));
+        self.doc = doc;
+        self.view = Viewport::default();
+        self.set_cursor(Position::default());
+        Ok(())
     }
 }
 

@@ -23,6 +23,7 @@ pub(crate) struct Cmd {
     pub action: Action,
 }
 
+/// An operator: what to do with a range of text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Operator {
     Delete,
@@ -30,6 +31,7 @@ pub(crate) enum Operator {
     Yank,
 }
 
+/// What an operator acts on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Target {
     Motion(Motion),
@@ -39,6 +41,7 @@ pub(crate) enum Target {
     Selection,
 }
 
+/// A cursor motion.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Motion {
     Left,
@@ -57,6 +60,7 @@ pub(crate) enum Motion {
     SearchPrev,
 }
 
+/// Where an insert command starts inserting.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum InsertAt {
     Before,
@@ -67,6 +71,7 @@ pub(crate) enum InsertAt {
     Above,
 }
 
+/// A scroll command.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Scroll {
     HalfDown,
@@ -75,6 +80,7 @@ pub(crate) enum Scroll {
     PageUp,
 }
 
+/// What a parsed command does.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Action {
     Move(Motion),

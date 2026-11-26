@@ -8,19 +8,20 @@ vox (bin) ──────>│ vox-editor ──> vox-view                  �
    │             │      └──────> vox-core                   │
    │             └──────────────────────▲───────────────────┘
    │                                    │ implement core traits
-   └──> adapters: vox-storage ─ vox-width ─ vox-clipboard ─ vox-term
+   └──> adapters: vox-storage ─ vox-width ─ vox-clipboard ─ vox-term ─ vox-config-file
 ```
 
 | Crate | Layer | Responsibility | Third-party library used |
 |---|---|---|---|
 | `vox-core` | core | `Document` over `TextStorage` trait, `Position`, undo/redo, `motion`, literal `search`, `SimpleStorage` | none |
 | `vox-view` | core | `Viewport`, `CharWidth` trait (+ `Monospace`), char-column → screen-cell mapping | none |
-| `vox-editor` | core | `Editor`: modes, Vim grammar, registers, `:` commands; own `Key` types; renders to own `Surface`; `Clipboard` trait; `Services` injection | none |
+| `vox-editor` | core | `Editor`: modes, Vim grammar, registers; developer API (command registry, key mappings, `Config` from a format-neutral `Value`); own `Key` types; renders to own `Surface`; `Clipboard` trait; `Services` injection | none |
 | `vox-storage` | adapter | `Storage: TextStorage` — fast text storage for large files (tree of text chunks) | ropey |
 | `vox-width` | adapter | `UnicodeWidth: CharWidth` — terminal cell width of each char | unicode-width |
 | `vox-clipboard` | adapter | `SystemClipboard: Clipboard` — system copy/paste | arboard |
-| `vox-term` | adapter | terminal: raw mode, key input → `Key`, draws `Surface` (row diff), run loop | crossterm |
-| `vox` | binary | builds `Services` from adapters, opens the file, runs `vox-term` | none directly |
+| `vox-term` | adapter | terminal: raw mode, key input → `Key`, draws `Surface` (row diff), run loop with mapping timeout | crossterm |
+| `vox-config-file` | adapter | finds and reads `config.toml`, converts it to `Value` | toml |
+| `vox` | binary | builds `Services` from adapters, loads the config, opens the file, runs `vox-term` | none directly |
 
 ## Rules
 - **Core crates are `std`-only.** A third-party crate may only appear in an adapter crate or
@@ -35,5 +36,4 @@ vox (bin) ──────>│ vox-editor ──> vox-view                  �
 See `docs/src/dev/dependencies.md` for how to add a new dependency.
 
 ## Planned crates
-`vox-api` (developer API, core), config adapter (TOML), `vox-plugin-host` (wasmtime adapter),
-`vox-plugin-sdk`, `vox-claude`. Added only when a milestone needs them.
+`vox-plugin-host` (wasmtime adapter), `vox-plugin-sdk`, `vox-claude`. Added only when a milestone needs them.

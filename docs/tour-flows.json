@@ -4,19 +4,66 @@
     "title": "Starting vox",
     "summary": "What happens between typing `vox notes.txt` and seeing the file on screen.",
     "steps": [
-      {"fn": "vox::main", "text": "The program starts here. It reads the command-line arguments: no argument means an empty buffer, one argument is a file path."},
-      {"fn": "vox-core::Document::open", "text": "Reads the file into a String with the standard library. A missing file is fine: you get an empty document that will be created on `:w`."},
-      {"fn": "vox-core::document::normalize", "text": "Detects the line ending (`\\n` or `\\r\\n`) and removes the final newline. It is remembered and written back on save, so every stored line is a visible line."},
-      {"fn": "vox-storage::Storage::boxed", "text": "The storage factory. The document does not know which storage it uses; the binary passes this function in. Here it creates the fast tree-based storage from the `vox-storage` adapter."},
-      {"fn": "vox-editor::Editor::with_services", "text": "Creates the editor. `Services` carries the three platform pieces: text storage factory, char width rules (`vox-width`), and the system clipboard (`vox-clipboard`)."},
-      {"fn": "vox-term::run", "text": "The main loop. It repeats: measure the terminal, draw the editor, wait for a key, give the key to the editor. It stops when the editor says it should quit."},
-      {"fn": "vox-term::Terminal::enter", "text": "Puts the terminal in raw mode (keys arrive one by one, nothing is echoed) and switches to the alternate screen. A panic hook restores the terminal if anything crashes."},
-      {"fn": "vox-editor::Editor::resize", "text": "Tells the editor the terminal size so it can keep the cursor visible."},
-      {"fn": "vox-editor::Editor::render", "text": "Builds a `Surface`: a grid of cells describing the whole screen. Pure: it only reads editor state."},
-      {"fn": "vox-term::Terminal::draw", "text": "Sends the surface to the real terminal, rewriting only the rows that changed since the last frame."},
-      {"fn": "vox-term::Terminal::read_key", "text": "Waits for the next key press."},
-      {"fn": "vox-term::convert", "text": "Converts the terminal library's key event into vox's own `Key` type, so the editor never sees third-party types."},
-      {"fn": "vox-editor::Editor::handle_key", "text": "The single entry point for input. It sends the key to the handler for the current mode, then scrolls so the cursor stays visible. The loop then draws again."}
+      {
+        "fn": "vox::main",
+        "text": "The program starts here. It reads the command-line arguments: no argument means an empty buffer, one argument is a file path."
+      },
+      {
+        "fn": "vox-core::Document::open",
+        "text": "Reads the file into a String with the standard library. A missing file is fine: you get an empty document that will be created on `:w`."
+      },
+      {
+        "fn": "vox-core::document::normalize",
+        "text": "Detects the line ending (`\\n` or `\\r\\n`) and removes the final newline. It is remembered and written back on save, so every stored line is a visible line."
+      },
+      {
+        "fn": "vox-storage::Storage::boxed",
+        "text": "The storage factory. The document does not know which storage it uses; the binary passes this function in. Here it creates the fast tree-based storage from the `vox-storage` adapter."
+      },
+      {
+        "fn": "vox-editor::Editor::with_services",
+        "text": "Creates the editor. `Services` carries the three platform pieces: text storage factory, char width rules (`vox-width`), and the system clipboard (`vox-clipboard`). It also registers the built-in commands."
+      },
+      {
+        "fn": "vox-editor::builtin::register",
+        "text": "Registers `:write`, `:quit`, `:edit`, `:wq`, `:xit` and their short names (`w`, `q`, `e`, `x`) in the command registry: the same API a plugin uses."
+      },
+      {
+        "fn": "vox::load_config",
+        "text": "Reads `~/.config/vox/config.toml` (if it exists) and applies leader key, mapping timeout, and key mappings. Problems become the first message on screen. See the walkthrough “Loading the config file”."
+      },
+      {
+        "fn": "vox-term::run",
+        "text": "The main loop. It repeats: measure the terminal, draw the editor, wait for a key, give the key to the editor. It stops when the editor says it should quit."
+      },
+      {
+        "fn": "vox-term::Terminal::enter",
+        "text": "Puts the terminal in raw mode (keys arrive one by one, nothing is echoed) and switches to the alternate screen. A panic hook restores the terminal if anything crashes."
+      },
+      {
+        "fn": "vox-editor::Editor::resize",
+        "text": "Tells the editor the terminal size so it can keep the cursor visible."
+      },
+      {
+        "fn": "vox-editor::Editor::render",
+        "text": "Builds a `Surface`: a grid of cells describing the whole screen. Pure: it only reads editor state."
+      },
+      {
+        "fn": "vox-term::Terminal::draw",
+        "text": "Sends the surface to the real terminal, rewriting only the rows that changed since the last frame."
+      },
+      {
+        "fn": "vox-term::Terminal::read_key",
+        "text": "Waits for the next key press."
+      },
+      {
+        "fn": "vox-term::convert",
+        "text": "Converts the terminal library's key event into vox's own `Key` type, so the editor never sees third-party types."
+      },
+      {
+        "fn": "vox-editor::Editor::handle_key",
+        "text": "The single entry point for input. It first checks the key against the user's mappings, then sends it to the handler for the current mode, then scrolls so the cursor stays visible. The loop then draws again."
+      }
     ]
   },
   {
@@ -24,21 +71,70 @@
     "title": "Pressing d then w (delete a word)",
     "summary": "How two key presses become one Vim command that edits the text.",
     "steps": [
-      {"fn": "vox-editor::Editor::handle_key", "text": "Key `d` arrives. The mode is Normal, so it goes to `handle_normal`."},
-      {"fn": "vox-editor::Editor::handle_normal", "text": "Adds `d` to the list of pending keys and asks the parser whether the keys form a complete command."},
-      {"fn": "vox-editor::normal::parse", "text": "`d` alone is an operator waiting for a motion, so the answer is Incomplete. Nothing happens yet; the editor waits. Then `w` arrives and `dw` parses to: operator Delete, target = motion WordForward."},
-      {"fn": "vox-editor::Editor::exec", "text": "Runs the parsed command. An operator command goes to `operate`."},
-      {"fn": "vox-editor::Editor::operate", "text": "Finds out which text the operator covers. For a motion target it asks where the motion lands, then builds a range from the cursor to that point."},
-      {"fn": "vox-editor::Editor::motion_target", "text": "For `w` with an operator it uses `next_word_start`. Vim rule: if the next word is on another line, `dw` stops at the end of the current line instead."},
-      {"fn": "vox-core::motion::next_word_start", "text": "Pure function in core: walks chars from the cursor, skipping the current word and then whitespace. Empty lines count as words."},
-      {"fn": "vox-editor::Editor::apply", "text": "Copies the text in the range into a register (so `p` can paste it back), then deletes it."},
-      {"fn": "vox-editor::Registers::set", "text": "Stores the deleted text in the unnamed register (or the system clipboard for `\"+`)."},
-      {"fn": "vox-core::Document::delete", "text": "Removes the text from storage and records the change in the undo history."},
-      {"fn": "vox-core::TextStorage::remove", "text": "The storage trait. In the real editor this is `vox-storage`'s implementation; in tests it is `SimpleStorage`. The document only knows the trait."},
-      {"fn": "vox-core::History::record", "text": "Remembers the removed text and where it was, so undo can put it back."},
-      {"fn": "vox-core::Document::commit", "text": "Closes the recorded edits into one undo step: one `u` will undo the whole `dw`."},
-      {"fn": "vox-editor::Editor::set_cursor", "text": "Puts the cursor at the start of the deleted range, clamped to a valid column."},
-      {"fn": "vox-view::Viewport::follow", "text": "Back in `handle_key`: scrolls the view if the cursor left the screen. The next loop iteration draws the result."}
+      {
+        "fn": "vox-editor::Editor::handle_key",
+        "text": "Key `d` arrives. It is added to the mapping buffer."
+      },
+      {
+        "fn": "vox-editor::Editor::resolve_mappings",
+        "text": "No user mapping starts with `d`, so the key goes straight to `dispatch`, which sends it to `handle_normal` because the mode is Normal."
+      },
+      {
+        "fn": "vox-editor::Editor::handle_normal",
+        "text": "Adds `d` to the list of pending keys and asks the parser whether the keys form a complete command."
+      },
+      {
+        "fn": "vox-editor::normal::parse",
+        "text": "`d` alone is an operator waiting for a motion, so the answer is Incomplete. Nothing happens yet; the editor waits. Then `w` arrives and `dw` parses to: operator Delete, target = motion WordForward."
+      },
+      {
+        "fn": "vox-editor::Editor::exec",
+        "text": "Runs the parsed command. An operator command goes to `operate`."
+      },
+      {
+        "fn": "vox-editor::Editor::operate",
+        "text": "Finds out which text the operator covers. For a motion target it asks where the motion lands, then builds a range from the cursor to that point."
+      },
+      {
+        "fn": "vox-editor::Editor::motion_target",
+        "text": "For `w` with an operator it uses `next_word_start`. Vim rule: if the next word is on another line, `dw` stops at the end of the current line instead."
+      },
+      {
+        "fn": "vox-core::motion::next_word_start",
+        "text": "Pure function in core: walks chars from the cursor, skipping the current word and then whitespace. Empty lines count as words."
+      },
+      {
+        "fn": "vox-editor::Editor::apply",
+        "text": "Copies the text in the range into a register (so `p` can paste it back), then deletes it."
+      },
+      {
+        "fn": "vox-editor::Registers::set",
+        "text": "Stores the deleted text in the unnamed register (or the system clipboard for `\"+`)."
+      },
+      {
+        "fn": "vox-core::Document::delete",
+        "text": "Removes the text from storage and records the change in the undo history."
+      },
+      {
+        "fn": "vox-core::TextStorage::remove",
+        "text": "The storage trait. In the real editor this is `vox-storage`'s implementation; in tests it is `SimpleStorage`. The document only knows the trait."
+      },
+      {
+        "fn": "vox-core::History::record",
+        "text": "Remembers the removed text and where it was, so undo can put it back."
+      },
+      {
+        "fn": "vox-core::Document::commit",
+        "text": "Closes the recorded edits into one undo step: one `u` will undo the whole `dw`."
+      },
+      {
+        "fn": "vox-editor::Editor::set_cursor",
+        "text": "Puts the cursor at the start of the deleted range, clamped to a valid column."
+      },
+      {
+        "fn": "vox-view::Viewport::follow",
+        "text": "Back in `handle_key`: scrolls the view if the cursor left the screen. The next loop iteration draws the result."
+      }
     ]
   },
   {
@@ -46,13 +142,34 @@
     "title": "Typing text (insert mode)",
     "summary": "Pressing `i`, typing `hi`, then `Esc`.",
     "steps": [
-      {"fn": "vox-editor::normal::parse", "text": "`i` parses to the action Insert(Before)."},
-      {"fn": "vox-editor::Editor::exec", "text": "Runs the insert action."},
-      {"fn": "vox-editor::Editor::enter_insert", "text": "Switches to Insert mode. The cursor may now sit after the last char of a line."},
-      {"fn": "vox-editor::Editor::handle_insert", "text": "Each typed char is inserted at the cursor. `Enter` inserts a line ending, `Backspace` deletes (joining lines at column 0)."},
-      {"fn": "vox-core::Document::insert", "text": "Inserts text into storage, records it in history (not yet committed), and returns the position after the new text."},
-      {"fn": "vox-core::TextStorage::insert", "text": "Storage trait call; the real implementation lives in `vox-storage`."},
-      {"fn": "vox-editor::Editor::handle_insert", "text": "`Esc`: commits all edits of this insert session as one undo step, switches back to Normal mode, and moves the cursor one left (like Vim)."}
+      {
+        "fn": "vox-editor::normal::parse",
+        "text": "`i` parses to the action Insert(Before)."
+      },
+      {
+        "fn": "vox-editor::Editor::exec",
+        "text": "Runs the insert action."
+      },
+      {
+        "fn": "vox-editor::Editor::enter_insert",
+        "text": "Switches to Insert mode. The cursor may now sit after the last char of a line."
+      },
+      {
+        "fn": "vox-editor::Editor::handle_insert",
+        "text": "Each typed char is inserted at the cursor. `Enter` inserts a line ending, `Backspace` deletes (joining lines at column 0)."
+      },
+      {
+        "fn": "vox-core::Document::insert",
+        "text": "Inserts text into storage, records it in history (not yet committed), and returns the position after the new text."
+      },
+      {
+        "fn": "vox-core::TextStorage::insert",
+        "text": "Storage trait call; the real implementation lives in `vox-storage`."
+      },
+      {
+        "fn": "vox-editor::Editor::handle_insert",
+        "text": "`Esc`: commits all edits of this insert session as one undo step, switches back to Normal mode, and moves the cursor one left (like Vim)."
+      }
     ]
   },
   {
@@ -60,13 +177,136 @@
     "title": "Saving with :w",
     "summary": "Typing `:w` and Enter.",
     "steps": [
-      {"fn": "vox-editor::normal::parse", "text": "`:` parses to the action CommandLine."},
-      {"fn": "vox-editor::Editor::exec", "text": "Switches to Command mode with an empty input line."},
-      {"fn": "vox-editor::Editor::handle_prompt", "text": "Typed chars are appended to the input. `Enter` takes the input and runs it."},
-      {"fn": "vox-editor::Editor::execute", "text": "Splits `w` into command name and argument and dispatches. `q` refuses if there are unsaved changes; `q!` forces."},
-      {"fn": "vox-editor::Editor::write", "text": "Checks there is a file name, saves, and shows a message like `\"notes.txt\" 3L, 42B written`."},
-      {"fn": "vox-core::Document::save", "text": "Writes the text plus the remembered final newline with the standard library, then marks the current undo step as the saved state."},
-      {"fn": "vox-core::Document::is_modified", "text": "Now false: the current undo step equals the saved one. The status line drops `[+]`. Undoing past the save makes it true again."}
+      {
+        "fn": "vox-editor::normal::parse",
+        "text": "`:` parses to the action CommandLine."
+      },
+      {
+        "fn": "vox-editor::Editor::exec",
+        "text": "Switches to Command mode with an empty input line."
+      },
+      {
+        "fn": "vox-editor::Editor::handle_prompt",
+        "text": "Typed chars are appended to the input. `Enter` takes the input and runs it as a command line."
+      },
+      {
+        "fn": "vox-editor::Editor::run_command",
+        "text": "Looks the command up in the registry and calls it. An `Err` from the command becomes the message (e.g. `E37: No write since last change`)."
+      },
+      {
+        "fn": "vox-editor::command::parse_line",
+        "text": "Splits `w! notes.txt` into the name `w`, the force flag `!`, and the argument `notes.txt`."
+      },
+      {
+        "fn": "vox-editor::Commands::get",
+        "text": "Finds the command by name or alias: `w` is an alias of `write`."
+      },
+      {
+        "fn": "vox-editor::builtin::write",
+        "text": "The built-in `write` command. It is an ordinary registered command; a plugin could replace it."
+      },
+      {
+        "fn": "vox-editor::Editor::write",
+        "text": "Checks there is a file name, saves, and shows a message like `\"notes.txt\" 3L, 42B written`."
+      },
+      {
+        "fn": "vox-core::Document::save",
+        "text": "Writes the text plus the remembered final newline with the standard library, then marks the current undo step as the saved state."
+      },
+      {
+        "fn": "vox-core::Document::is_modified",
+        "text": "Now false: the current undo step equals the saved one. The status line drops `[+]`. Undoing past the save makes it true again."
+      }
+    ]
+  },
+  {
+    "id": "mapping",
+    "title": "A key mapping: jk leaves insert mode",
+    "summary": "With `jk = \"<Esc>\"` under `[keymap.insert]` in the config, typing `j` then `k`.",
+    "steps": [
+      {
+        "fn": "vox-editor::Editor::handle_key",
+        "text": "`j` arrives and is added to the mapping buffer."
+      },
+      {
+        "fn": "vox-editor::Editor::resolve_mappings",
+        "text": "Asks the keymap whether the buffered keys match a mapping for Insert mode."
+      },
+      {
+        "fn": "vox-editor::Keymap::lookup",
+        "text": "`j` is the start of `jk` but not a full mapping: the answer is Prefix. Nothing is inserted yet."
+      },
+      {
+        "fn": "vox-editor::Editor::has_pending_keys",
+        "text": "Now true. The run loop sees this and waits only `timeout_ms` (default 1000 ms) for the next key."
+      },
+      {
+        "fn": "vox-term::run",
+        "text": "If no key comes in time, the loop calls `Editor::timeout`, and `j` is inserted as typed. Here `k` arrives in time."
+      },
+      {
+        "fn": "vox-editor::Keymap::lookup",
+        "text": "`jk` matches exactly: the binding is the keys `<Esc>`."
+      },
+      {
+        "fn": "vox-editor::Editor::run_binding",
+        "text": "Feeds `<Esc>` to the mode handler. Mapped keys are not mapped again (like Vim's `noremap`). A binding written as `\":w\"` would run a command instead."
+      },
+      {
+        "fn": "vox-editor::Editor::dispatch",
+        "text": "Sends the key to the handler for the current mode, here `handle_insert`, which leaves Insert mode."
+      },
+      {
+        "fn": "vox-editor::Editor::timeout",
+        "text": "The other path: when the wait ends, a full match is used (e.g. a mapping for `g` when `gx` also exists), otherwise the keys are handled as typed."
+      }
+    ]
+  },
+  {
+    "id": "config",
+    "title": "Loading the config file",
+    "summary": "How `~/.config/vox/config.toml` becomes key mappings, with the file format kept out of core.",
+    "steps": [
+      {
+        "fn": "vox::load_config",
+        "text": "Called once at start-up by `main`."
+      },
+      {
+        "fn": "vox-config-file::default_path",
+        "text": "Adapter: `$VOX_CONFIG`, else `$XDG_CONFIG_HOME/vox/config.toml`, else `~/.config/vox/config.toml`."
+      },
+      {
+        "fn": "vox-config-file::load",
+        "text": "Adapter: reads the file. A missing file is not an error: vox runs with defaults."
+      },
+      {
+        "fn": "vox-config-file::parse",
+        "text": "Adapter: parses TOML with the `toml` library. Syntax errors keep their line number."
+      },
+      {
+        "fn": "vox-config-file::convert",
+        "text": "Adapter: converts the library's values to vox's own `Value` tree, so core never sees a `toml` type."
+      },
+      {
+        "fn": "vox-editor::Config::from_value",
+        "text": "Core: checks every setting. Unknown settings and wrong types are collected as errors, but the valid parts are still used."
+      },
+      {
+        "fn": "vox-editor::Editor::apply_config",
+        "text": "Core: sets the mapping timeout and turns each mapping into keys and a binding."
+      },
+      {
+        "fn": "vox-editor::keymap::parse_lhs",
+        "text": "Replaces `<leader>` with the leader key and parses Vim key notation (`<C-s>`, `<Esc>`)."
+      },
+      {
+        "fn": "vox-editor::keymap::parse_binding",
+        "text": "A right side starting with `:` runs a command; anything else is keys. An empty string disables the key."
+      },
+      {
+        "fn": "vox-editor::Keymap::set",
+        "text": "Stores the mapping, replacing an earlier one for the same keys."
+      }
     ]
   },
   {
@@ -74,16 +314,46 @@
     "title": "Drawing one frame",
     "summary": "How editor state becomes characters in the terminal.",
     "steps": [
-      {"fn": "vox-editor::Editor::render", "text": "Creates an empty surface the size of the terminal and fills it in parts."},
-      {"fn": "vox-editor::Editor::render_text", "text": "For each visible row: line number (dim), then the visible part of the line; `~` past the end of the file."},
-      {"fn": "vox-view::visible_slice", "text": "Cuts the part of a line that fits on screen, after horizontal scrolling. Tabs become spaces; wide chars cut at an edge become spaces."},
-      {"fn": "vox-view::CharWidth::width", "text": "How many cells a char takes. A trait: the real editor uses `vox-width` (Unicode rules: 2 for CJK), tests use `Monospace` (always 1)."},
-      {"fn": "vox-editor::Surface::put_str", "text": "Writes text into the cell grid with a style, clipping at the right edge."},
-      {"fn": "vox-editor::Editor::render_selection", "text": "In visual mode, marks the selected cells as reversed."},
-      {"fn": "vox-editor::Editor::render_status", "text": "The reversed status line: mode, file name, `[+]`, cursor position."},
-      {"fn": "vox-editor::Editor::render_cmdline", "text": "The bottom line: the `:` or `/` prompt being typed, or the last message."},
-      {"fn": "vox-editor::Editor::cursor_screen_position", "text": "Where the terminal cursor goes, converting the cursor's char column to screen cells."},
-      {"fn": "vox-term::Terminal::draw", "text": "Compares each row with the previous frame and prints only changed rows, then places the cursor and sets its shape (block or bar)."}
+      {
+        "fn": "vox-editor::Editor::render",
+        "text": "Creates an empty surface the size of the terminal and fills it in parts."
+      },
+      {
+        "fn": "vox-editor::Editor::render_text",
+        "text": "For each visible row: line number (dim), then the visible part of the line; `~` past the end of the file."
+      },
+      {
+        "fn": "vox-view::visible_slice",
+        "text": "Cuts the part of a line that fits on screen, after horizontal scrolling. Tabs become spaces; wide chars cut at an edge become spaces."
+      },
+      {
+        "fn": "vox-view::CharWidth::width",
+        "text": "How many cells a char takes. A trait: the real editor uses `vox-width` (Unicode rules: 2 for CJK), tests use `Monospace` (always 1)."
+      },
+      {
+        "fn": "vox-editor::Surface::put_str",
+        "text": "Writes text into the cell grid with a style, clipping at the right edge."
+      },
+      {
+        "fn": "vox-editor::Editor::render_selection",
+        "text": "In visual mode, marks the selected cells as reversed."
+      },
+      {
+        "fn": "vox-editor::Editor::render_status",
+        "text": "The reversed status line: mode, file name, `[+]`, cursor position."
+      },
+      {
+        "fn": "vox-editor::Editor::render_cmdline",
+        "text": "The bottom line: the `:` or `/` prompt being typed, or the last message."
+      },
+      {
+        "fn": "vox-editor::Editor::cursor_screen_position",
+        "text": "Where the terminal cursor goes, converting the cursor's char column to screen cells."
+      },
+      {
+        "fn": "vox-term::Terminal::draw",
+        "text": "Compares each row with the previous frame and prints only changed rows, then places the cursor and sets its shape (block or bar)."
+      }
     ]
   },
   {
@@ -91,11 +361,26 @@
     "title": "Undo with u",
     "summary": "Pressing `u` after an edit.",
     "steps": [
-      {"fn": "vox-editor::normal::parse", "text": "`u` parses to the action Undo (with an optional count, e.g. `3u`)."},
-      {"fn": "vox-editor::Editor::undo", "text": "Asks the document to undo one step; shows a message if there is nothing to undo."},
-      {"fn": "vox-core::Document::undo", "text": "Takes the last undo group and reverses its edits in reverse order (remove what was inserted, insert what was removed). The group moves to the redo stack."},
-      {"fn": "vox-core::TextStorage::remove", "text": "Storage calls that actually change the text."},
-      {"fn": "vox-editor::Editor::set_cursor", "text": "Moves the cursor to where the change happened."}
+      {
+        "fn": "vox-editor::normal::parse",
+        "text": "`u` parses to the action Undo (with an optional count, e.g. `3u`)."
+      },
+      {
+        "fn": "vox-editor::Editor::undo",
+        "text": "Asks the document to undo one step; shows a message if there is nothing to undo."
+      },
+      {
+        "fn": "vox-core::Document::undo",
+        "text": "Takes the last undo group and reverses its edits in reverse order (remove what was inserted, insert what was removed). The group moves to the redo stack."
+      },
+      {
+        "fn": "vox-core::TextStorage::remove",
+        "text": "Storage calls that actually change the text."
+      },
+      {
+        "fn": "vox-editor::Editor::set_cursor",
+        "text": "Moves the cursor to where the change happened."
+      }
     ]
   },
   {
@@ -103,12 +388,30 @@
     "title": "Searching with /text and n",
     "summary": "Typing `/foo`, Enter, then `n`.",
     "steps": [
-      {"fn": "vox-editor::normal::parse", "text": "`/` parses to the action Search; the editor switches to the search prompt."},
-      {"fn": "vox-editor::Editor::handle_prompt", "text": "Collects `foo`; `Enter` runs the search."},
-      {"fn": "vox-editor::Editor::search", "text": "Remembers `foo` as the last pattern (an empty pattern repeats the previous one) and jumps."},
-      {"fn": "vox-editor::Editor::search_target", "text": "Repeats the search `count` times and sets the message (wrap notice or `E486: Pattern not found`)."},
-      {"fn": "vox-core::search::find", "text": "Pure function in core: literal text search after (or before) the cursor, wrapping around the end of the file."},
-      {"fn": "vox-editor::Editor::motion_target", "text": "Later, `n` parses to the motion SearchNext, which uses the same `search_target`. Because it is a motion, `dn` (delete to next match) also works."}
+      {
+        "fn": "vox-editor::normal::parse",
+        "text": "`/` parses to the action Search; the editor switches to the search prompt."
+      },
+      {
+        "fn": "vox-editor::Editor::handle_prompt",
+        "text": "Collects `foo`; `Enter` runs the search."
+      },
+      {
+        "fn": "vox-editor::Editor::search",
+        "text": "Remembers `foo` as the last pattern (an empty pattern repeats the previous one) and jumps."
+      },
+      {
+        "fn": "vox-editor::Editor::search_target",
+        "text": "Repeats the search `count` times and sets the message (wrap notice or `E486: Pattern not found`)."
+      },
+      {
+        "fn": "vox-core::search::find",
+        "text": "Pure function in core: literal text search after (or before) the cursor, wrapping around the end of the file."
+      },
+      {
+        "fn": "vox-editor::Editor::motion_target",
+        "text": "Later, `n` parses to the motion SearchNext, which uses the same `search_target`. Because it is a motion, `dn` (delete to next match) also works."
+      }
     ]
   },
   {
@@ -116,12 +419,53 @@
     "title": "Copying to the system clipboard with \"+yy",
     "summary": "How a register prefix reaches the operating system's clipboard.",
     "steps": [
-      {"fn": "vox-editor::normal::parse", "text": "`\"+` sets the register to `+`; `yy` is operator Yank on whole lines."},
-      {"fn": "vox-editor::Editor::operate", "text": "Builds a linewise range for the current line."},
-      {"fn": "vox-editor::Editor::apply", "text": "Copies the line text and stores it in register `+`. Yank does not change the text."},
-      {"fn": "vox-editor::Registers::set", "text": "Register `+` (or `*`) means the system clipboard; anything else is the unnamed register."},
-      {"fn": "vox-editor::Clipboard::set", "text": "The clipboard trait defined in core. Core never talks to the OS directly."},
-      {"fn": "vox-clipboard::SystemClipboard::set", "text": "The adapter implementation, using the `arboard` library (X11, Wayland, macOS, Windows)."}
+      {
+        "fn": "vox-editor::normal::parse",
+        "text": "`\"+` sets the register to `+`; `yy` is operator Yank on whole lines."
+      },
+      {
+        "fn": "vox-editor::Editor::operate",
+        "text": "Builds a linewise range for the current line."
+      },
+      {
+        "fn": "vox-editor::Editor::apply",
+        "text": "Copies the line text and stores it in register `+`. Yank does not change the text."
+      },
+      {
+        "fn": "vox-editor::Registers::set",
+        "text": "Register `+` (or `*`) means the system clipboard; anything else is the unnamed register."
+      },
+      {
+        "fn": "vox-editor::Clipboard::set",
+        "text": "The clipboard trait defined in core. Core never talks to the OS directly."
+      },
+      {
+        "fn": "vox-clipboard::SystemClipboard::set",
+        "text": "The adapter implementation, using the `arboard` library (X11, Wayland, macOS, Windows)."
+      }
+    ]
+  },
+  {
+    "id": "own-command",
+    "title": "Adding your own command (developer API)",
+    "summary": "How code registers a new `:` command, and how it runs.",
+    "steps": [
+      {
+        "fn": "vox-editor::Editor::commands_mut",
+        "text": "Gives access to the command registry, e.g. `ed.commands_mut()`."
+      },
+      {
+        "fn": "vox-editor::Commands::register",
+        "text": "`register(\"upper\", \"description\", |ed, args| { ... Ok(()) })`. Registering an existing name replaces it, so built-ins can be overridden."
+      },
+      {
+        "fn": "vox-editor::Commands::alias",
+        "text": "Optional short name: `alias(\"up\", \"upper\")`."
+      },
+      {
+        "fn": "vox-editor::Editor::run_command",
+        "text": "Runs it from `:up! arg`, from a key mapping like `\"<leader>u\" = \":upper\"`, or directly from code. The handler gets `Args { arg, force }` and may return `Err(message)`."
+      }
     ]
   }
 ]

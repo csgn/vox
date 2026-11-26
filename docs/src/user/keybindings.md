@@ -1,6 +1,7 @@
 # Keybindings
 
-Not configurable yet (planned for M3).
+These are the built-in keys. Any of them can be remapped or disabled in the config file:
+see [Configuration](configuration.md).
 
 ## Grammar
 

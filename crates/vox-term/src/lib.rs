@@ -2,6 +2,7 @@
 //! and drawing a [`Surface`] with per-row diffing.
 
 use std::io::{self, Stdout, Write};
+use std::time::Duration;
 
 use crossterm::cursor::{MoveTo, SetCursorStyle, Show};
 use crossterm::event::{self, Event, KeyEventKind};
@@ -77,6 +78,20 @@ impl Terminal {
     /// Wait for the next event. Returns a key for key presses, `None` for anything else
     /// (resize, key release, mouse).
     pub fn read_key(&mut self) -> io::Result<Option<Key>> {
+        self.read_event()
+    }
+
+    /// Like [`Terminal::read_key`], but gives up after `timeout`: returns `Ok(Err(()))` then.
+    pub fn read_key_timeout(&mut self, timeout: Duration) -> io::Result<Result<Option<Key>, ()>> {
+        if event::poll(timeout)? {
+            self.read_event().map(Ok)
+        } else {
+            Ok(Err(()))
+        }
+    }
+
+    /// Read one terminal event; `Some` for key presses.
+    fn read_event(&mut self) -> io::Result<Option<Key>> {
         match event::read()? {
             Event::Key(k) if k.kind != KeyEventKind::Release => Ok(convert(k)),
             Event::Resize(..) => {
@@ -156,7 +171,14 @@ pub fn run(editor: &mut Editor) -> io::Result<()> {
         let (w, h) = term.size()?;
         editor.resize(w, h);
         term.draw(&editor.render())?;
-        if let Some(key) = term.read_key()? {
+        if editor.has_pending_keys() {
+            // Keys may still become a mapping: wait only so long for the rest.
+            match term.read_key_timeout(editor.key_timeout())? {
+                Ok(Some(key)) => editor.handle_key(key),
+                Ok(None) => {}
+                Err(()) => editor.timeout(),
+            }
+        } else if let Some(key) = term.read_key()? {
             editor.handle_key(key);
         }
     }

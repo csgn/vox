@@ -5,6 +5,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-26 — M3 developer API and configuration
+
+### Added
+- Command registry (`Commands`): `register(name, description, handler)`, `alias`, `get`.
+  `Editor::run_command(line)` runs `:name[!] [arg]`; a handler's `Err` becomes the message.
+- Built-in commands (`write`, `quit`, `wq`, `xit`, `edit` and short names) are registered
+  through the same API, so they can be replaced.
+- Key mappings (`Keymap`) for normal, insert, and visual mode: map keys to keys or to a
+  `:` command, or disable a key. Mapped keys are not re-mapped. Prefix waiting with timeout.
+- Config file `config.toml` (`$VOX_CONFIG`, `$XDG_CONFIG_HOME/vox/`, `~/.config/vox/`):
+  `leader`, `timeout_ms`, `[keymap.normal|insert|visual]`. Errors are shown on start-up;
+  valid settings still apply.
+- `Config` / `Value` in core (format-neutral); `vox-config-file` adapter parses TOML.
+- Public `Editor` API: `commands`, `commands_mut`, `keymap_mut`, `apply_config`,
+  `set_message`, `quit`, `has_pending_keys`, `key_timeout`, `timeout`.
+- Tests for commands, mappings, config validation, and TOML parsing.
+- Docs: Configuration and Developer API pages; 3 new code-tour walkthroughs.
+
+### Changed
+- `vox-term` run loop waits at most `timeout_ms` while a mapping is incomplete.
+- Editor events (planned for M3) moved to M4, where plugins will use them.
+
 ## [0.4.0] - 2026-11-26 — M2.5 dependency isolation
 
 No user-visible behaviour change.

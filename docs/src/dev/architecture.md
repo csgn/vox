@@ -31,6 +31,12 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
 - `normal::parse(keys, visual) -> Parse<Cmd>`: the grammar
   `["x][count](operator[count](motion|operator) | motion | action)`. Pending keys are
   re-parsed after every key; `Incomplete` waits, `Invalid` discards.
+- Input path: `handle_key` → `resolve_mappings` (user `Keymap`, with timeout) → `dispatch` →
+  mode handler. Mapped keys are dispatched without re-mapping.
+- `Commands`: name/alias → handler `Fn(&mut Editor, Args) -> Result<(), String>`. Built-ins
+  live in `builtin.rs` and are registered like any other command. `run_command(line)` runs one.
+- `Config::from_value(&Value)`: validates settings from a format-neutral `Value` tree (the TOML
+  file is parsed by the `vox-config-file` adapter); `Editor::apply_config` installs them.
 - `Editor::exec(Cmd)`: operators turn a motion into a range (exclusive / inclusive /
   linewise), write the register, then delete / change / yank.
 - `Surface`: cells (`symbol`, `Style { dim, reversed }`), cursor, cursor shape.

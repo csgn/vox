@@ -27,6 +27,7 @@ live in **adapter** crates. `scripts/check-deps.sh` enforces this in CI.
 | `vox-width` | terminal cell width of each char | `vox_view::CharWidth` | unicode-width |
 | `vox-clipboard` | system copy/paste | `vox_editor::Clipboard` | arboard |
 | `vox-term` | terminal input and drawing | terminal I/O for `Key` / `Surface` | crossterm |
+| `vox-config-file` | find and read `config.toml` | produces `vox_editor::Value` | toml |
 
 `ropey` stores text as a *rope*: a balanced tree of small text chunks, so inserting or
 deleting in a large file does not copy the whole file.

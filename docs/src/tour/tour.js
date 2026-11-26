@@ -22,6 +22,7 @@
     "unicode-width": "knows how many terminal cells each Unicode character takes (2 for Chinese/Japanese, 0 for combining accents)",
     arboard: "reads and writes the operating system clipboard (X11, Wayland, macOS, Windows)",
     crossterm: "controls the terminal: raw mode, key events, cursor movement and shape, text attributes",
+    toml: "reads TOML, the simple settings-file format used by config.toml",
   };
   const LAYER_TEXT = {
     core: "core: std only, no third-party libraries",
@@ -94,7 +95,9 @@
 
   // ---------- crate map ----------
   function crateMap(root) {
-    const W = 820, NW = 170, NH = 58;
+    const W = 820, NH = 58;
+    const widest = Math.max(...Object.values(ORDER).map((l) => l.length));
+    const NW = Math.min(170, W / widest - 14);
     const rows = { binary: 30, adapter: 165, core: 310 };
     const pos = {};
     for (const [layer, names] of Object.entries(ORDER)) {

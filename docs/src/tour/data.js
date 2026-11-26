@@ -4,6 +4,7 @@ window.VOX_TOUR = {
   "vox": {
    "deps": [
     "vox-clipboard",
+    "vox-config-file",
     "vox-core",
     "vox-editor",
     "vox-storage",
@@ -16,7 +17,7 @@ window.VOX_TOUR = {
    "files": [
     {
      "path": "crates/vox/src/main.rs",
-     "lines": 39
+     "lines": 65
     }
    ],
    "layer": "binary",
@@ -35,6 +36,26 @@ window.VOX_TOUR = {
     {
      "path": "crates/vox-clipboard/src/lib.rs",
      "lines": 28
+    }
+   ],
+   "layer": "adapter",
+   "used_by": [
+    "vox"
+   ]
+  },
+  "vox-config-file": {
+   "deps": [
+    "vox-editor"
+   ],
+   "third_party": [
+    "toml"
+   ],
+   "doc": "Reads the user's config file. Finds `config.toml`, parses the TOML format with the `toml` library, and converts it to the editor's format-neutral [`Value`].",
+   "binary": false,
+   "files": [
+    {
+     "path": "crates/vox-config-file/src/lib.rs",
+     "lines": 130
     }
    ],
    "layer": "adapter",
@@ -86,12 +107,28 @@ window.VOX_TOUR = {
     "vox-view"
    ],
    "third_party": [],
-   "doc": "The vox editor: modes, Vim grammar, registers, `:` commands, and rendering to a [`Surface`]. `std` only: terminal, clipboard, text storage, and char widths are injected through [`Services`] by adapter crates.",
+   "doc": "The vox editor: modes, Vim grammar, registers, the command registry, key mappings, configuration, and rendering to a [`Surface`]. `std` only: terminal, clipboard, text storage, char widths, and config file parsing are provided by adapter crates.",
    "binary": false,
    "files": [
     {
+     "path": "crates/vox-editor/src/builtin.rs",
+     "lines": 67
+    },
+    {
+     "path": "crates/vox-editor/src/command.rs",
+     "lines": 146
+    },
+    {
+     "path": "crates/vox-editor/src/config.rs",
+     "lines": 199
+    },
+    {
      "path": "crates/vox-editor/src/editor.rs",
-     "lines": 829
+     "lines": 918
+    },
+    {
+     "path": "crates/vox-editor/src/keymap.rs",
+     "lines": 177
     },
     {
      "path": "crates/vox-editor/src/keys.rs",
@@ -99,11 +136,11 @@ window.VOX_TOUR = {
     },
     {
      "path": "crates/vox-editor/src/lib.rs",
-     "lines": 15
+     "lines": 22
     },
     {
      "path": "crates/vox-editor/src/normal.rs",
-     "lines": 389
+     "lines": 395
     },
     {
      "path": "crates/vox-editor/src/register.rs",
@@ -122,6 +159,7 @@ window.VOX_TOUR = {
    "used_by": [
     "vox",
     "vox-clipboard",
+    "vox-config-file",
     "vox-term"
    ]
   },
@@ -157,7 +195,7 @@ window.VOX_TOUR = {
    "files": [
     {
      "path": "crates/vox-term/src/lib.rs",
-     "lines": 186
+     "lines": 208
     }
    ],
    "layer": "adapter",
@@ -221,9 +259,34 @@ window.VOX_TOUR = {
     "vox-core::Document::new",
     "vox-core::Document::open",
     "vox-editor::Editor::with_services",
-    "vox-term::run"
+    "vox-term::run",
+    "vox::load_config"
    ],
    "called_by": []
+  },
+  {
+   "id": "vox::load_config",
+   "name": "load_config",
+   "qual": "load_config",
+   "crate": "vox",
+   "file": "crates/vox/src/main.rs",
+   "line": 44,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn load_config(editor: &mut Editor)",
+   "doc": "Read the user's config file, if any, and apply it. Problems are shown as the editor's first message.",
+   "calls": [
+    "vox-editor::Editor::set_message",
+    "vox-editor::Editor::apply_config",
+    "vox-config-file::default_path",
+    "vox-config-file::load",
+    "vox-editor::Config::from_value"
+   ],
+   "called_by": [
+    "vox::main"
+   ]
   },
   {
    "id": "vox-clipboard::SystemClipboard::inner",
@@ -279,6 +342,82 @@ window.VOX_TOUR = {
     "vox-clipboard::SystemClipboard::inner"
    ],
    "called_by": []
+  },
+  {
+   "id": "vox-config-file::default_path",
+   "name": "default_path",
+   "qual": "default_path",
+   "crate": "vox-config-file",
+   "file": "crates/vox-config-file/src/lib.rs",
+   "line": 10,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn default_path() -> Option<PathBuf>",
+   "doc": "Where the config file is looked for: `$VOX_CONFIG` if set, else `$XDG_CONFIG_HOME/vox/config.toml`, else `~/.config/vox/config.toml`.",
+   "calls": [],
+   "called_by": [
+    "vox::load_config"
+   ]
+  },
+  {
+   "id": "vox-config-file::load",
+   "name": "load",
+   "qual": "load",
+   "crate": "vox-config-file",
+   "file": "crates/vox-config-file/src/lib.rs",
+   "line": 22,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn load(path: &Path) -> Result<Option<Value>, String>",
+   "doc": "Load and parse the config file at `path`. `Ok(None)` if the file does not exist.",
+   "calls": [
+    "vox-config-file::parse"
+   ],
+   "called_by": [
+    "vox::load_config"
+   ]
+  },
+  {
+   "id": "vox-config-file::parse",
+   "name": "parse",
+   "qual": "parse",
+   "crate": "vox-config-file",
+   "file": "crates/vox-config-file/src/lib.rs",
+   "line": 33,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn parse(text: &str) -> Result<Value, String>",
+   "doc": "Parse TOML text into a [`Value::Table`].",
+   "calls": [
+    "vox-config-file::convert"
+   ],
+   "called_by": [
+    "vox-config-file::load"
+   ]
+  },
+  {
+   "id": "vox-config-file::convert",
+   "name": "convert",
+   "qual": "convert",
+   "crate": "vox-config-file",
+   "file": "crates/vox-config-file/src/lib.rs",
+   "line": 41,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn convert(v: toml::Value) -> Value",
+   "doc": "Convert a `toml` library value into vox's own [`Value`].",
+   "calls": [],
+   "called_by": [
+    "vox-config-file::parse"
+   ]
   },
   {
    "id": "vox-core::Document::new",
@@ -481,8 +620,6 @@ window.VOX_TOUR = {
     "vox-core::History::current_id"
    ],
    "called_by": [
-    "vox-editor::Editor::execute",
-    "vox-editor::Editor::edit",
     "vox-editor::Editor::render_status"
    ]
   },
@@ -1615,12 +1752,262 @@ window.VOX_TOUR = {
    "called_by": []
   },
   {
+   "id": "vox-editor::builtin::register",
+   "name": "register",
+   "qual": "builtin::register",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/builtin.rs",
+   "line": 9,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub(crate) fn register(c: &mut Commands)",
+   "doc": "Register all built-in commands and their Vim-style short names.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Editor::with_services"
+   ]
+  },
+  {
+   "id": "vox-editor::builtin::write",
+   "name": "write",
+   "qual": "builtin::write",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/builtin.rs",
+   "line": 32,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn write(ed: &mut Editor, a: Args<'_>) -> CommandResult",
+   "doc": "`:write [FILE]` / `:w`.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::builtin::quit",
+   "name": "quit",
+   "qual": "builtin::quit",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/builtin.rs",
+   "line": 37,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn quit(ed: &mut Editor, a: Args<'_>) -> CommandResult",
+   "doc": "`:quit` / `:q`; `:q!` discards changes.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::builtin::write_quit",
+   "name": "write_quit",
+   "qual": "builtin::write_quit",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/builtin.rs",
+   "line": 46,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn write_quit(ed: &mut Editor, a: Args<'_>) -> CommandResult",
+   "doc": "`:wq [FILE]`.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::builtin::xit",
+   "name": "xit",
+   "qual": "builtin::xit",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/builtin.rs",
+   "line": 53,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn xit(ed: &mut Editor, a: Args<'_>) -> CommandResult",
+   "doc": "`:xit` / `:x`: save only if modified, then quit.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::builtin::edit",
+   "name": "edit",
+   "qual": "builtin::edit",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/builtin.rs",
+   "line": 62,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn edit(ed: &mut Editor, a: Args<'_>) -> CommandResult",
+   "doc": "`:edit [FILE]` / `:e`; `:e!` discards changes.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Commands::register",
+   "name": "register",
+   "qual": "Commands::register",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/command.rs",
+   "line": 52,
+   "public": true,
+   "owner": "Commands",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn register(&mut self, name: &str, description: &str, handler: impl Fn(&mut Editor, Args<'_>) -> CommandResult + 'static)",
+   "doc": "Register (or replace) command `name`.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Commands::alias",
+   "name": "alias",
+   "qual": "Commands::alias",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/command.rs",
+   "line": 69,
+   "public": true,
+   "owner": "Commands",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn alias(&mut self, alias: &str, target: &str)",
+   "doc": "Make `alias` another name for command `target`.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Commands::get",
+   "name": "get",
+   "qual": "Commands::get",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/command.rs",
+   "line": 74,
+   "public": true,
+   "owner": "Commands",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn get(&self, name: &str) -> Option<&Command>",
+   "doc": "Look up a command by name or alias.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Commands::iter",
+   "name": "iter",
+   "qual": "Commands::iter",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/command.rs",
+   "line": 80,
+   "public": true,
+   "owner": "Commands",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn iter(&self) -> impl Iterator<Item = &Command>",
+   "doc": "All commands in name order.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Commands::aliases_of",
+   "name": "aliases_of",
+   "qual": "Commands::aliases_of",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/command.rs",
+   "line": 85,
+   "public": true,
+   "owner": "Commands",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn aliases_of<'a>(&'a self, name: &'a str) -> impl Iterator<Item = &'a str> + 'a",
+   "doc": "Aliases of command `name`, in order.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::command::parse_line",
+   "name": "parse_line",
+   "qual": "command::parse_line",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/command.rs",
+   "line": 95,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn parse_line(line: &str) -> (&str, Args<'_>)",
+   "doc": "Split a command line into name, force flag, and argument: `\"w! a.txt\"` → `(\"w\", Args { arg: Some(\"a.txt\"), force: true })`.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Editor::run_command"
+   ]
+  },
+  {
+   "id": "vox-editor::Value::type_name",
+   "name": "type_name",
+   "qual": "Value::type_name",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/config.rs",
+   "line": 27,
+   "public": false,
+   "owner": "Value",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn type_name(&self) -> &'static str",
+   "doc": "Human name of the value's type, for error messages.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Config::default",
+   "name": "default",
+   "qual": "Config::default",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/config.rs",
+   "line": 51,
+   "public": true,
+   "owner": "Config",
+   "trait": "Default",
+   "decl_only": false,
+   "sig": "fn default() -> Self",
+   "doc": "Default value (std `Default` trait).",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Config::from_value"
+   ]
+  },
+  {
+   "id": "vox-editor::Config::from_value",
+   "name": "from_value",
+   "qual": "Config::from_value",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/config.rs",
+   "line": 63,
+   "public": true,
+   "owner": "Config",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn from_value(value: &Value) -> (Config, Vec<String>)",
+   "doc": "Build a config from a parsed file. Unknown settings and wrong types are errors; all errors are collected, and valid settings are still applied.",
+   "calls": [
+    "vox-editor::Config::default"
+   ],
+   "called_by": [
+    "vox::load_config"
+   ]
+  },
+  {
    "id": "vox-editor::Services::default",
    "name": "default",
    "qual": "Services::default",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 64,
+   "line": 68,
    "public": true,
    "owner": "Services",
    "trait": "Default",
@@ -1638,7 +2025,7 @@ window.VOX_TOUR = {
    "qual": "Editor::new",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 107,
+   "line": 116,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -1656,7 +2043,7 @@ window.VOX_TOUR = {
    "qual": "Editor::with_services",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 112,
+   "line": 121,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -1664,7 +2051,8 @@ window.VOX_TOUR = {
    "sig": "pub fn with_services(doc: Document, services: Services) -> Self",
    "doc": "Create an editor for `doc` using `services`.",
    "calls": [
-    "vox-editor::Registers::default"
+    "vox-editor::Registers::default",
+    "vox-editor::builtin::register"
    ],
    "called_by": [
     "vox::main"
@@ -1676,7 +2064,7 @@ window.VOX_TOUR = {
    "qual": "Editor::set_clipboard",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 134,
+   "line": 149,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -1692,7 +2080,7 @@ window.VOX_TOUR = {
    "qual": "Editor::should_quit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 139,
+   "line": 154,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -1710,7 +2098,7 @@ window.VOX_TOUR = {
    "qual": "Editor::mode",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 144,
+   "line": 159,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -1726,7 +2114,7 @@ window.VOX_TOUR = {
    "qual": "Editor::document",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 149,
+   "line": 164,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -1742,7 +2130,7 @@ window.VOX_TOUR = {
    "qual": "Editor::cursor",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 154,
+   "line": 169,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -1758,7 +2146,7 @@ window.VOX_TOUR = {
    "qual": "Editor::viewport",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 159,
+   "line": 174,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -1774,7 +2162,7 @@ window.VOX_TOUR = {
    "qual": "Editor::message",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 164,
+   "line": 179,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -1790,7 +2178,7 @@ window.VOX_TOUR = {
    "qual": "Editor::selection",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 169,
+   "line": 184,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -1811,7 +2199,7 @@ window.VOX_TOUR = {
    "qual": "Editor::resize",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 178,
+   "line": 193,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -1831,7 +2219,7 @@ window.VOX_TOUR = {
    "qual": "Editor::gutter_width",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 184,
+   "line": 199,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -1853,7 +2241,7 @@ window.VOX_TOUR = {
    "qual": "Editor::text_area",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 189,
+   "line": 204,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -1874,7 +2262,7 @@ window.VOX_TOUR = {
    "qual": "Editor::cursor_dcol",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 198,
+   "line": 213,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -1896,7 +2284,7 @@ window.VOX_TOUR = {
    "qual": "Editor::follow_cursor",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 207,
+   "line": 222,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -1910,7 +2298,8 @@ window.VOX_TOUR = {
    ],
    "called_by": [
     "vox-editor::Editor::resize",
-    "vox-editor::Editor::handle_key"
+    "vox-editor::Editor::handle_key",
+    "vox-editor::Editor::timeout"
    ]
   },
   {
@@ -1919,7 +2308,7 @@ window.VOX_TOUR = {
    "qual": "Editor::handle_key",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 213,
+   "line": 228,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -1927,13 +2316,153 @@ window.VOX_TOUR = {
    "sig": "pub fn handle_key(&mut self, key: Key)",
    "doc": "Handle one key press.",
    "calls": [
-    "vox-editor::Editor::handle_normal",
-    "vox-editor::Editor::handle_insert",
-    "vox-editor::Editor::handle_prompt",
+    "vox-editor::Editor::resolve_mappings",
     "vox-editor::Editor::follow_cursor"
    ],
    "called_by": [
     "vox-term::run"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::has_pending_keys",
+   "name": "has_pending_keys",
+   "qual": "Editor::has_pending_keys",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 236,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn has_pending_keys(&self) -> bool",
+   "doc": "Whether typed keys are waiting to see if they complete a mapping. The run loop should call [`Editor::timeout`] if no key arrives within [`Editor::key_timeout`].",
+   "calls": [],
+   "called_by": [
+    "vox-term::run"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::key_timeout",
+   "name": "key_timeout",
+   "qual": "Editor::key_timeout",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 241,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn key_timeout(&self) -> Duration",
+   "doc": "How long to wait for the rest of a mapping.",
+   "calls": [],
+   "called_by": [
+    "vox-term::run"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::timeout",
+   "name": "timeout",
+   "qual": "Editor::timeout",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 246,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn timeout(&mut self)",
+   "doc": "No key arrived in time: use the mapping typed so far, or treat the keys as unmapped.",
+   "calls": [
+    "vox-editor::Editor::resolve_mappings",
+    "vox-editor::Editor::follow_cursor"
+   ],
+   "called_by": [
+    "vox-term::run"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::map_mode",
+   "name": "map_mode",
+   "qual": "Editor::map_mode",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 252,
+   "public": false,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn map_mode(&self) -> Option<MapMode>",
+   "doc": "Mapping mode for the current editor mode; prompts have no mappings.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Editor::resolve_mappings"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::resolve_mappings",
+   "name": "resolve_mappings",
+   "qual": "Editor::resolve_mappings",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 264,
+   "public": false,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn resolve_mappings(&mut self, timed_out: bool)",
+   "doc": "Match pending keys against mappings. Runs a mapping when one matches; sends keys that cannot start a mapping to the mode handlers. `timed_out` stops waiting for longer mappings.",
+   "calls": [
+    "vox-editor::Editor::map_mode",
+    "vox-editor::Editor::run_binding",
+    "vox-editor::Editor::dispatch"
+   ],
+   "called_by": [
+    "vox-editor::Editor::handle_key",
+    "vox-editor::Editor::timeout"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::run_binding",
+   "name": "run_binding",
+   "qual": "Editor::run_binding",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 287,
+   "public": false,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn run_binding(&mut self, b: Binding)",
+   "doc": "Run a mapping's binding: feed its keys (not re-mapped) or run its command.",
+   "calls": [
+    "vox-editor::Editor::dispatch",
+    "vox-editor::Editor::run_command"
+   ],
+   "called_by": [
+    "vox-editor::Editor::resolve_mappings"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::dispatch",
+   "name": "dispatch",
+   "qual": "Editor::dispatch",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 295,
+   "public": false,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn dispatch(&mut self, key: Key)",
+   "doc": "Send one key to the handler of the current mode, without mappings.",
+   "calls": [
+    "vox-editor::Editor::handle_normal",
+    "vox-editor::Editor::handle_insert",
+    "vox-editor::Editor::handle_prompt"
+   ],
+   "called_by": [
+    "vox-editor::Editor::resolve_mappings",
+    "vox-editor::Editor::run_binding"
    ]
   },
   {
@@ -1942,7 +2471,7 @@ window.VOX_TOUR = {
    "qual": "Editor::last_line",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 223,
+   "line": 304,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -1966,7 +2495,7 @@ window.VOX_TOUR = {
    "qual": "Editor::max_col",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 228,
+   "line": 309,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -1987,7 +2516,7 @@ window.VOX_TOUR = {
    "qual": "Editor::set_cursor",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 237,
+   "line": 318,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2017,7 +2546,7 @@ window.VOX_TOUR = {
    "qual": "Editor::move_lines",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 244,
+   "line": 325,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2040,7 +2569,7 @@ window.VOX_TOUR = {
    "qual": "Editor::enter_insert",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 254,
+   "line": 335,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2061,7 +2590,7 @@ window.VOX_TOUR = {
    "qual": "Editor::handle_normal",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 260,
+   "line": 341,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2073,7 +2602,7 @@ window.VOX_TOUR = {
     "vox-editor::normal::parse"
    ],
    "called_by": [
-    "vox-editor::Editor::handle_key"
+    "vox-editor::Editor::dispatch"
    ]
   },
   {
@@ -2082,7 +2611,7 @@ window.VOX_TOUR = {
    "qual": "Editor::exec",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 281,
+   "line": 362,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2118,7 +2647,7 @@ window.VOX_TOUR = {
    "qual": "Editor::motion_target",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 358,
+   "line": 439,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2147,7 +2676,7 @@ window.VOX_TOUR = {
    "qual": "Editor::search_target",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 438,
+   "line": 519,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2168,7 +2697,7 @@ window.VOX_TOUR = {
    "qual": "Editor::operate",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 473,
+   "line": 554,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2195,7 +2724,7 @@ window.VOX_TOUR = {
    "qual": "Editor::apply",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 538,
+   "line": 619,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2225,7 +2754,7 @@ window.VOX_TOUR = {
    "qual": "Editor::delete_lines",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 587,
+   "line": 668,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2248,7 +2777,7 @@ window.VOX_TOUR = {
    "qual": "Editor::paste",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 602,
+   "line": 683,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2275,7 +2804,7 @@ window.VOX_TOUR = {
    "qual": "Editor::handle_insert",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 646,
+   "line": 727,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2293,7 +2822,7 @@ window.VOX_TOUR = {
     "vox-core::Position::new"
    ],
    "called_by": [
-    "vox-editor::Editor::handle_key"
+    "vox-editor::Editor::dispatch"
    ]
   },
   {
@@ -2302,7 +2831,7 @@ window.VOX_TOUR = {
    "qual": "Editor::undo",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 686,
+   "line": 767,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2323,7 +2852,7 @@ window.VOX_TOUR = {
    "qual": "Editor::redo",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 694,
+   "line": 775,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2344,7 +2873,7 @@ window.VOX_TOUR = {
    "qual": "Editor::handle_prompt",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 702,
+   "line": 783,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2353,10 +2882,10 @@ window.VOX_TOUR = {
    "doc": "Key handling for the `:` and `/` prompts.",
    "calls": [
     "vox-editor::Editor::search",
-    "vox-editor::Editor::execute"
+    "vox-editor::Editor::run_command"
    ],
    "called_by": [
-    "vox-editor::Editor::handle_key"
+    "vox-editor::Editor::dispatch"
    ]
   },
   {
@@ -2365,7 +2894,7 @@ window.VOX_TOUR = {
    "qual": "Editor::search",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 727,
+   "line": 808,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2381,26 +2910,128 @@ window.VOX_TOUR = {
    ]
   },
   {
-   "id": "vox-editor::Editor::execute",
-   "name": "execute",
-   "qual": "Editor::execute",
+   "id": "vox-editor::Editor::run_command",
+   "name": "run_command",
+   "qual": "Editor::run_command",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 737,
-   "public": false,
+   "line": 819,
+   "public": true,
    "owner": "Editor",
    "trait": null,
    "decl_only": false,
-   "sig": "fn execute(&mut self, cmd: &str)",
-   "doc": "Run a `:` command line (`w`, `q`, `wq`, `x`, `e`, with optional `!` and argument).",
+   "sig": "pub fn run_command(&mut self, line: &str)",
+   "doc": "Run a command line such as `w`, `e! notes.txt`, or a user/plugin command. Errors are shown as the message.",
    "calls": [
-    "vox-editor::Editor::write",
-    "vox-editor::Editor::edit",
-    "vox-core::Document::is_modified"
+    "vox-editor::command::parse_line"
    ],
    "called_by": [
+    "vox-editor::Editor::run_binding",
     "vox-editor::Editor::handle_prompt"
    ]
+  },
+  {
+   "id": "vox-editor::Editor::commands",
+   "name": "commands",
+   "qual": "Editor::commands",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 835,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn commands(&self) -> &Commands",
+   "doc": "The command registry, to look up or list commands.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Editor::commands_mut",
+   "name": "commands_mut",
+   "qual": "Editor::commands_mut",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 840,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn commands_mut(&mut self) -> &mut Commands",
+   "doc": "The command registry, to add commands.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Editor::keymap_mut",
+   "name": "keymap_mut",
+   "qual": "Editor::keymap_mut",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 845,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn keymap_mut(&mut self) -> &mut Keymap",
+   "doc": "The user key mappings.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Editor::apply_config",
+   "name": "apply_config",
+   "qual": "Editor::apply_config",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 850,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn apply_config(&mut self, cfg: &Config)",
+   "doc": "Apply settings: leader, mapping timeout, and key mappings.",
+   "calls": [
+    "vox-editor::keymap::parse_lhs",
+    "vox-editor::keymap::parse_binding"
+   ],
+   "called_by": [
+    "vox::load_config"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::set_message",
+   "name": "set_message",
+   "qual": "Editor::set_message",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 860,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn set_message(&mut self, msg: impl Into<String>)",
+   "doc": "Show `msg` on the bottom line.",
+   "calls": [],
+   "called_by": [
+    "vox::load_config"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::quit",
+   "name": "quit",
+   "qual": "Editor::quit",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 865,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn quit(&mut self)",
+   "doc": "Ask the editor to exit; the run loop stops after the current key.",
+   "calls": [],
+   "called_by": []
   },
   {
    "id": "vox-editor::Editor::write",
@@ -2408,22 +3039,20 @@ window.VOX_TOUR = {
    "qual": "Editor::write",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 769,
+   "line": 870,
    "public": false,
    "owner": "Editor",
    "trait": null,
    "decl_only": false,
-   "sig": "fn write(&mut self, path: Option<&str>) -> bool",
-   "doc": "Save, optionally to a new path. Returns whether the write succeeded.",
+   "sig": "pub(crate) fn write(&mut self, path: Option<&str>) -> Result<usize, String>",
+   "doc": "Save, optionally to a new path. Sets the success message; returns bytes written.",
    "calls": [
     "vox-core::Document::path",
     "vox-core::Document::save_as",
     "vox-core::Document::save",
     "vox-core::Document::line_count"
    ],
-   "called_by": [
-    "vox-editor::Editor::execute"
-   ]
+   "called_by": []
   },
   {
    "id": "vox-editor::Editor::edit",
@@ -2431,23 +3060,20 @@ window.VOX_TOUR = {
    "qual": "Editor::edit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 799,
+   "line": 897,
    "public": false,
    "owner": "Editor",
    "trait": null,
    "decl_only": false,
-   "sig": "fn edit(&mut self, path: Option<&str>, force: bool)",
-   "doc": "Open `path`, or reload the current file when `path` is `None`.",
+   "sig": "pub(crate) fn edit(&mut self, path: Option<&str>) -> Result<(), String>",
+   "doc": "Open `path`, or reload the current file when `path` is `None`. Discards changes; callers check [`Document::is_modified`] first.",
    "calls": [
     "vox-editor::Editor::set_cursor",
-    "vox-core::Document::is_modified",
     "vox-core::Document::path",
     "vox-core::Document::line_count",
     "vox-core::Document::open"
    ],
-   "called_by": [
-    "vox-editor::Editor::execute"
-   ]
+   "called_by": []
   },
   {
    "id": "vox-editor::editor::order",
@@ -2455,7 +3081,7 @@ window.VOX_TOUR = {
    "qual": "editor::order",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 827,
+   "line": 916,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2466,6 +3092,150 @@ window.VOX_TOUR = {
    "called_by": [
     "vox-editor::Editor::selection",
     "vox-editor::Editor::operate"
+   ]
+  },
+  {
+   "id": "vox-editor::Keymap::set",
+   "name": "set",
+   "qual": "Keymap::set",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/keymap.rs",
+   "line": 49,
+   "public": true,
+   "owner": "Keymap",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn set(&mut self, mode: MapMode, lhs: Vec<Key>, binding: Binding)",
+   "doc": "Map `lhs` to `binding` in `mode`, replacing an existing mapping of `lhs`.",
+   "calls": [
+    "vox-editor::Keymap::remove"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Keymap::remove",
+   "name": "remove",
+   "qual": "Keymap::remove",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/keymap.rs",
+   "line": 55,
+   "public": true,
+   "owner": "Keymap",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn remove(&mut self, mode: MapMode, lhs: &[Key])",
+   "doc": "Remove the mapping of `lhs` in `mode`, if any.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Keymap::set"
+   ]
+  },
+  {
+   "id": "vox-editor::Keymap::len",
+   "name": "len",
+   "qual": "Keymap::len",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/keymap.rs",
+   "line": 60,
+   "public": true,
+   "owner": "Keymap",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn len(&self) -> usize",
+   "doc": "Number of mappings.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Keymap::is_empty",
+   "name": "is_empty",
+   "qual": "Keymap::is_empty",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/keymap.rs",
+   "line": 65,
+   "public": true,
+   "owner": "Keymap",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn is_empty(&self) -> bool",
+   "doc": "Whether there are no mappings.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Keymap::lookup",
+   "name": "lookup",
+   "qual": "Keymap::lookup",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/keymap.rs",
+   "line": 70,
+   "public": false,
+   "owner": "Keymap",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub(crate) fn lookup(&self, mode: MapMode, keys: &[Key]) -> Lookup<'_>",
+   "doc": "Match typed `keys` against the mappings of `mode`.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::keymap::expand_leader",
+   "name": "expand_leader",
+   "qual": "keymap::expand_leader",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/keymap.rs",
+   "line": 93,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn expand_leader(s: &str, leader: &str) -> String",
+   "doc": "Replace `<leader>` (any case) in `s` with `leader`.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::keymap::parse_lhs"
+   ]
+  },
+  {
+   "id": "vox-editor::keymap::parse_lhs",
+   "name": "parse_lhs",
+   "qual": "keymap::parse_lhs",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/keymap.rs",
+   "line": 106,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn parse_lhs(s: &str, leader: &str) -> Vec<Key>",
+   "doc": "Parse the left side of a mapping (Vim notation, `<leader>` allowed).",
+   "calls": [
+    "vox-editor::keys::parse_keys",
+    "vox-editor::keymap::expand_leader"
+   ],
+   "called_by": [
+    "vox-editor::Editor::apply_config",
+    "vox-editor::keymap::parse_binding"
+   ]
+  },
+  {
+   "id": "vox-editor::keymap::parse_binding",
+   "name": "parse_binding",
+   "qual": "keymap::parse_binding",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/keymap.rs",
+   "line": 112,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn parse_binding(s: &str, leader: &str) -> Binding",
+   "doc": "Parse the right side of a mapping: `\":cmd args\"` runs a command, anything else is keys in Vim notation (`<leader>` allowed). An empty string disables the key.",
+   "calls": [
+    "vox-editor::keymap::parse_lhs"
+   ],
+   "called_by": [
+    "vox-editor::Editor::apply_config"
    ]
   },
   {
@@ -2522,7 +3292,9 @@ window.VOX_TOUR = {
     "vox-editor::Key::new",
     "vox-editor::keys::parse_name"
    ],
-   "called_by": []
+   "called_by": [
+    "vox-editor::keymap::parse_lhs"
+   ]
   },
   {
    "id": "vox-editor::keys::parse_name",
@@ -2551,7 +3323,7 @@ window.VOX_TOUR = {
    "qual": "normal::plain_char",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/normal.rs",
-   "line": 93,
+   "line": 99,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2570,7 +3342,7 @@ window.VOX_TOUR = {
    "qual": "normal::parse_count",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/normal.rs",
-   "line": 101,
+   "line": 107,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2588,7 +3360,7 @@ window.VOX_TOUR = {
    "qual": "normal::parse_motion",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/normal.rs",
-   "line": 123,
+   "line": 129,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2608,7 +3380,7 @@ window.VOX_TOUR = {
    "qual": "normal::multiply",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/normal.rs",
-   "line": 162,
+   "line": 168,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2626,7 +3398,7 @@ window.VOX_TOUR = {
    "qual": "normal::parse",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/normal.rs",
-   "line": 170,
+   "line": 176,
    "public": false,
    "owner": null,
    "trait": null,
@@ -3359,7 +4131,7 @@ window.VOX_TOUR = {
    "qual": "Terminal::enter",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 23,
+   "line": 24,
    "public": true,
    "owner": "Terminal",
    "trait": null,
@@ -3379,7 +4151,7 @@ window.VOX_TOUR = {
    "qual": "Terminal::size",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 36,
+   "line": 37,
    "public": true,
    "owner": "Terminal",
    "trait": null,
@@ -3397,7 +4169,7 @@ window.VOX_TOUR = {
    "qual": "Terminal::draw",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 41,
+   "line": 42,
    "public": true,
    "owner": "Terminal",
    "trait": null,
@@ -3420,7 +4192,7 @@ window.VOX_TOUR = {
    "qual": "Terminal::read_key",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 79,
+   "line": 80,
    "public": true,
    "owner": "Terminal",
    "trait": null,
@@ -3428,10 +4200,51 @@ window.VOX_TOUR = {
    "sig": "pub fn read_key(&mut self) -> io::Result<Option<Key>>",
    "doc": "Wait for the next event. Returns a key for key presses, `None` for anything else (resize, key release, mouse).",
    "calls": [
-    "vox-term::convert"
+    "vox-term::Terminal::read_event"
    ],
    "called_by": [
     "vox-term::run"
+   ]
+  },
+  {
+   "id": "vox-term::Terminal::read_key_timeout",
+   "name": "read_key_timeout",
+   "qual": "Terminal::read_key_timeout",
+   "crate": "vox-term",
+   "file": "crates/vox-term/src/lib.rs",
+   "line": 85,
+   "public": true,
+   "owner": "Terminal",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn read_key_timeout(&mut self, timeout: Duration) -> io::Result<Result<Option<Key>, ()>>",
+   "doc": "Like [`Terminal::read_key`], but gives up after `timeout`: returns `Ok(Err(()))` then.",
+   "calls": [
+    "vox-term::Terminal::read_event"
+   ],
+   "called_by": [
+    "vox-term::run"
+   ]
+  },
+  {
+   "id": "vox-term::Terminal::read_event",
+   "name": "read_event",
+   "qual": "Terminal::read_event",
+   "crate": "vox-term",
+   "file": "crates/vox-term/src/lib.rs",
+   "line": 94,
+   "public": false,
+   "owner": "Terminal",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn read_event(&mut self) -> io::Result<Option<Key>>",
+   "doc": "Read one terminal event; `Some` for key presses.",
+   "calls": [
+    "vox-term::convert"
+   ],
+   "called_by": [
+    "vox-term::Terminal::read_key",
+    "vox-term::Terminal::read_key_timeout"
    ]
   },
   {
@@ -3440,7 +4253,7 @@ window.VOX_TOUR = {
    "qual": "Terminal::drop",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 92,
+   "line": 107,
    "public": true,
    "owner": "Terminal",
    "trait": "Drop",
@@ -3458,7 +4271,7 @@ window.VOX_TOUR = {
    "qual": "restore",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 98,
+   "line": 113,
    "public": false,
    "owner": null,
    "trait": null,
@@ -3477,7 +4290,7 @@ window.VOX_TOUR = {
    "qual": "set_style",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 111,
+   "line": 126,
    "public": false,
    "owner": null,
    "trait": null,
@@ -3495,7 +4308,7 @@ window.VOX_TOUR = {
    "qual": "convert",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 123,
+   "line": 138,
    "public": true,
    "owner": null,
    "trait": null,
@@ -3504,7 +4317,7 @@ window.VOX_TOUR = {
    "doc": "Convert a crossterm key event into a vox key. `None` for keys vox does not use.",
    "calls": [],
    "called_by": [
-    "vox-term::Terminal::read_key"
+    "vox-term::Terminal::read_event"
    ]
   },
   {
@@ -3513,7 +4326,7 @@ window.VOX_TOUR = {
    "qual": "run",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 153,
+   "line": 168,
    "public": true,
    "owner": null,
    "trait": null,
@@ -3526,8 +4339,12 @@ window.VOX_TOUR = {
     "vox-editor::Editor::resize",
     "vox-term::Terminal::draw",
     "vox-editor::Editor::render",
-    "vox-term::Terminal::read_key",
+    "vox-editor::Editor::has_pending_keys",
+    "vox-term::Terminal::read_key_timeout",
+    "vox-editor::Editor::key_timeout",
     "vox-editor::Editor::handle_key",
+    "vox-editor::Editor::timeout",
+    "vox-term::Terminal::read_key",
     "vox-term::Terminal::enter"
    ],
    "called_by": [
@@ -3801,12 +4618,82 @@ window.VOX_TOUR = {
    "doc": "Simple `Vec<char>` storage with a line index. O(n) edits; meant for tests and small texts. Production uses an adapter."
   },
   {
+   "id": "vox-editor::Args",
+   "name": "Args",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/command.rs",
+   "line": 11,
+   "public": true,
+   "doc": "Arguments of one command invocation, e.g. `:w! notes.txt`."
+  },
+  {
+   "id": "vox-editor::CommandResult",
+   "name": "CommandResult",
+   "kind": "type",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/command.rs",
+   "line": 19,
+   "public": true,
+   "doc": "What a command returns: `Err(message)` is shown to the user."
+  },
+  {
+   "id": "vox-editor::Handler",
+   "name": "Handler",
+   "kind": "type",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/command.rs",
+   "line": 22,
+   "public": true,
+   "doc": "A command implementation."
+  },
+  {
+   "id": "vox-editor::Command",
+   "name": "Command",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/command.rs",
+   "line": 26,
+   "public": true,
+   "doc": "A registered command."
+  },
+  {
+   "id": "vox-editor::Commands",
+   "name": "Commands",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/command.rs",
+   "line": 45,
+   "public": true,
+   "doc": "All commands, by name, plus short aliases (`w` → `write`)."
+  },
+  {
+   "id": "vox-editor::Value",
+   "name": "Value",
+   "kind": "enum",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/config.rs",
+   "line": 10,
+   "public": true,
+   "doc": "A format-neutral configuration value."
+  },
+  {
+   "id": "vox-editor::Config",
+   "name": "Config",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/config.rs",
+   "line": 41,
+   "public": true,
+   "doc": "Validated settings."
+  },
+  {
    "id": "vox-editor::Mode",
    "name": "Mode",
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 19,
+   "line": 23,
    "public": true,
    "doc": "Editor input mode."
   },
@@ -3816,7 +4703,7 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 37,
+   "line": 41,
    "public": false,
    "doc": "How a motion's range is interpreted by an operator."
   },
@@ -3826,7 +4713,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 45,
+   "line": 49,
    "public": false,
    "doc": "Text an operator acts on. For linewise ranges only the lines of `start`/`end` matter."
   },
@@ -3836,7 +4723,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 54,
+   "line": 58,
    "public": true,
    "doc": "Platform services the editor uses. Adapters provide real implementations; the defaults are std-only stand-ins suitable for tests."
   },
@@ -3846,9 +4733,49 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 74,
+   "line": 78,
    "public": true,
    "doc": "Top-level editor state."
+  },
+  {
+   "id": "vox-editor::MapMode",
+   "name": "MapMode",
+   "kind": "enum",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/keymap.rs",
+   "line": 9,
+   "public": true,
+   "doc": "Mode a mapping applies in."
+  },
+  {
+   "id": "vox-editor::Binding",
+   "name": "Binding",
+   "kind": "enum",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/keymap.rs",
+   "line": 20,
+   "public": true,
+   "doc": "What a mapping does."
+  },
+  {
+   "id": "vox-editor::Lookup",
+   "name": "Lookup",
+   "kind": "enum",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/keymap.rs",
+   "line": 29,
+   "public": false,
+   "doc": "Result of matching typed keys against the mappings."
+  },
+  {
+   "id": "vox-editor::Keymap",
+   "name": "Keymap",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/keymap.rs",
+   "line": 43,
+   "public": true,
+   "doc": "All user key mappings."
   },
   {
    "id": "vox-editor::KeyCode",
@@ -3906,9 +4833,9 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/normal.rs",
-   "line": 27,
+   "line": 28,
    "public": false,
-   "doc": ""
+   "doc": "An operator: what to do with a range of text."
   },
   {
    "id": "vox-editor::Target",
@@ -3916,9 +4843,9 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/normal.rs",
-   "line": 34,
+   "line": 36,
    "public": false,
-   "doc": ""
+   "doc": "What an operator acts on."
   },
   {
    "id": "vox-editor::Motion",
@@ -3926,9 +4853,9 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/normal.rs",
-   "line": 43,
+   "line": 46,
    "public": false,
-   "doc": ""
+   "doc": "A cursor motion."
   },
   {
    "id": "vox-editor::InsertAt",
@@ -3936,9 +4863,9 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/normal.rs",
-   "line": 61,
+   "line": 65,
    "public": false,
-   "doc": ""
+   "doc": "Where an insert command starts inserting."
   },
   {
    "id": "vox-editor::Scroll",
@@ -3946,9 +4873,9 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/normal.rs",
-   "line": 71,
+   "line": 76,
    "public": false,
-   "doc": ""
+   "doc": "A scroll command."
   },
   {
    "id": "vox-editor::Action",
@@ -3956,9 +4883,9 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/normal.rs",
-   "line": 79,
+   "line": 85,
    "public": false,
-   "doc": ""
+   "doc": "What a parsed command does."
   },
   {
    "id": "vox-editor::Reg",
@@ -4056,7 +4983,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 14,
+   "line": 15,
    "public": true,
    "doc": "An active terminal session. Restores the terminal when dropped."
   },
@@ -4125,7 +5052,15 @@ window.VOX_TOUR = {
     },
     {
      "fn": "vox-editor::Editor::with_services",
-     "text": "Creates the editor. `Services` carries the three platform pieces: text storage factory, char width rules (`vox-width`), and the system clipboard (`vox-clipboard`)."
+     "text": "Creates the editor. `Services` carries the three platform pieces: text storage factory, char width rules (`vox-width`), and the system clipboard (`vox-clipboard`). It also registers the built-in commands."
+    },
+    {
+     "fn": "vox-editor::builtin::register",
+     "text": "Registers `:write`, `:quit`, `:edit`, `:wq`, `:xit` and their short names (`w`, `q`, `e`, `x`) in the command registry: the same API a plugin uses."
+    },
+    {
+     "fn": "vox::load_config",
+     "text": "Reads `~/.config/vox/config.toml` (if it exists) and applies leader key, mapping timeout, and key mappings. Problems become the first message on screen. See the walkthrough “Loading the config file”."
     },
     {
      "fn": "vox-term::run",
@@ -4157,7 +5092,7 @@ window.VOX_TOUR = {
     },
     {
      "fn": "vox-editor::Editor::handle_key",
-     "text": "The single entry point for input. It sends the key to the handler for the current mode, then scrolls so the cursor stays visible. The loop then draws again."
+     "text": "The single entry point for input. It first checks the key against the user's mappings, then sends it to the handler for the current mode, then scrolls so the cursor stays visible. The loop then draws again."
     }
    ]
   },
@@ -4168,7 +5103,11 @@ window.VOX_TOUR = {
    "steps": [
     {
      "fn": "vox-editor::Editor::handle_key",
-     "text": "Key `d` arrives. The mode is Normal, so it goes to `handle_normal`."
+     "text": "Key `d` arrives. It is added to the mapping buffer."
+    },
+    {
+     "fn": "vox-editor::Editor::resolve_mappings",
+     "text": "No user mapping starts with `d`, so the key goes straight to `dispatch`, which sends it to `handle_normal` because the mode is Normal."
     },
     {
      "fn": "vox-editor::Editor::handle_normal",
@@ -4278,11 +5217,23 @@ window.VOX_TOUR = {
     },
     {
      "fn": "vox-editor::Editor::handle_prompt",
-     "text": "Typed chars are appended to the input. `Enter` takes the input and runs it."
+     "text": "Typed chars are appended to the input. `Enter` takes the input and runs it as a command line."
     },
     {
-     "fn": "vox-editor::Editor::execute",
-     "text": "Splits `w` into command name and argument and dispatches. `q` refuses if there are unsaved changes; `q!` forces."
+     "fn": "vox-editor::Editor::run_command",
+     "text": "Looks the command up in the registry and calls it. An `Err` from the command becomes the message (e.g. `E37: No write since last change`)."
+    },
+    {
+     "fn": "vox-editor::command::parse_line",
+     "text": "Splits `w! notes.txt` into the name `w`, the force flag `!`, and the argument `notes.txt`."
+    },
+    {
+     "fn": "vox-editor::Commands::get",
+     "text": "Finds the command by name or alias: `w` is an alias of `write`."
+    },
+    {
+     "fn": "vox-editor::builtin::write",
+     "text": "The built-in `write` command. It is an ordinary registered command; a plugin could replace it."
     },
     {
      "fn": "vox-editor::Editor::write",
@@ -4295,6 +5246,96 @@ window.VOX_TOUR = {
     {
      "fn": "vox-core::Document::is_modified",
      "text": "Now false: the current undo step equals the saved one. The status line drops `[+]`. Undoing past the save makes it true again."
+    }
+   ]
+  },
+  {
+   "id": "mapping",
+   "title": "A key mapping: jk leaves insert mode",
+   "summary": "With `jk = \"<Esc>\"` under `[keymap.insert]` in the config, typing `j` then `k`.",
+   "steps": [
+    {
+     "fn": "vox-editor::Editor::handle_key",
+     "text": "`j` arrives and is added to the mapping buffer."
+    },
+    {
+     "fn": "vox-editor::Editor::resolve_mappings",
+     "text": "Asks the keymap whether the buffered keys match a mapping for Insert mode."
+    },
+    {
+     "fn": "vox-editor::Keymap::lookup",
+     "text": "`j` is the start of `jk` but not a full mapping: the answer is Prefix. Nothing is inserted yet."
+    },
+    {
+     "fn": "vox-editor::Editor::has_pending_keys",
+     "text": "Now true. The run loop sees this and waits only `timeout_ms` (default 1000 ms) for the next key."
+    },
+    {
+     "fn": "vox-term::run",
+     "text": "If no key comes in time, the loop calls `Editor::timeout`, and `j` is inserted as typed. Here `k` arrives in time."
+    },
+    {
+     "fn": "vox-editor::Keymap::lookup",
+     "text": "`jk` matches exactly: the binding is the keys `<Esc>`."
+    },
+    {
+     "fn": "vox-editor::Editor::run_binding",
+     "text": "Feeds `<Esc>` to the mode handler. Mapped keys are not mapped again (like Vim's `noremap`). A binding written as `\":w\"` would run a command instead."
+    },
+    {
+     "fn": "vox-editor::Editor::dispatch",
+     "text": "Sends the key to the handler for the current mode, here `handle_insert`, which leaves Insert mode."
+    },
+    {
+     "fn": "vox-editor::Editor::timeout",
+     "text": "The other path: when the wait ends, a full match is used (e.g. a mapping for `g` when `gx` also exists), otherwise the keys are handled as typed."
+    }
+   ]
+  },
+  {
+   "id": "config",
+   "title": "Loading the config file",
+   "summary": "How `~/.config/vox/config.toml` becomes key mappings, with the file format kept out of core.",
+   "steps": [
+    {
+     "fn": "vox::load_config",
+     "text": "Called once at start-up by `main`."
+    },
+    {
+     "fn": "vox-config-file::default_path",
+     "text": "Adapter: `$VOX_CONFIG`, else `$XDG_CONFIG_HOME/vox/config.toml`, else `~/.config/vox/config.toml`."
+    },
+    {
+     "fn": "vox-config-file::load",
+     "text": "Adapter: reads the file. A missing file is not an error: vox runs with defaults."
+    },
+    {
+     "fn": "vox-config-file::parse",
+     "text": "Adapter: parses TOML with the `toml` library. Syntax errors keep their line number."
+    },
+    {
+     "fn": "vox-config-file::convert",
+     "text": "Adapter: converts the library's values to vox's own `Value` tree, so core never sees a `toml` type."
+    },
+    {
+     "fn": "vox-editor::Config::from_value",
+     "text": "Core: checks every setting. Unknown settings and wrong types are collected as errors, but the valid parts are still used."
+    },
+    {
+     "fn": "vox-editor::Editor::apply_config",
+     "text": "Core: sets the mapping timeout and turns each mapping into keys and a binding."
+    },
+    {
+     "fn": "vox-editor::keymap::parse_lhs",
+     "text": "Replaces `<leader>` with the leader key and parses Vim key notation (`<C-s>`, `<Esc>`)."
+    },
+    {
+     "fn": "vox-editor::keymap::parse_binding",
+     "text": "A right side starting with `:` runs a command; anything else is keys. An empty string disables the key."
+    },
+    {
+     "fn": "vox-editor::Keymap::set",
+     "text": "Stores the mapping, replacing an earlier one for the same keys."
     }
    ]
   },
@@ -4431,6 +5472,29 @@ window.VOX_TOUR = {
     {
      "fn": "vox-clipboard::SystemClipboard::set",
      "text": "The adapter implementation, using the `arboard` library (X11, Wayland, macOS, Windows)."
+    }
+   ]
+  },
+  {
+   "id": "own-command",
+   "title": "Adding your own command (developer API)",
+   "summary": "How code registers a new `:` command, and how it runs.",
+   "steps": [
+    {
+     "fn": "vox-editor::Editor::commands_mut",
+     "text": "Gives access to the command registry, e.g. `ed.commands_mut()`."
+    },
+    {
+     "fn": "vox-editor::Commands::register",
+     "text": "`register(\"upper\", \"description\", |ed, args| { ... Ok(()) })`. Registering an existing name replaces it, so built-ins can be overridden."
+    },
+    {
+     "fn": "vox-editor::Commands::alias",
+     "text": "Optional short name: `alias(\"up\", \"upper\")`."
+    },
+    {
+     "fn": "vox-editor::Editor::run_command",
+     "text": "Runs it from `:up! arg`, from a key mapping like `\"<leader>u\" = \":upper\"`, or directly from code. The handler gets `Args { arg, force }` and may return `Err(message)`."
     }
    ]
   }

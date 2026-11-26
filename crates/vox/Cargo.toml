@@ -7,9 +7,10 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-vox-clipboard = { version = "0.4.0", path = "../vox-clipboard" }
-vox-core = { version = "0.4.0", path = "../vox-core" }
-vox-editor = { version = "0.4.0", path = "../vox-editor" }
-vox-storage = { version = "0.4.0", path = "../vox-storage" }
-vox-term = { version = "0.4.0", path = "../vox-term" }
-vox-width = { version = "0.4.0", path = "../vox-width" }
+vox-clipboard = { version = "0.5.0", path = "../vox-clipboard" }
+vox-config-file = { version = "0.5.0", path = "../vox-config-file" }
+vox-core = { version = "0.5.0", path = "../vox-core" }
+vox-editor = { version = "0.5.0", path = "../vox-editor" }
+vox-storage = { version = "0.5.0", path = "../vox-storage" }
+vox-term = { version = "0.5.0", path = "../vox-term" }
+vox-width = { version = "0.5.0", path = "../vox-width" }

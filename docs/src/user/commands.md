@@ -1,14 +1,17 @@
 # Commands
 
+Commands run from the `:` line or from key mappings (`"<leader>w" = ":w"`). Each command
+has a full name and short aliases; both work.
+
 | Command | Action |
 |---|---|
-| `:w` | write to the current file |
+| `:write`, `:w` | write to the current file |
 | `:w FILE` | write to `FILE` and make it the current file |
 | `:q`, `:quit`, `:qa` | quit; refuses with `E37` if there are unsaved changes |
 | `:q!` | quit, discarding changes |
 | `:wq [FILE]` | write, then quit |
-| `:x [FILE]` | write if modified, then quit |
-| `:e FILE` | open `FILE`; refuses with `E37` if there are unsaved changes |
+| `:xit`, `:x [FILE]` | write if modified, then quit |
+| `:edit`, `:e FILE` | open `FILE`; refuses with `E37` if there are unsaved changes |
 | `:e` | reload the current file |
 | `:e! [FILE]` | open/reload, discarding changes |
 

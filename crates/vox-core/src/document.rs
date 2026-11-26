@@ -1,18 +1,18 @@
+use std::fmt;
 use std::fs;
 use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
 
-use ropey::Rope;
-
 use crate::Position;
+use crate::storage::{SimpleStorage, StorageFactory, TextStorage};
 
 /// A text document, optionally associated with a file on disk.
 ///
-/// The final line terminator of a file is not stored in the rope; it is remembered and
-/// written back on save. So every rope line is a visible line.
-#[derive(Debug, Clone)]
+/// The final line terminator of a file is not kept in storage; it is remembered and
+/// written back on save. So every storage line is a visible line.
+#[derive(Debug)]
 pub struct Document {
-    text: Rope,
+    text: Box<dyn TextStorage>,
     path: Option<PathBuf>,
     /// Line ending used for new lines and the final terminator: `"\n"` or `"\r\n"`.
     line_ending: &'static str,
@@ -21,63 +21,35 @@ pub struct Document {
     history: History,
 }
 
-impl Default for Document {
-    fn default() -> Self {
+impl Document {
+    /// Create an unnamed document from `text`, stored by `factory`.
+    pub fn new(text: &str, factory: StorageFactory) -> Self {
+        let (text, line_ending, eol) = normalize(text);
         Self {
-            text: Rope::new(),
+            text: factory(text),
             path: None,
-            line_ending: "\n",
-            eol: true,
+            line_ending,
+            eol,
             history: History::default(),
         }
     }
-}
 
-impl Document {
-    /// Create an unnamed document from a string.
+    /// Create an unnamed document backed by [`SimpleStorage`]. Convenient for tests.
     pub fn from_text(text: &str) -> Self {
-        let mut doc = Self {
-            text: Rope::from_str(text),
-            ..Self::default()
-        };
-        doc.normalize_loaded();
-        doc
+        Self::new(text, SimpleStorage::boxed)
     }
 
     /// Load a document from `path`. A missing file yields an empty document bound to `path`.
-    pub fn open(path: impl AsRef<Path>) -> io::Result<Self> {
+    pub fn open(path: impl AsRef<Path>, factory: StorageFactory) -> io::Result<Self> {
         let path = path.as_ref();
-        let mut doc = Self {
-            path: Some(path.to_path_buf()),
-            ..Self::default()
-        };
-        match fs::File::open(path) {
-            Ok(file) => {
-                doc.text = Rope::from_reader(io::BufReader::new(file))?;
-                doc.normalize_loaded();
-            }
-            Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+        let content = match fs::read_to_string(path) {
+            Ok(content) => content,
+            Err(e) if e.kind() == io::ErrorKind::NotFound => String::new(),
             Err(e) => return Err(e),
-        }
+        };
+        let mut doc = Self::new(&content, factory);
+        doc.path = Some(path.to_path_buf());
         Ok(doc)
-    }
-
-    /// Detect line ending and strip the final terminator into `eol`.
-    fn normalize_loaded(&mut self) {
-        if self.text.len_lines() > 1 && self.text.line(0).to_string().ends_with("\r\n") {
-            self.line_ending = "\r\n";
-        }
-        let n = self.text.len_chars();
-        // Empty input: new text gets a final newline on save.
-        self.eol = n == 0 || self.text.char(n - 1) == '\n';
-        if n > 0 && self.eol {
-            let cut = if n >= 2 && self.text.char(n - 2) == '\r' {
-                n - 2
-            } else {
-                n - 1
-            };
-            self.text.remove(cut..n);
-        }
     }
 
     /// Write the document to its path. Returns the number of bytes written.
@@ -86,17 +58,16 @@ impl Document {
             .path
             .clone()
             .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "no file name"))?;
-        let mut out = BufWriter::new(fs::File::create(&path)?);
-        self.text.write_to(&mut out)?;
-        let mut bytes = self.text.len_bytes();
-        if self.eol && bytes > 0 {
-            out.write_all(self.line_ending.as_bytes())?;
-            bytes += self.line_ending.len();
+        let mut content = self.to_string();
+        if self.eol && !content.is_empty() {
+            content.push_str(self.line_ending);
         }
+        let mut out = BufWriter::new(fs::File::create(&path)?);
+        out.write_all(content.as_bytes())?;
         out.flush()?;
         self.history.commit();
         self.history.saved_id = self.history.current_id();
-        Ok(bytes)
+        Ok(content.len())
     }
 
     /// Bind the document to `path` and save it there.
@@ -105,9 +76,14 @@ impl Document {
         self.save()
     }
 
-    /// The underlying rope.
-    pub fn text(&self) -> &Rope {
-        &self.text
+    /// Number of chars (excluding the final line terminator).
+    pub fn len_chars(&self) -> usize {
+        self.text.len_chars()
+    }
+
+    /// Char at index `idx`. Panics if out of range.
+    pub fn char(&self, idx: usize) -> char {
+        self.text.char(idx)
     }
 
     /// File path, if any.
@@ -130,13 +106,18 @@ impl Document {
         self.text.len_lines()
     }
 
+    /// Char range of line `idx` including its terminator.
+    fn line_range(&self, idx: usize) -> std::ops::Range<usize> {
+        self.text.line_to_char(idx)..self.text.line_to_char(idx + 1)
+    }
+
     /// Line `idx` without its line terminator. Returns `None` if out of range.
     pub fn line(&self, idx: usize) -> Option<String> {
         if idx >= self.line_count() {
             return None;
         }
-        let line = self.text.line(idx).to_string();
-        Some(line.trim_end_matches(['\n', '\r']).to_string())
+        let start = self.text.line_to_char(idx);
+        Some(self.text.slice(start..start + self.line_len(idx)))
     }
 
     /// Length of line `idx` in chars, excluding the terminator. 0 if out of range.
@@ -144,15 +125,15 @@ impl Document {
         if idx >= self.line_count() {
             return 0;
         }
-        let line = self.text.line(idx);
-        let mut len = line.len_chars();
-        if len > 0 && line.char(len - 1) == '\n' {
-            len -= 1;
-            if len > 0 && line.char(len - 1) == '\r' {
-                len -= 1;
+        let range = self.line_range(idx);
+        let mut end = range.end;
+        if end > range.start && self.text.char(end - 1) == '\n' {
+            end -= 1;
+            if end > range.start && self.text.char(end - 1) == '\r' {
+                end -= 1;
             }
         }
-        len
+        end - range.start
     }
 
     /// Char index of `pos`, clamped into the document.
@@ -174,7 +155,7 @@ impl Document {
         if a >= b {
             return String::new();
         }
-        self.text.slice(a..b).to_string()
+        self.text.slice(a..b)
     }
 
     /// Insert `text` at `at`. Returns the position just after the inserted text.
@@ -195,7 +176,7 @@ impl Document {
         if a >= b {
             return;
         }
-        let removed = self.text.slice(a..b).to_string();
+        let removed = self.text.slice(a..b);
         self.text.remove(a..b);
         self.history.record(Edit {
             at: a,
@@ -236,6 +217,31 @@ impl Document {
     }
 }
 
+impl fmt::Display for Document {
+    /// The whole text, without the final line terminator.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.text.slice(0..self.text.len_chars()))
+    }
+}
+
+/// Split loaded text into (content without final terminator, line ending, had final terminator).
+/// Empty input counts as having a final terminator, so new text gets one on save.
+fn normalize(text: &str) -> (&str, &'static str, bool) {
+    let first_line = text.split_inclusive('\n').next().unwrap_or("");
+    let line_ending = if first_line.ends_with("\r\n") {
+        "\r\n"
+    } else {
+        "\n"
+    };
+    if text.is_empty() {
+        return (text, line_ending, true);
+    }
+    match text.strip_suffix('\n') {
+        Some(rest) => (rest.strip_suffix('\r').unwrap_or(rest), line_ending, true),
+        None => (text, line_ending, false),
+    }
+}
+
 /// One primitive change at char index `at`.
 #[derive(Debug, Clone)]
 struct Edit {
@@ -264,11 +270,13 @@ struct History {
 }
 
 impl History {
+    /// Add `edit` to the pending group. A new edit makes redo impossible, so the redo stack is cleared.
     fn record(&mut self, edit: Edit) {
         self.pending.push(edit);
         self.redo.clear();
     }
 
+    /// Close the pending edits into one undo group with a new id.
     fn commit(&mut self) {
         if self.pending.is_empty() {
             return;
@@ -280,6 +288,7 @@ impl History {
         });
     }
 
+    /// Id of the current state: the id of the last undo group, or 0 for the original text.
     fn current_id(&self) -> u64 {
         self.undo.last().map_or(0, |g| g.id)
     }
@@ -316,7 +325,7 @@ mod tests {
     #[test]
     fn open_missing_file_is_empty() {
         let path = temp_path("missing.txt");
-        let doc = Document::open(&path).unwrap();
+        let doc = Document::open(&path, SimpleStorage::boxed).unwrap();
         assert_eq!(doc.path(), Some(path.as_path()));
         assert_eq!(doc.line_count(), 1);
         assert!(!doc.is_modified());
@@ -327,7 +336,7 @@ mod tests {
         for content in ["hello\nworld\n", "no eol", "crlf\r\nfile\r\n", ""] {
             let path = temp_path("roundtrip.txt");
             fs::write(&path, content).unwrap();
-            let mut doc = Document::open(&path).unwrap();
+            let mut doc = Document::open(&path, SimpleStorage::boxed).unwrap();
             let n = doc.save().unwrap();
             let back = fs::read_to_string(&path).unwrap();
             fs::remove_file(&path).unwrap();
@@ -349,10 +358,10 @@ mod tests {
         assert_eq!(end, Position::new(0, 6));
         let end = doc.insert(Position::new(1, 0), "big\n");
         assert_eq!(end, Position::new(2, 0));
-        assert_eq!(doc.text().to_string(), "hello,\nbig\nworld");
+        assert_eq!(doc.to_string(), "hello,\nbig\nworld");
         // Join lines: delete the newline at end of line 0.
         doc.delete(Position::new(0, 6), Position::new(1, 0));
-        assert_eq!(doc.text().to_string(), "hello,big\nworld");
+        assert_eq!(doc.to_string(), "hello,big\nworld");
     }
 
     #[test]
@@ -363,19 +372,19 @@ mod tests {
         doc.commit();
         doc.delete(Position::new(0, 0), Position::new(0, 1));
         doc.commit();
-        assert_eq!(doc.text().to_string(), "bcde");
+        assert_eq!(doc.to_string(), "bcde");
 
         assert_eq!(doc.undo(), Some(Position::new(0, 0)));
-        assert_eq!(doc.text().to_string(), "abcde");
+        assert_eq!(doc.to_string(), "abcde");
         assert_eq!(doc.undo(), Some(Position::new(0, 3)));
-        assert_eq!(doc.text().to_string(), "abc");
+        assert_eq!(doc.to_string(), "abc");
         assert_eq!(doc.undo(), None);
 
         assert_eq!(doc.redo(), Some(Position::new(0, 3)));
-        assert_eq!(doc.text().to_string(), "abcde");
+        assert_eq!(doc.to_string(), "abcde");
         assert_eq!(doc.redo(), Some(Position::new(0, 0)));
         assert_eq!(doc.redo(), None);
-        assert_eq!(doc.text().to_string(), "bcde");
+        assert_eq!(doc.to_string(), "bcde");
     }
 
     #[test]
@@ -387,14 +396,14 @@ mod tests {
         doc.insert(Position::new(0, 1), "c");
         doc.commit();
         assert_eq!(doc.redo(), None);
-        assert_eq!(doc.text().to_string(), "ac");
+        assert_eq!(doc.to_string(), "ac");
     }
 
     #[test]
     fn modified_tracks_saved_state() {
         let path = temp_path("modified.txt");
         fs::write(&path, "x\n").unwrap();
-        let mut doc = Document::open(&path).unwrap();
+        let mut doc = Document::open(&path, SimpleStorage::boxed).unwrap();
         assert!(!doc.is_modified());
         doc.insert(Position::new(0, 0), "y");
         assert!(doc.is_modified(), "pending edit counts as modified");

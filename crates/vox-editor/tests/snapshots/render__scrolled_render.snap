@@ -1,0 +1,10 @@
+---
+source: crates/vox-editor/tests/render.rs
+expression: screen
+---
+"  4 line 4                    "
+"  5 line 5                    "
+"  6 line 6                    "
+"  7 line 7                    "
+" NORMAL  [No Name]        7:3 "
+"                              "

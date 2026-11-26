@@ -17,26 +17,30 @@ pub fn find(doc: &Document, from: Position, pattern: &str, forward: bool) -> Opt
     if pattern.is_empty() {
         return None;
     }
-    let rope = doc.text();
-    let text = rope.to_string();
+    let text = doc.to_string();
     let cur = doc.char_idx(from);
     let hit = |byte: usize, wrapped| Match {
-        pos: doc.pos_at(rope.byte_to_char(byte)),
+        pos: doc.pos_at(text[..byte].chars().count()),
         wrapped,
     };
     if forward {
-        let start = rope.char_to_byte((cur + 1).min(rope.len_chars()));
+        let start = char_to_byte(&text, cur + 1);
         if let Some(b) = text[start..].find(pattern) {
             return Some(hit(start + b, false));
         }
         text.find(pattern).map(|b| hit(b, true))
     } else {
-        let end = rope.char_to_byte(cur);
+        let end = char_to_byte(&text, cur);
         if let Some(b) = text[..end].rfind(pattern) {
             return Some(hit(b, false));
         }
         text.rfind(pattern).map(|b| hit(b, true))
     }
+}
+
+/// Byte offset of char `idx` in `s`, or `s.len()` past the end.
+fn char_to_byte(s: &str, idx: usize) -> usize {
+    s.char_indices().nth(idx).map_or(s.len(), |(b, _)| b)
 }
 
 #[cfg(test)]

@@ -5,6 +5,34 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-26 — M2.5 dependency isolation
+
+No user-visible behaviour change.
+
+### Added
+- `vox_core::storage::TextStorage` trait, `SimpleStorage` (std), `storage::conformance` checks.
+- `vox_view::CharWidth` trait and `Monospace` fallback.
+- `vox-editor` crate: editor logic with own `Key`/`KeyCode`/`Modifiers`, `Surface` screen
+  model, and `Services` injection (storage, char width, clipboard).
+- Adapter crates, named by purpose: `vox-storage` (text storage, uses ropey), `vox-width`
+  (char cell widths, uses unicode-width), `vox-clipboard` (system clipboard, uses arboard),
+  `vox-term` (terminal I/O with row-diff drawing, uses crossterm).
+- `scripts/check-deps.sh` (in CI): core crates must depend only on vox crates.
+- Docs: "Dependencies and adapters" page; architecture updated.
+- Docs: interactive **Code tour** (crate map, function explorer with call graph, 8 step-by-step
+  walkthroughs), generated from source by `scripts/gen-code-tour.py`; API reference with
+  private items under `api/` via `scripts/build-docs.sh`. CI checks the tour data is current.
+- `///` descriptions on all internal functions.
+
+### Changed
+- `Document::new`/`open` take a `StorageFactory`; `Document::text()` replaced by
+  `char`, `len_chars`, and `Display`.
+- `vox-tui` split: logic → `vox-editor` (`App` renamed `Editor`), terminal → `vox-term`.
+- Text storage now uses LF-only line breaks (lone `\r`, U+2028 etc. no longer split lines).
+
+### Removed
+- `ratatui` and `anyhow` dependencies.
+
 ## [0.3.0] - 2026-11-26 — M2 Vim grammar
 
 ### Added

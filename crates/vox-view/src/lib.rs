@@ -1,6 +1,5 @@
 //! View state for vox: which part of a document is visible, and how text maps to screen cells.
-
-use unicode_width::UnicodeWidthChar;
+//! `std` only: char widths come from an injected [`CharWidth`].
 
 /// Display width of a tab stop.
 pub const TAB_WIDTH: usize = 4;
@@ -38,29 +37,47 @@ impl Viewport {
     }
 }
 
+/// Terminal cell width of a char. Implemented by adapters (e.g. `vox-width`).
+pub trait CharWidth {
+    /// Cells `c` occupies: 0 (combining), 1, or 2 (wide). `None` for control chars.
+    fn width(&self, c: char) -> Option<usize>;
+}
+
+/// Every non-control char is one cell. Fallback for tests and ASCII text.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Monospace;
+
+impl CharWidth for Monospace {
+    fn width(&self, c: char) -> Option<usize> {
+        (!c.is_control()).then_some(1)
+    }
+}
+
 /// Width of `c` when it starts at display column `at`.
-fn char_width(c: char, at: usize) -> usize {
+fn char_width(w: &dyn CharWidth, c: char, at: usize) -> usize {
     if c == '\t' {
         TAB_WIDTH - at % TAB_WIDTH
     } else {
-        c.width().unwrap_or(0)
+        w.width(c).unwrap_or(0)
     }
 }
 
 /// Display column where char column `col` of `line` starts. Tabs expand to tab stops.
-pub fn display_col(line: &str, col: usize) -> usize {
-    line.chars().take(col).fold(0, |w, c| w + char_width(c, w))
+pub fn display_col(w: &dyn CharWidth, line: &str, col: usize) -> usize {
+    line.chars()
+        .take(col)
+        .fold(0, |x, c| x + char_width(w, c, x))
 }
 
 /// The part of `line` visible in display columns `[left, left + width)`.
 /// Tabs become spaces; wide chars cut by an edge become spaces.
-pub fn visible_slice(line: &str, left: usize, width: usize) -> String {
+pub fn visible_slice(w: &dyn CharWidth, line: &str, left: usize, width: usize) -> String {
     let right = left + width;
     let mut out = String::new();
     let mut x = 0;
     for c in line.chars() {
         let start = x;
-        let end = x + char_width(c, x);
+        let end = x + char_width(w, c, x);
         x = end;
         if start < left && end <= left {
             continue;
@@ -109,21 +126,40 @@ mod tests {
         assert_eq!(v.left, 3);
     }
 
+    /// Test width: CJK ideographs are 2 cells, everything else 1.
+    struct Wide;
+    impl CharWidth for Wide {
+        fn width(&self, c: char) -> Option<usize> {
+            Some(if ('\u{4e00}'..='\u{9fff}').contains(&c) {
+                2
+            } else {
+                1
+            })
+        }
+    }
+
     #[test]
     fn display_col_tabs_and_wide() {
-        assert_eq!(display_col("abc", 2), 2);
-        assert_eq!(display_col("\tx", 1), 4);
-        assert_eq!(display_col("ab\tx", 3), 4);
-        assert_eq!(display_col("日本x", 2), 4);
+        assert_eq!(display_col(&Monospace, "abc", 2), 2);
+        assert_eq!(display_col(&Monospace, "\tx", 1), 4);
+        assert_eq!(display_col(&Monospace, "ab\tx", 3), 4);
+        assert_eq!(display_col(&Wide, "日本x", 2), 4);
     }
 
     #[test]
     fn visible_slice_cases() {
-        assert_eq!(visible_slice("hello world", 0, 5), "hello");
-        assert_eq!(visible_slice("hello world", 6, 20), "world");
-        assert_eq!(visible_slice("a\tb", 0, 10), "a   b");
-        assert_eq!(visible_slice("a\tb", 2, 10), "  b");
-        assert_eq!(visible_slice("日本", 1, 10), " 本");
-        assert_eq!(visible_slice("日本", 0, 3), "日 ");
+        let m = &Monospace;
+        assert_eq!(visible_slice(m, "hello world", 0, 5), "hello");
+        assert_eq!(visible_slice(m, "hello world", 6, 20), "world");
+        assert_eq!(visible_slice(m, "a\tb", 0, 10), "a   b");
+        assert_eq!(visible_slice(m, "a\tb", 2, 10), "  b");
+        assert_eq!(visible_slice(&Wide, "日本", 1, 10), " 本");
+        assert_eq!(visible_slice(&Wide, "日本", 0, 3), "日 ");
+    }
+
+    #[test]
+    fn monospace_control_chars() {
+        assert_eq!(Monospace.width('a'), Some(1));
+        assert_eq!(Monospace.width('\u{7}'), None);
     }
 }

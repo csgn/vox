@@ -1,0 +1,8 @@
+---
+source: crates/vox-editor/tests/render.rs
+expression: screen
+---
+"  1 abc             "
+"~                   "
+" NORMAL  [No Name]1:"
+"/b                  "

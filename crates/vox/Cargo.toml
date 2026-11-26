@@ -7,7 +7,9 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-anyhow = "1.0.105"
-ratatui = "0.30.2"
-vox-core = { version = "0.3.0", path = "../vox-core" }
-vox-tui = { version = "0.3.0", path = "../vox-tui" }
+vox-clipboard = { version = "0.4.0", path = "../vox-clipboard" }
+vox-core = { version = "0.4.0", path = "../vox-core" }
+vox-editor = { version = "0.4.0", path = "../vox-editor" }
+vox-storage = { version = "0.4.0", path = "../vox-storage" }
+vox-term = { version = "0.4.0", path = "../vox-term" }
+vox-width = { version = "0.4.0", path = "../vox-width" }

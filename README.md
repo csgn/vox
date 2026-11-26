@@ -2,7 +2,8 @@
 
 Vim-like modal terminal editor written in Rust. Planned: built-in Claude integration (via the `claude` CLI) and Rust plugins compiled to WASM.
 
-Status: **M2 — Vim grammar** (v0.3.0). Operators, counts, visual mode, search, clipboard.
+Status: **v0.4.0** — Vim grammar (M2) on a dependency-isolated core: editor logic is `std`-only;
+third-party libraries live in small adapter crates (see [ARCHITECTURE.md](ARCHITECTURE.md)).
 
 ## Build
 
@@ -20,5 +21,6 @@ Full list: `docs/src/user/keybindings.md`.
 
 ## Docs
 
-- User and developer guide: `docs/` (mdBook: `mdbook serve docs`)
+- User guide, developer guide, and an interactive **code tour** (crate map, function explorer,
+  walkthroughs): `./scripts/build-docs.sh`, then `python3 -m http.server -d docs/book 3000`
 - [ARCHITECTURE.md](ARCHITECTURE.md), [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md)

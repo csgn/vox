@@ -1,38 +1,41 @@
 # Architecture
 
-Crate map and layering rules: `ARCHITECTURE.md` at the repository root.
+Crate map, layers, and the dependency rule: `ARCHITECTURE.md` at the repository root.
 
 ## Data flow
 ```
-key event ─> App::handle_key ─> Document edits / motions ─> App::follow_cursor
-                                                             │
-terminal.draw ─> impl Widget for &App (pure) ─> screen  <────┘
+crossterm event ─> vox-term::convert ─> Key ─> Editor::handle_key ─> Document edits / motions
+                                                                       │
+terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <┘
 ```
 
 ## vox-core
-- `Document`: `ropey::Rope` + path + line ending + final-newline flag + undo history.
-  The final newline is not stored in the rope, so every rope line is a visible line.
-- Edits: `insert(pos, text)`, `delete(from, to)`. Each is recorded; `commit()` closes
-  the pending edits into one undo step. `undo()`/`redo()` return where the change happened.
-- `is_modified()` compares the current undo step id with the one saved on disk.
-- `motion`: pure `fn(&Document, Position) -> Position` (`word_forward`, `word_backward`,
-  `word_end`, `line_start`, `line_end`, `doc_start`, `doc_end`, `first_non_blank`, ...).
-- `search::find`: literal search with wraparound.
-- `Position { line, col }`: `col` counts chars, not bytes or cells.
+- `TextStorage` trait: char-indexed text, lines split on `\n` only. `SimpleStorage`
+  (`Vec<char>`) for tests; `vox-storage` for real use. `storage::conformance(factory)` checks
+  any implementation.
+- `Document`: `Box<dyn TextStorage>` + path + line ending + final-newline flag + undo history.
+  The final newline is not stored, so every storage line is a visible line.
+  `Document::new(text, factory)`, `Document::open(path, factory)`, `Document::from_text` (tests).
+- Edits: `insert(pos, text)`, `delete(from, to)`. `commit()` closes pending edits into one undo
+  step. `undo()`/`redo()` return where the change happened.
+- `motion`: pure `fn(&Document, Position) -> Position`. `search::find`: literal, wraps.
 
 ## vox-view
 - `Viewport { top, left }` with `follow(line, display_col, width, height)`.
-- `display_col` / `visible_slice`: char columns to screen cells (tabs, wide chars).
+- `CharWidth` trait (`Monospace` fallback); `display_col` / `visible_slice` take `&dyn CharWidth`.
 
-## vox-tui
-- `App`: mode, cursor, wanted column, viewport, registers, messages; `handle_key`.
-- `normal::parse(keys, visual) -> Parse<Cmd>`: the Vim grammar
+## vox-editor
+- `Editor`: mode, cursor, wanted column, viewport, registers, messages; `handle_key(Key)`.
+- `Services { storage, width, clipboard }`: injected platform pieces; `Default` = std stand-ins.
+- `Key { code, mods }` + `parse_keys("ihi<Esc>")` (Vim notation).
+- `normal::parse(keys, visual) -> Parse<Cmd>`: the grammar
   `["x][count](operator[count](motion|operator) | motion | action)`. Pending keys are
   re-parsed after every key; `Incomplete` waits, `Invalid` discards.
-- `App::exec(Cmd)`: runs a command. Operators turn a motion into a `Range`
-  (exclusive / inclusive / linewise), write the register, then delete/change/yank.
-- `register`: unnamed register + `Clipboard` trait (`SystemClipboard` via `arboard`;
-  tests inject an in-memory one with `App::set_clipboard`).
-- `parse_keys("ihi<Esc>")`: Vim key notation → key events (tests now, keymap config later).
-- Rendering is a pure `impl Widget for &App`; `cursor_screen_position` gives the terminal cursor.
-- `run`: draw → set cursor shape (bar in insert) → read key.
+- `Editor::exec(Cmd)`: operators turn a motion into a range (exclusive / inclusive /
+  linewise), write the register, then delete / change / yank.
+- `Surface`: cells (`symbol`, `Style { dim, reversed }`), cursor, cursor shape.
+  `Editor::render()` fills it. `Display` prints rows for snapshot tests.
+
+## vox-term
+- `Terminal::enter()` (raw mode, alternate screen, panic-safe restore), `draw(&Surface)` with
+  per-row diffing, `read_key()`, and `run(&mut Editor)`.

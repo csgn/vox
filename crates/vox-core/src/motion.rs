@@ -13,6 +13,7 @@ enum Class {
     Punct,
 }
 
+/// Classify `c` for word motions: whitespace, word char (letter, digit, `_`), or punctuation.
 fn class(c: char) -> Class {
     if c.is_whitespace() {
         Class::Space
@@ -25,7 +26,7 @@ fn class(c: char) -> Class {
 
 /// Whether char index `i` is the start of an empty line (Vim treats those as words).
 fn is_empty_line(doc: &Document, i: usize) -> bool {
-    let text = doc.text();
+    let text = doc;
     let n = text.len_chars();
     if i >= n {
         return i == n && i > 0 && text.char(i - 1) == '\n';
@@ -37,7 +38,7 @@ fn is_empty_line(doc: &Document, i: usize) -> bool {
 
 /// `w`: start of the next word. Empty lines count as words. Stops at the last char.
 pub fn word_forward(doc: &Document, pos: Position) -> Position {
-    let n = doc.text().len_chars();
+    let n = doc.len_chars();
     if doc.char_idx(pos) >= n {
         return pos;
     }
@@ -46,7 +47,7 @@ pub fn word_forward(doc: &Document, pos: Position) -> Position {
 
 /// Start of the next word, or `None` if there is no further word (end of document).
 pub fn next_word_start(doc: &Document, pos: Position) -> Option<Position> {
-    let text = doc.text();
+    let text = doc;
     let n = text.len_chars();
     let mut i = doc.char_idx(pos);
     if i >= n {
@@ -73,7 +74,7 @@ pub fn next_word_start(doc: &Document, pos: Position) -> Option<Position> {
 
 /// `b`: start of the current or previous word. Empty lines count as words.
 pub fn word_backward(doc: &Document, pos: Position) -> Position {
-    let text = doc.text();
+    let text = doc;
     let mut i = doc.char_idx(pos);
     if i == 0 {
         return pos;
@@ -94,7 +95,7 @@ pub fn word_backward(doc: &Document, pos: Position) -> Position {
 
 /// `e`: end of the current or next word. Stops at the last char.
 pub fn word_end(doc: &Document, pos: Position) -> Position {
-    let text = doc.text();
+    let text = doc;
     let n = text.len_chars();
     let mut i = doc.char_idx(pos) + 1;
     while i < n && class(text.char(i)) == Class::Space {
@@ -112,7 +113,7 @@ pub fn word_end(doc: &Document, pos: Position) -> Position {
 
 /// End of the word (or punctuation/whitespace run) under the cursor. Used by `cw`.
 pub fn current_word_end(doc: &Document, pos: Position) -> Position {
-    let text = doc.text();
+    let text = doc;
     let n = text.len_chars();
     let mut i = doc.char_idx(pos);
     if i >= n {

@@ -1,0 +1,124 @@
+/* Code tour widgets. Uses mdBook theme variables so light and dark themes both work. */
+
+.vt {
+  --vt-core: #2e9d5b;
+  --vt-adapter: #c7811a;
+  --vt-binary: #3b7dd8;
+  --vt-line: var(--table-border-color, #8884);
+  --vt-soft: var(--quote-bg, #8881);
+  font-size: 0.95em;
+}
+
+.vt code { font-size: 0.9em; }
+.vt button { font: inherit; cursor: pointer; }
+.vt a.vt-link { cursor: pointer; }
+
+.vt-badge {
+  display: inline-block;
+  padding: 0 0.45em;
+  border-radius: 0.6em;
+  font-size: 0.8em;
+  line-height: 1.5;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.vt-core { color: var(--vt-core); }
+.vt-adapter { color: var(--vt-adapter); }
+.vt-binary { color: var(--vt-binary); }
+
+.vt-legend { display: flex; gap: 1.2em; flex-wrap: wrap; margin: 0.5em 0 0.8em; font-size: 0.9em; }
+.vt-legend span::before {
+  content: ""; display: inline-block; width: 0.8em; height: 0.8em; border-radius: 0.2em;
+  margin-right: 0.35em; vertical-align: -0.05em; background: currentColor;
+}
+
+/* Crate map */
+.vt-map svg { width: 100%; height: auto; display: block; }
+.vt-map .node rect { fill: var(--bg); stroke-width: 2; rx: 8; }
+.vt-map .node text { fill: var(--fg); font-size: 14px; font-family: var(--mono-font, monospace); }
+.vt-map .node text.sub { font-size: 11px; opacity: 0.7; font-family: inherit; }
+.vt-map .node { cursor: pointer; }
+.vt-map .node.core rect { stroke: var(--vt-core); }
+.vt-map .node.adapter rect { stroke: var(--vt-adapter); }
+.vt-map .node.binary rect { stroke: var(--vt-binary); }
+.vt-map .node.sel rect { stroke-width: 4; fill: var(--vt-soft); }
+.vt-map .edge { stroke: var(--fg); opacity: 0.25; fill: none; stroke-width: 1.5; }
+.vt-map .edge.hot { opacity: 0.9; stroke-width: 2.5; }
+.vt-map .band { fill: var(--vt-soft); }
+.vt-map .band-label { fill: var(--fg); opacity: 0.6; font-size: 12px; }
+
+.vt-panel {
+  border: 1px solid var(--vt-line);
+  border-radius: 8px;
+  padding: 0.8em 1em;
+  margin-top: 0.8em;
+}
+.vt-panel h3 { margin-top: 0.2em; }
+.vt-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(16em, 1fr)); gap: 0.8em 1.5em; }
+.vt-cols h4 { margin: 0.4em 0 0.3em; font-size: 0.95em; }
+.vt-list { list-style: none; padding: 0; margin: 0; }
+.vt-list li { padding: 0.1em 0; }
+.vt-muted { opacity: 0.7; }
+.vt-chips { display: flex; flex-wrap: wrap; gap: 0.35em; }
+
+/* Explorer */
+.vt-explorer { display: grid; grid-template-columns: minmax(14em, 1fr) 2fr; gap: 1em; align-items: start; }
+@media (max-width: 900px) { .vt-explorer { grid-template-columns: 1fr; } }
+.vt-side { border: 1px solid var(--vt-line); border-radius: 8px; overflow: hidden; }
+.vt-filters { padding: 0.6em; border-bottom: 1px solid var(--vt-line); display: grid; gap: 0.4em; }
+.vt-filters input[type=search] {
+  width: 100%; box-sizing: border-box; padding: 0.35em 0.5em; border-radius: 6px;
+  border: 1px solid var(--vt-line); background: var(--bg); color: var(--fg);
+}
+.vt-filters label { font-size: 0.85em; margin-right: 0.8em; white-space: nowrap; }
+.vt-filters select {
+  background: var(--bg); color: var(--fg); border: 1px solid var(--vt-line); border-radius: 6px;
+  padding: 0.2em;
+}
+.vt-items { max-height: 70vh; overflow: auto; padding: 0.3em 0; position: relative; }
+.vt-group { padding: 0.4em 0.7em 0.1em; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.65; }
+.vt-item {
+  display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--fg);
+  padding: 0.15em 0.7em 0.15em 1.2em; font-family: var(--mono-font, monospace); font-size: 0.85em;
+}
+.vt-item:hover { background: var(--vt-soft); }
+.vt-item.sel { background: var(--vt-soft); box-shadow: inset 3px 0 0 var(--links); }
+.vt-item .priv { opacity: 0.55; }
+.vt-count { font-size: 0.8em; opacity: 0.7; padding: 0 0.7em 0.4em; }
+
+.vt-card { border: 1px solid var(--vt-line); border-radius: 8px; padding: 0.8em 1em; }
+.vt-card h3 { margin: 0 0 0.3em; font-family: var(--mono-font, monospace); font-size: 1.1em; word-break: break-word; }
+.vt-sig { display: block; white-space: pre-wrap; word-break: break-word; padding: 0.5em 0.7em; border-radius: 6px; background: var(--vt-soft); margin: 0.5em 0; }
+.vt-meta { display: flex; flex-wrap: wrap; gap: 0.5em 1em; align-items: center; font-size: 0.9em; }
+.vt-doc { margin: 0.6em 0; }
+.vt-note { font-size: 0.85em; opacity: 0.8; border-left: 3px solid var(--vt-line); padding-left: 0.6em; margin: 0.5em 0; }
+
+/* Walkthroughs */
+.vt-flowtabs { display: flex; flex-wrap: wrap; gap: 0.4em; margin-bottom: 0.8em; }
+.vt-flowtabs button {
+  border: 1px solid var(--vt-line); background: var(--bg); color: var(--fg);
+  border-radius: 999px; padding: 0.25em 0.8em;
+}
+.vt-flowtabs button.sel { background: var(--links); color: var(--bg); border-color: var(--links); }
+.vt-flow { display: grid; grid-template-columns: minmax(13em, 1fr) 2fr; gap: 1em; align-items: start; }
+@media (max-width: 900px) { .vt-flow { grid-template-columns: 1fr; } }
+.vt-steps { list-style: none; padding: 0; margin: 0; counter-reset: step; border: 1px solid var(--vt-line); border-radius: 8px; overflow: hidden; }
+.vt-steps li { counter-increment: step; }
+.vt-steps button {
+  display: flex; gap: 0.5em; width: 100%; text-align: left; background: none; border: 0;
+  color: var(--fg); padding: 0.35em 0.7em; font-size: 0.85em; align-items: baseline;
+}
+.vt-steps button::before { content: counter(step); min-width: 1.4em; opacity: 0.6; text-align: right; }
+.vt-steps button:hover { background: var(--vt-soft); }
+.vt-steps button.sel { background: var(--vt-soft); box-shadow: inset 3px 0 0 var(--links); }
+.vt-steps .fn { font-family: var(--mono-font, monospace); word-break: break-all; }
+.vt-steps button.done { opacity: 0.6; }
+.vt-nav { display: flex; gap: 0.5em; align-items: center; margin-top: 0.8em; flex-wrap: wrap; }
+.vt-nav button {
+  border: 1px solid var(--vt-line); background: var(--bg); color: var(--fg); border-radius: 6px; padding: 0.3em 0.9em;
+}
+.vt-nav button:disabled { opacity: 0.4; cursor: default; }
+.vt-strip { display: flex; flex-wrap: wrap; gap: 0.35em; margin: 0.6em 0; }
+.vt-strip span { padding: 0.1em 0.5em; border-radius: 6px; border: 1px dashed var(--vt-line); font-size: 0.8em; font-family: var(--mono-font, monospace); opacity: 0.55; }
+.vt-strip span.on { opacity: 1; border-style: solid; border-width: 2px; }
+.vt-steptext { font-size: 1.05em; line-height: 1.55; }

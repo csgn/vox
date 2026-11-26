@@ -21,10 +21,13 @@ jobs:
       - run: cargo clippy --workspace --all-targets
       - run: cargo test --workspace
       - run: cargo doc --workspace --no-deps
+      - run: ./scripts/check-deps.sh
 
   docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - uses: peaceiris/actions-mdbook@v2
-      - run: mdbook build docs
+      - run: python3 scripts/gen-code-tour.py --check
+      - run: ./scripts/build-docs.sh

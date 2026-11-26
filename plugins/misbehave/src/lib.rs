@@ -1,7 +1,7 @@
 //! Test plugin that breaks the rules on purpose. Used by the plugin host tests to check
 //! that limits work and that the editor survives. Not an example to copy.
 
-use vox_plugin_sdk::{Event, Level, Plugin, editor, export_plugin};
+use vox_plugin_sdk::{HealthItem, Level, Plugin, editor, export_plugin};
 
 struct Misbehave;
 
@@ -52,7 +52,15 @@ impl Plugin for Misbehave {
         }
     }
 
-    fn on_event(_event: Event) {}
+    /// Reports what the `health` setting says, to test custom health levels.
+    fn health() -> Vec<HealthItem> {
+        let level = match editor::setting("health").and_then(|v| v.as_text()).as_deref() {
+            Some("warning") => Level::Warn,
+            Some("error") => Level::Error,
+            _ => return vec![HealthItem { level: Level::Info, message: "all good".into() }],
+        };
+        vec![HealthItem { level, message: "told to be unhealthy".into() }]
+    }
 }
 
 export_plugin!(Misbehave);

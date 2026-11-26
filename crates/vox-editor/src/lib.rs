@@ -12,6 +12,7 @@ mod keys;
 pub mod log;
 mod normal;
 pub mod owner;
+pub mod plugin;
 mod register;
 mod render;
 pub mod scope;

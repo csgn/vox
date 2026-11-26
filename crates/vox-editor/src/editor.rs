@@ -116,6 +116,11 @@ pub struct Editor {
     owner: String,
     log: Log,
     developer_mode: bool,
+    /// `[plugins.NAME]` values from the config.
+    plugin_config: std::collections::BTreeMap<
+        String,
+        std::collections::BTreeMap<String, crate::config::Value>,
+    >,
     /// Active scope, and the global one (source for copying into a project).
     scope: Scope,
     global_scope: Option<Scope>,
@@ -186,6 +191,7 @@ impl Editor {
             owner: owner::USER.into(),
             log: Log::new((services.clock)()),
             developer_mode: false,
+            plugin_config: Default::default(),
             // Until the binary sets one: global without a folder (no badge, nothing loaded).
             scope: Scope {
                 kind: crate::scope::ScopeKind::Global,
@@ -658,6 +664,14 @@ impl Editor {
         self.global_scope.as_ref()
     }
 
+    /// The user's `[plugins.NAME]` values (settings and `enabled`), if any.
+    pub fn plugin_config(
+        &self,
+        name: &str,
+    ) -> Option<&std::collections::BTreeMap<String, crate::config::Value>> {
+        self.plugin_config.get(name)
+    }
+
     /// Whether developer mode is on.
     pub fn developer_mode(&self) -> bool {
         self.developer_mode
@@ -671,8 +685,8 @@ impl Editor {
         if on {
             self.with_owner(owner::DEVMODE, |ed| {
                 ed.map_key(MapMode::Normal, "<leader>dl", ":log");
-                ed.map_key(MapMode::Normal, "<leader>dr", ":reload-plugins");
-                ed.map_key(MapMode::Normal, "<leader>dc", ":reload-config");
+                ed.map_key(MapMode::Normal, "<leader>dr", ":reload plugins");
+                ed.map_key(MapMode::Normal, "<leader>dc", ":reload config");
             });
         }
         self.log(
@@ -1332,12 +1346,40 @@ impl Editor {
     /// Run a command line such as `w`, `e! notes.txt`, or a user/plugin command.
     /// Errors are shown as the message.
     pub fn run_command(&mut self, line: &str) {
-        let (name, args) = command::parse_line(line);
-        if name.is_empty() {
+        let (root, args) = command::parse_line(line);
+        if root.is_empty() {
             return;
         }
-        let Some(cmd) = self.commands.get(name) else {
-            self.message = Some(format!("E492: Not an editor command: {}", line.trim()));
+        // `:reload plugins x` runs the command "reload plugins" with the argument "x".
+        let sub = args.arg.and_then(|a| {
+            let (word, rest) = match a.split_once(char::is_whitespace) {
+                Some((w, r)) => (w, Some(r.trim()).filter(|r| !r.is_empty())),
+                None => (a, None),
+            };
+            let name = format!("{root} {word}");
+            self.commands.get(&name).is_some().then_some((name, rest))
+        });
+        let (name, args) = match sub {
+            Some((name, rest)) => (
+                name,
+                command::Args {
+                    arg: rest,
+                    force: args.force,
+                },
+            ),
+            None => (root.to_string(), args),
+        };
+        let Some(cmd) = self.commands.get(&name) else {
+            let subs: Vec<&str> = self
+                .commands
+                .subcommands_of(root)
+                .map(|c| &c.name[root.len() + 1..])
+                .collect();
+            self.message = Some(if subs.is_empty() {
+                format!("E492: Not an editor command: {}", line.trim())
+            } else {
+                format!("E471: Use :{root} {}", subs.join("|"))
+            });
             return;
         };
         let handler = cmd.handler.clone();
@@ -1386,6 +1428,7 @@ impl Editor {
         self.key_timeout = Duration::from_millis(cfg.timeout_ms);
         self.ui = cfg.ui;
         self.leader = cfg.leader.clone();
+        self.plugin_config = cfg.plugins.clone();
         self.remove_owned(owner::CONFIG);
         self.with_owner(owner::CONFIG, |ed| {
             for (mode, lhs, rhs) in &cfg.keymaps {

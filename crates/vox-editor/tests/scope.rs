@@ -34,7 +34,7 @@ fn setup(name: &str) -> (Editor, PathBuf, Rc<Cell<u32>>) {
     ed.set_scope(Scope::local(&root.join("project")), Some(global));
     // Stand-ins for the adapters' reload commands, to see they are called.
     let reloads = Rc::new(Cell::new(0));
-    for cmd in ["reload-config", "reload-plugins"] {
+    for cmd in ["reload config", "reload plugins"] {
         let r = reloads.clone();
         ed.commands_mut().register(cmd, "", move |_, _| {
             r.set(r.get() + 1);
@@ -72,7 +72,7 @@ fn setup_dialog_copy_everything() {
 #[test]
 fn choose_what_to_copy() {
     let (mut ed, root, _) = setup("pick");
-    feed(&mut ed, ":scope-pick<CR>");
+    feed(&mut ed, ":scope pick<CR>");
     // Rows: config.toml, plugin alpha, plugin beta. Pick only beta.
     feed(&mut ed, "jj<Space><CR>");
     let vox = root.join("project/.vox");
@@ -85,7 +85,7 @@ fn choose_what_to_copy() {
 #[test]
 fn start_empty_creates_folders_only() {
     let (mut ed, root, _) = setup("empty");
-    feed(&mut ed, ":scope-init empty<CR>");
+    feed(&mut ed, ":scope init empty<CR>");
     assert!(root.join("project/.vox/plugins").is_dir());
     assert!(!root.join("project/.vox/config.toml").exists());
     // The global setup is untouched.
@@ -101,7 +101,7 @@ fn setup_only_in_local_scope() {
     assert!(ed.message().unwrap().contains("needs local mode"));
     assert!(!ed.has_modal());
     ed.set_scope(Scope::global("/tmp/nowhere".into()), None);
-    feed(&mut ed, ":scope-init all<CR>");
+    feed(&mut ed, ":scope init all<CR>");
     assert!(ed.message().unwrap().contains("needs local mode"));
 }
 

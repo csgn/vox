@@ -21,6 +21,11 @@ editor.commands_mut().register("upper", "Uppercase the line", upper);
 editor.commands_mut().alias("up", "upper");
 ```
 
+**Subcommands:** a name with one space, e.g. `register("reload plugins", ...)`, makes `:reload
+plugins NAME` work (argument `NAME`). Different owners can add subcommands to the same root.
+If there is no command named just the root, `:reload` lists the subcommands. Do not use
+hyphenated names like `reload-plugins` for related commands.
+
 Run it with `:upper`, `:up! all`, a mapping (`"<leader>u" = ":upper"`), or from code with
 `editor.run_command("upper all")`. Registering an existing name replaces it, so built-in
 commands (`crates/vox-editor/src/builtin.rs`) can be overridden.

@@ -6,6 +6,9 @@ use std::collections::BTreeMap;
 use crate::keymap::MapMode;
 use crate::ui::{NotifyPosition, SidePosition, UiConfig};
 
+/// Parses a file's text (e.g. TOML) into a [`Value`]; provided by an adapter.
+pub type ValueParser = fn(&str) -> Result<Value, String>;
+
 /// A format-neutral configuration value.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
@@ -38,7 +41,7 @@ impl Value {
 }
 
 /// Validated settings.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Config {
     /// What `<leader>` means in mappings. Default `\`.
     pub leader: String,
@@ -50,6 +53,9 @@ pub struct Config {
     pub ui: UiConfig,
     /// Developer mode: log shortcuts and reload shortcuts.
     pub developer_mode: bool,
+    /// Per-plugin values (`[plugins.NAME]`): settings and `enabled`. Checked against each
+    /// plugin's manifest when it loads.
+    pub plugins: BTreeMap<String, BTreeMap<String, Value>>,
 }
 
 impl Default for Config {
@@ -60,6 +66,7 @@ impl Default for Config {
             keymaps: Vec::new(),
             ui: UiConfig::default(),
             developer_mode: false,
+            plugins: BTreeMap::new(),
         }
     }
 }
@@ -114,11 +121,37 @@ impl Config {
                 }
                 ("ui", Value::Table(t)) => parse_ui(t, &mut cfg.ui, &mut errors),
                 ("developer_mode", Value::Bool(b)) => cfg.developer_mode = *b,
-                ("leader" | "timeout_ms" | "keymap" | "ui" | "developer_mode", other) => {
+                ("plugins", Value::Table(t)) => {
+                    for (name, v) in t {
+                        match v {
+                            Value::Table(values) => {
+                                if let Some(e) = values
+                                    .get("enabled")
+                                    .filter(|e| !matches!(e, Value::Bool(_)))
+                                {
+                                    errors.push(format!(
+                                        "`plugins.{name}.enabled` must be true/false, not {}",
+                                        e.type_name()
+                                    ));
+                                }
+                                cfg.plugins.insert(name.clone(), values.clone());
+                            }
+                            other => errors.push(format!(
+                                "`plugins.{name}` must be a table, not {}",
+                                other.type_name()
+                            )),
+                        }
+                    }
+                }
+                (
+                    "leader" | "timeout_ms" | "keymap" | "ui" | "developer_mode" | "plugins",
+                    other,
+                ) => {
                     let want = match key.as_str() {
                         "leader" => "a string",
                         "timeout_ms" => "an integer",
                         "developer_mode" => "true/false",
+                        "plugins" => "a table",
                         _ => "a table",
                     };
                     errors.push(format!("`{key}` must be {want}, not {}", other.type_name()));
@@ -216,6 +249,30 @@ mod tests {
             vec![
                 (MapMode::Insert, "jk".into(), "<Esc>".into()),
                 (MapMode::Normal, "<leader>w".into(), ":w".into()),
+            ]
+        );
+    }
+
+    #[test]
+    fn plugins_section() {
+        let v = table(&[(
+            "plugins",
+            table(&[
+                (
+                    "text-tools",
+                    table(&[("case", s("lower")), ("enabled", Value::Bool(false))]),
+                ),
+                ("bad", s("x")),
+                ("worse", table(&[("enabled", s("no"))])),
+            ]),
+        )]);
+        let (cfg, errors) = Config::from_value(&v);
+        assert_eq!(cfg.plugins["text-tools"]["case"], s("lower"));
+        assert_eq!(
+            errors,
+            [
+                "`plugins.bad` must be a table, not a string",
+                "`plugins.worse.enabled` must be true/false, not a string"
             ]
         );
     }

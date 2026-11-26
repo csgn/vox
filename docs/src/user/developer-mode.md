@@ -17,8 +17,8 @@ shows `DEV` while it is on.
 | Keys | Command | Action |
 |---|---|---|
 | `<leader>dl` | `:log` | open the log |
-| `<leader>dr` | `:reload-plugins` | reload all plugins |
-| `<leader>dc` | `:reload-config` | re-read `config.toml` |
+| `<leader>dr` | `:reload plugins` | reload all plugins |
+| `<leader>dc` | `:reload config` | re-read `config.toml` |
 
 They are ordinary mappings, so you can change them in `[keymap.normal]`. The commands work
 without developer mode too.
@@ -49,10 +49,10 @@ The log keeps the last 2000 entries.
 
 ## Reloading
 
-- `:reload-config` re-reads the config file. Mappings from the old config are removed first,
+- `:reload config` re-reads the config file. Mappings from the old config are removed first,
   so deleted mappings really go away.
-- `:reload-plugins` unloads every plugin and loads all files in the plugin folder again.
-  `:reload-plugins NAME` reloads one. Reloading also revives a plugin that was disabled after
+- `:reload plugins` unloads every plugin and loads all files in the plugin folder again.
+  `:reload plugins NAME` reloads one. Reloading also revives a plugin that was disabled after
   an error.
 
 Unloading is exact: vox remembers who added every command, mapping, and event handler

@@ -101,7 +101,7 @@
       },
       {
         "fn": "vox::load_config",
-        "text": "Tries the project's `config.toml`: it does not exist yet, so nothing is applied. `:reload-config` is registered for the project path anyway."
+        "text": "Tries the project's `config.toml`: it does not exist yet, so nothing is applied. `:reload config` is registered for the project path anyway."
       },
       {
         "fn": "vox::load_plugins",
@@ -113,7 +113,7 @@
       },
       {
         "fn": "vox-editor::builtin::scope_init",
-        "text": "“Copy everything” runs `:scope-init all`."
+        "text": "“Copy everything” runs `:scope init all`."
       },
       {
         "fn": "vox-editor::scope::setup_local",
@@ -121,7 +121,7 @@
       },
       {
         "fn": "vox-editor::Editor::run_command",
-        "text": "Runs `:reload-config` and `:reload-plugins`, which read from the project paths: the copied config and plugins are active immediately."
+        "text": "Runs `:reload config` and `:reload plugins`, which read from the project paths: the copied config and plugins are active immediately."
       }
     ]
   },
@@ -612,43 +612,59 @@
   {
     "id": "plugin-load",
     "title": "Loading a plugin",
-    "summary": "How `text_tools.wasm` in the plugin folder becomes new commands, a key mapping, and an event handler.",
+    "summary": "How the package `text-tools/` (with `plugin.toml`) in the plugin folder is checked, loaded, and given its settings.",
     "steps": [
       {
         "fn": "vox::load_plugins",
-        "text": "Finds the plugin folder next to the config file and creates the plugin host."
-      },
-      {
-        "fn": "vox-plugin-host::PluginHost::new",
-        "text": "Sets up the `wasmtime` engine with time limits, a clock thread that ticks every 10 ms, and the functions plugins may call (`wit/vox.wit`)."
+        "text": "Creates the plugin host with the TOML parser from `vox-config-file` and loads the active scope's plugin folder."
       },
       {
         "fn": "vox-plugin-host::PluginHost::load_dir",
-        "text": "Loads each `*.wasm` file, sorted by name."
+        "text": "Finds all plugins in the folder and decides, together, which may load."
       },
       {
-        "fn": "vox-plugin-host::PluginHost::load",
-        "text": "Compiles the WebAssembly component, gives it its own memory-limited store with no file or network access, and calls its `init`."
+        "fn": "vox-editor::package::discover",
+        "text": "Core: every folder and `.wasm` file is a package. A folder must contain `plugin.toml` and `plugin.wasm`."
+      },
+      {
+        "fn": "vox-editor::package::read_package",
+        "text": "Reads and validates `plugin.toml` (through the injected parser, so core never parses TOML) and checks the folder name matches."
+      },
+      {
+        "fn": "vox-editor::PluginManifest::from_value",
+        "text": "Turns the manifest into name, version, API version, requirements, and typed settings, collecting every problem."
+      },
+      {
+        "fn": "vox-editor::package::assess",
+        "text": "Applies `enabled = false`, resolves settings against `[plugins.NAME]`, and runs the requirement checks — repeatedly, so a plugin that needs a failed plugin fails too."
+      },
+      {
+        "fn": "vox-editor::health::check",
+        "text": "API version, vox version, other plugins, programs on PATH. Each unmet requirement gets its level: error (not loaded), warning, info."
+      },
+      {
+        "fn": "vox-plugin-host::PluginHost::load_info",
+        "text": "For each plugin that may load: start it, call its own `health()`, record the result, and log it."
+      },
+      {
+        "fn": "vox-plugin-host::PluginHost::instantiate",
+        "text": "Compiles the WebAssembly, gives it its own memory-limited store with its effective settings, and calls `init`."
       },
       {
         "fn": "vox-plugin-host::call",
-        "text": "Every call into a plugin goes through here: it lends the editor to the plugin for the duration of the call, sets the time budget (about 1 s), and disables the plugin if it crashes or breaks a limit."
+        "text": "Every call into a plugin goes through here: owner `plugin:NAME`, time budget (about 1 s), and the plugin is stopped if it crashes or breaks a limit."
       },
       {
         "fn": "vox-plugin-host::HostState::register_command",
-        "text": "During `init` the plugin calls `register-command(\"wordcount\", ...)`. The request is queued..."
-      },
-      {
-        "fn": "vox-plugin-host::HostState::map_key",
-        "text": "`map-key(normal, \"<leader>c\", \":wordcount\")` is applied right away with the user's leader key."
+        "text": "During `init` the plugin calls `register-command(\"wordcount\", ...)`; the request is queued..."
       },
       {
         "fn": "vox-plugin-host::install",
-        "text": "...and installed after `init` returns: a normal editor command whose handler calls back into the plugin, and an event subscription that forwards events to the plugin."
+        "text": "...and installed after the call: a normal editor command whose handler calls back into the plugin."
       },
       {
-        "fn": "vox-editor::Commands::register",
-        "text": "The plugin's command is registered exactly like a built-in one."
+        "fn": "vox-plugin-host::from_wit_health",
+        "text": "The plugin's own health findings join the others. An `Error` unloads the plugin again (everything it registered is removed)."
       }
     ]
   },
@@ -694,11 +710,11 @@
   {
     "id": "reload-plugin",
     "title": "Reloading a plugin",
-    "summary": "`:reload-plugins text_tools` after rebuilding the plugin.",
+    "summary": "`:reload plugins text_tools` after rebuilding the plugin.",
     "steps": [
       {
         "fn": "vox-plugin-host::PluginHost::register_commands",
-        "text": "At start-up the binary registered `:reload-plugins`; its handler holds the plugin host."
+        "text": "At start-up the binary registered `:reload plugins`; its handler holds the plugin host."
       },
       {
         "fn": "vox-plugin-host::PluginHost::reload",
@@ -754,6 +770,41 @@
       {
         "fn": "vox-editor::LogView::handle_key",
         "text": "In the panel, `f` and `s` change the level and source filters and ask the editor to refresh; `c` clears."
+      }
+    ]
+  },
+  {
+    "id": "checkhealth",
+    "title": "Plugin settings and :checkhealth",
+    "summary": "`[plugins.text-tools] case = \"title\"` in config.toml, then `:upper` and `:checkhealth`.",
+    "steps": [
+      {
+        "fn": "vox-editor::Config::from_value",
+        "text": "`[plugins.NAME]` tables are kept as they are; only `enabled` is checked here, because the allowed settings are known only from each plugin's manifest."
+      },
+      {
+        "fn": "vox-editor::Editor::plugin_config",
+        "text": "The host asks the editor for a plugin's user values when it loads the plugin."
+      },
+      {
+        "fn": "vox-editor::manifest::resolve_settings",
+        "text": "Defaults from `[settings.KEY]`, replaced by valid user values. A wrong value (say `case = \"shout\"`) is ignored with a warning."
+      },
+      {
+        "fn": "vox-editor::SettingSpec::check",
+        "text": "Checks one value: type, min/max, or allowed choices."
+      },
+      {
+        "fn": "vox-plugin-host::HostState::setting",
+        "text": "When the plugin calls `setting(\"case\")`, the host answers from the settings it was given at load time."
+      },
+      {
+        "fn": "vox-plugin-host::PluginHost::recheck",
+        "text": "`:checkhealth` runs each running plugin's `health()` again..."
+      },
+      {
+        "fn": "vox-editor::package::report",
+        "text": "...and shows every plugin: version, status, each finding (✓ ok, ! warning, ✗ error, i info), and the settings in use."
       }
     ]
   }

@@ -22,7 +22,7 @@ window.VOX_TOUR = {
     },
     {
      "path": "crates/vox/src/main.rs",
-     "lines": 116
+     "lines": 164
     }
    ],
    "used_by": [],
@@ -118,19 +118,19 @@ window.VOX_TOUR = {
    "files": [
     {
      "path": "crates/vox-editor/src/builtin.rs",
-     "lines": 431
+     "lines": 435
     },
     {
      "path": "crates/vox-editor/src/command.rs",
-     "lines": 207
+     "lines": 219
     },
     {
      "path": "crates/vox-editor/src/config.rs",
-     "lines": 276
+     "lines": 333
     },
     {
      "path": "crates/vox-editor/src/editor.rs",
-     "lines": 1486
+     "lines": 1529
     },
     {
      "path": "crates/vox-editor/src/event.rs",
@@ -146,7 +146,7 @@ window.VOX_TOUR = {
     },
     {
      "path": "crates/vox-editor/src/lib.rs",
-     "lines": 31
+     "lines": 32
     },
     {
      "path": "crates/vox-editor/src/log.rs",
@@ -159,6 +159,30 @@ window.VOX_TOUR = {
     {
      "path": "crates/vox-editor/src/owner.rs",
      "lines": 16
+    },
+    {
+     "path": "crates/vox-editor/src/plugin/health.rs",
+     "lines": 297
+    },
+    {
+     "path": "crates/vox-editor/src/plugin/manifest.rs",
+     "lines": 589
+    },
+    {
+     "path": "crates/vox-editor/src/plugin/mod.rs",
+     "lines": 20
+    },
+    {
+     "path": "crates/vox-editor/src/plugin/package.rs",
+     "lines": 515
+    },
+    {
+     "path": "crates/vox-editor/src/plugin/template.rs",
+     "lines": 210
+    },
+    {
+     "path": "crates/vox-editor/src/plugin/version.rs",
+     "lines": 178
     },
     {
      "path": "crates/vox-editor/src/register.rs",
@@ -216,7 +240,7 @@ window.VOX_TOUR = {
    "files": [
     {
      "path": "crates/vox-plugin-host/src/lib.rs",
-     "lines": 479
+     "lines": 712
     }
    ],
    "used_by": [
@@ -229,12 +253,12 @@ window.VOX_TOUR = {
    "third_party": [
     "wit-bindgen"
    ],
-   "doc": "Write vox plugins in Rust.  A plugin is a type implementing [`Plugin`], exported with [`export_plugin!`], and built for the `wasm32-wasip2` target as a `cdylib`. The contract is `wit/vox.wit`.  ```ignore use vox_plugin_sdk::{Event, Plugin, editor, export_plugin};  struct Hello;  impl Plugin for Hello { fn init() -> Result<(), String> { editor::register_command(\"hello\", \"Say hello\"); Ok(()) } fn run_command(name: String, _arg: Option<String>, _force: bool) -> Result<(), String> { match name.as_str() { \"hello\" => editor::message(\"hello from a plugin\"), _ => {} } Ok(()) } fn on_event(_event: Event) {} }  export_plugin!(Hello); ```  Uses the `wit-bindgen` library to generate the WebAssembly glue code.",
+   "doc": "Write vox plugins in Rust.  A plugin is a type implementing [`Plugin`], exported with [`export_plugin!`], built for the `wasm32-wasip2` target as a `cdylib`, and shipped with a `plugin.toml` manifest. The contract is `wit/vox.wit`. Start a new plugin with `:plugin new NAME DIR` in vox.  ```ignore use vox_plugin_sdk::{Plugin, editor, export_plugin};  struct Hello;  impl Plugin for Hello { fn init() -> Result<(), String> { editor::register_command(\"hello\", \"Say hello\"); Ok(()) } fn run_command(name: String, _arg: Option<String>, _force: bool) -> Result<(), String> { let text = editor::setting(\"greeting\").and_then(|v| v.as_text()); editor::message(&text.unwrap_or_else(|| \"hello\".into())); Ok(()) } }  export_plugin!(Hello); ```  Uses the `wit-bindgen` library to generate the WebAssembly glue code.",
    "binary": false,
    "files": [
     {
      "path": "crates/vox-plugin-sdk/src/lib.rs",
-     "lines": 56
+     "lines": 118
     }
    ],
    "used_by": [],
@@ -343,7 +367,7 @@ window.VOX_TOUR = {
    "qual": "main",
    "crate": "vox",
    "file": "crates/vox/src/main.rs",
-   "line": 20,
+   "line": 21,
    "public": false,
    "owner": null,
    "trait": null,
@@ -364,7 +388,8 @@ window.VOX_TOUR = {
     "vox-editor::Scope::local",
     "vox-term::run",
     "vox::load_config",
-    "vox::load_plugins"
+    "vox::load_plugins",
+    "vox::register_plugin_new"
    ],
    "called_by": []
   },
@@ -374,13 +399,13 @@ window.VOX_TOUR = {
    "qual": "load_config",
    "crate": "vox",
    "file": "crates/vox/src/main.rs",
-   "line": 82,
+   "line": 84,
    "public": false,
    "owner": null,
    "trait": null,
    "decl_only": false,
    "sig": "fn load_config(editor: &mut Editor, scope: &Scope)",
-   "doc": "Read the scope's config file, if any, and register `:reload-config`.",
+   "doc": "Read the scope's config file, if any, and register `:reload config`.",
    "calls": [
     "vox-config-file::load_and_apply",
     "vox-config-file::register_commands"
@@ -395,17 +420,39 @@ window.VOX_TOUR = {
    "qual": "load_plugins",
    "crate": "vox",
    "file": "crates/vox/src/main.rs",
-   "line": 92,
+   "line": 94,
    "public": false,
    "owner": null,
    "trait": null,
    "decl_only": false,
    "sig": "fn load_plugins(editor: &mut Editor, scope: &Scope)",
-   "doc": "Load every plugin in the scope's plugin folder and register `:reload-plugins`. Failures are logged and shown as a notification; the editor runs without them.",
+   "doc": "Load every plugin in the scope's plugin folder and register `:reload plugins` and `:checkhealth`. Failed plugins and plugins with warnings are summed up in a notification.",
    "calls": [
     "vox-editor::Editor::notify",
     "vox-plugin-host::PluginHost::new",
-    "vox-plugin-host::PluginHost::register_commands"
+    "vox-plugin-host::PluginHost::register_commands",
+    "vox-editor::owner::plugin"
+   ],
+   "called_by": [
+    "vox::main"
+   ]
+  },
+  {
+   "id": "vox::register_plugin_new",
+   "name": "register_plugin_new",
+   "qual": "register_plugin_new",
+   "crate": "vox",
+   "file": "crates/vox/src/main.rs",
+   "line": 134,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn register_plugin_new(editor: &mut Editor)",
+   "doc": "Register `:plugin new NAME [DIR]`: create a plugin project in the standard layout.",
+   "calls": [
+    "vox-editor::Editor::with_owner",
+    "vox-editor::template::create"
    ],
    "called_by": [
     "vox::main"
@@ -541,7 +588,7 @@ window.VOX_TOUR = {
    "trait": null,
    "decl_only": false,
    "sig": "pub fn register_commands(editor: &mut Editor, path: PathBuf)",
-   "doc": "Register `:reload-config` (owner `builtin`): re-read `path` and apply it.",
+   "doc": "Register `:reload config` (owner `builtin`): re-read `path` and apply it.",
    "calls": [
     "vox-editor::Editor::with_owner",
     "vox-config-file::load_and_apply"
@@ -1956,7 +2003,9 @@ window.VOX_TOUR = {
    "decl_only": false,
    "sig": "pub(crate) fn register(c: &mut Commands)",
    "doc": "Register all built-in commands and their Vim-style short names.",
-   "calls": [],
+   "calls": [
+    "vox-editor::builtin::open_setup"
+   ],
    "called_by": [
     "vox-editor::Editor::with_services"
    ]
@@ -1967,7 +2016,7 @@ window.VOX_TOUR = {
    "qual": "builtin::write",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 90,
+   "line": 95,
    "public": false,
    "owner": null,
    "trait": null,
@@ -1983,7 +2032,7 @@ window.VOX_TOUR = {
    "qual": "builtin::quit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 95,
+   "line": 100,
    "public": false,
    "owner": null,
    "trait": null,
@@ -1999,7 +2048,7 @@ window.VOX_TOUR = {
    "qual": "builtin::write_quit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 104,
+   "line": 109,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2015,7 +2064,7 @@ window.VOX_TOUR = {
    "qual": "builtin::xit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 111,
+   "line": 116,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2031,7 +2080,7 @@ window.VOX_TOUR = {
    "qual": "builtin::edit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 120,
+   "line": 125,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2047,7 +2096,7 @@ window.VOX_TOUR = {
    "qual": "builtin::notify",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 128,
+   "line": 133,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2065,7 +2114,7 @@ window.VOX_TOUR = {
    "qual": "builtin::messages",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 139,
+   "line": 144,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2083,7 +2132,7 @@ window.VOX_TOUR = {
    "qual": "builtin::commands",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 159,
+   "line": 164,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2102,7 +2151,7 @@ window.VOX_TOUR = {
    "qual": "builtin::keymaps",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 178,
+   "line": 183,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2122,7 +2171,7 @@ window.VOX_TOUR = {
    "qual": "builtin::close",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 205,
+   "line": 210,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2138,7 +2187,7 @@ window.VOX_TOUR = {
    "qual": "builtin::focus",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 211,
+   "line": 216,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2154,7 +2203,7 @@ window.VOX_TOUR = {
    "qual": "builtin::log",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 223,
+   "line": 228,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2173,7 +2222,7 @@ window.VOX_TOUR = {
    "qual": "builtin::devmode",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 239,
+   "line": 244,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2189,7 +2238,7 @@ window.VOX_TOUR = {
    "qual": "builtin::scope",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 255,
+   "line": 260,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2197,8 +2246,7 @@ window.VOX_TOUR = {
    "sig": "fn scope(ed: &mut Editor, a: Args<'_>) -> CommandResult",
    "doc": "`:scope` shows the scope; `:scope setup` opens the project set-up dialog.",
    "calls": [
-    "vox-editor::TextView::new",
-    "vox-editor::builtin::open_setup"
+    "vox-editor::TextView::new"
    ],
    "called_by": []
   },
@@ -2208,7 +2256,7 @@ window.VOX_TOUR = {
    "qual": "builtin::require_local",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 302,
+   "line": 306,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2228,7 +2276,7 @@ window.VOX_TOUR = {
    "qual": "builtin::open_setup",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 310,
+   "line": 314,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2243,7 +2291,7 @@ window.VOX_TOUR = {
     "vox-editor::owner::plugin"
    ],
    "called_by": [
-    "vox-editor::builtin::scope"
+    "vox-editor::builtin::register"
    ]
   },
   {
@@ -2252,13 +2300,13 @@ window.VOX_TOUR = {
    "qual": "builtin::scope_pick",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 361,
+   "line": 365,
    "public": false,
    "owner": null,
    "trait": null,
    "decl_only": false,
    "sig": "fn scope_pick(ed: &mut Editor, _: Args<'_>) -> CommandResult",
-   "doc": "`:scope-pick`: checkboxes for the global config and each global plugin.",
+   "doc": "`:scope pick`: checkboxes for the global config and each global plugin.",
    "calls": [
     "vox-editor::scope::list_plugins",
     "vox-editor::CheckList::new",
@@ -2272,13 +2320,13 @@ window.VOX_TOUR = {
    "qual": "builtin::scope_init",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 387,
+   "line": 391,
    "public": false,
    "owner": null,
    "trait": null,
    "decl_only": false,
    "sig": "fn scope_init(ed: &mut Editor, a: Args<'_>) -> CommandResult",
-   "doc": "`:scope-init empty|all|[config] [PLUGIN...]`: create `.vox/`, copy, then reload.",
+   "doc": "`:scope init empty|all|[config] [PLUGIN...]`: create `.vox/`, copy, then reload.",
    "calls": [
     "vox-editor::scope::list_plugins",
     "vox-editor::scope::setup_local",
@@ -2366,7 +2414,9 @@ window.VOX_TOUR = {
    "sig": "pub fn iter(&self) -> impl Iterator<Item = &Command>",
    "doc": "All active commands in name order.",
    "calls": [],
-   "called_by": []
+   "called_by": [
+    "vox-editor::Commands::subcommands_of"
+   ]
   },
   {
    "id": "vox-editor::Commands::aliases_of",
@@ -2385,12 +2435,30 @@ window.VOX_TOUR = {
    "called_by": []
   },
   {
+   "id": "vox-editor::Commands::subcommands_of",
+   "name": "subcommands_of",
+   "qual": "Commands::subcommands_of",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/command.rs",
+   "line": 121,
+   "public": true,
+   "owner": "Commands",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn subcommands_of<'a>(&'a self, root: &'a str) -> impl Iterator<Item = &'a Command> + 'a",
+   "doc": "Subcommands of `root` (commands named `\"ROOT SUB\"`, e.g. `reload config`), by name.",
+   "calls": [
+    "vox-editor::Commands::iter"
+   ],
+   "called_by": []
+  },
+  {
    "id": "vox-editor::Commands::remove_owned",
    "name": "remove_owned",
    "qual": "Commands::remove_owned",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/command.rs",
-   "line": 121,
+   "line": 130,
    "public": true,
    "owner": "Commands",
    "trait": null,
@@ -2406,13 +2474,13 @@ window.VOX_TOUR = {
    "qual": "command::parse_line",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/command.rs",
-   "line": 135,
+   "line": 147,
    "public": true,
    "owner": null,
    "trait": null,
    "decl_only": false,
    "sig": "pub fn parse_line(line: &str) -> (&str, Args<'_>)",
-   "doc": "Split a command line into name, force flag, and argument: `\"w! a.txt\"` → `(\"w\", Args { arg: Some(\"a.txt\"), force: true })`.",
+   "doc": "Command names may contain one space for a subcommand: registering `\"reload config\"` makes `:reload config` work, and different owners can add subcommands to the same root.  Split a command line into name, force flag, and argument: `\"w! a.txt\"` → `(\"w\", Args { arg: Some(\"a.txt\"), force: true })`.",
    "calls": [],
    "called_by": [
     "vox-editor::Editor::run_command"
@@ -2424,7 +2492,7 @@ window.VOX_TOUR = {
    "qual": "Value::type_name",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 28,
+   "line": 31,
    "public": false,
    "owner": "Value",
    "trait": null,
@@ -2440,7 +2508,7 @@ window.VOX_TOUR = {
    "qual": "Config::default",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 56,
+   "line": 62,
    "public": true,
    "owner": "Config",
    "trait": "Default",
@@ -2460,7 +2528,7 @@ window.VOX_TOUR = {
    "qual": "Config::from_value",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 70,
+   "line": 77,
    "public": true,
    "owner": "Config",
    "trait": null,
@@ -2481,7 +2549,7 @@ window.VOX_TOUR = {
    "qual": "config::parse_ui",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 134,
+   "line": 167,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2517,7 +2585,7 @@ window.VOX_TOUR = {
    "qual": "Editor::new",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 153,
+   "line": 158,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2535,7 +2603,7 @@ window.VOX_TOUR = {
    "qual": "Editor::with_services",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 158,
+   "line": 163,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2560,7 +2628,7 @@ window.VOX_TOUR = {
    "qual": "Editor::set_clipboard",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 211,
+   "line": 217,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2576,7 +2644,7 @@ window.VOX_TOUR = {
    "qual": "Editor::should_quit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 216,
+   "line": 222,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2594,7 +2662,7 @@ window.VOX_TOUR = {
    "qual": "Editor::mode",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 221,
+   "line": 227,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2610,7 +2678,7 @@ window.VOX_TOUR = {
    "qual": "Editor::document",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 226,
+   "line": 232,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2626,7 +2694,7 @@ window.VOX_TOUR = {
    "qual": "Editor::cursor",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 231,
+   "line": 237,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2642,7 +2710,7 @@ window.VOX_TOUR = {
    "qual": "Editor::viewport",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 236,
+   "line": 242,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2658,7 +2726,7 @@ window.VOX_TOUR = {
    "qual": "Editor::message",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 241,
+   "line": 247,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2674,7 +2742,7 @@ window.VOX_TOUR = {
    "qual": "Editor::selection",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 246,
+   "line": 252,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2695,7 +2763,7 @@ window.VOX_TOUR = {
    "qual": "Editor::resize",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 255,
+   "line": 261,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2715,7 +2783,7 @@ window.VOX_TOUR = {
    "qual": "Editor::gutter_width",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 261,
+   "line": 267,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2737,7 +2805,7 @@ window.VOX_TOUR = {
    "qual": "Editor::text_area",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 266,
+   "line": 272,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2759,7 +2827,7 @@ window.VOX_TOUR = {
    "qual": "Editor::layout",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 273,
+   "line": 279,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2778,7 +2846,7 @@ window.VOX_TOUR = {
    "qual": "Editor::cursor_dcol",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 284,
+   "line": 290,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2800,7 +2868,7 @@ window.VOX_TOUR = {
    "qual": "Editor::follow_cursor",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 293,
+   "line": 299,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2824,7 +2892,7 @@ window.VOX_TOUR = {
    "qual": "Editor::handle_key",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 299,
+   "line": 305,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2845,7 +2913,7 @@ window.VOX_TOUR = {
    "qual": "Editor::panel_key",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 323,
+   "line": 329,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2865,7 +2933,7 @@ window.VOX_TOUR = {
    "qual": "Editor::view_key",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 343,
+   "line": 349,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2888,7 +2956,7 @@ window.VOX_TOUR = {
    "qual": "Editor::modal_outcome",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 370,
+   "line": 376,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2908,7 +2976,7 @@ window.VOX_TOUR = {
    "qual": "Editor::modal_depth",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 393,
+   "line": 399,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2926,7 +2994,7 @@ window.VOX_TOUR = {
    "qual": "Editor::put_view",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 398,
+   "line": 404,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2945,7 +3013,7 @@ window.VOX_TOUR = {
    "qual": "Editor::focused_panel",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 407,
+   "line": 413,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2963,7 +3031,7 @@ window.VOX_TOUR = {
    "qual": "Editor::window_cmd",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 416,
+   "line": 422,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2985,7 +3053,7 @@ window.VOX_TOUR = {
    "qual": "Editor::focus",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 438,
+   "line": 444,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3003,7 +3071,7 @@ window.VOX_TOUR = {
    "qual": "Editor::focused",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 450,
+   "line": 456,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3022,7 +3090,7 @@ window.VOX_TOUR = {
    "qual": "Editor::open_modal",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 455,
+   "line": 461,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3038,7 +3106,7 @@ window.VOX_TOUR = {
    "qual": "Editor::open_panel",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 460,
+   "line": 466,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3057,7 +3125,7 @@ window.VOX_TOUR = {
    "qual": "Editor::close_modal",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 467,
+   "line": 473,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3075,7 +3143,7 @@ window.VOX_TOUR = {
    "qual": "Editor::close_panel",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 473,
+   "line": 479,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3095,7 +3163,7 @@ window.VOX_TOUR = {
    "qual": "Editor::close_focused",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 484,
+   "line": 490,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3117,7 +3185,7 @@ window.VOX_TOUR = {
    "qual": "Editor::has_modal",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 497,
+   "line": 503,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3133,7 +3201,7 @@ window.VOX_TOUR = {
    "qual": "Editor::has_panel",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 502,
+   "line": 508,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3149,7 +3217,7 @@ window.VOX_TOUR = {
    "qual": "Editor::views",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 510,
+   "line": 516,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3167,7 +3235,7 @@ window.VOX_TOUR = {
    "qual": "Editor::notify",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 519,
+   "line": 525,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3186,7 +3254,7 @@ window.VOX_TOUR = {
    "qual": "Editor::notifications",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 531,
+   "line": 537,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3204,7 +3272,7 @@ window.VOX_TOUR = {
    "qual": "Editor::history",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 536,
+   "line": 542,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3220,7 +3288,7 @@ window.VOX_TOUR = {
    "qual": "Editor::next_deadline",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 542,
+   "line": 548,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3238,7 +3306,7 @@ window.VOX_TOUR = {
    "qual": "Editor::tick",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 549,
+   "line": 555,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3258,7 +3326,7 @@ window.VOX_TOUR = {
    "qual": "Editor::ui_config",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 562,
+   "line": 568,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3276,7 +3344,7 @@ window.VOX_TOUR = {
    "qual": "Editor::start",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 567,
+   "line": 573,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3297,7 +3365,7 @@ window.VOX_TOUR = {
    "qual": "Editor::subscribe",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 573,
+   "line": 579,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3315,7 +3383,7 @@ window.VOX_TOUR = {
    "qual": "Editor::with_owner",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 581,
+   "line": 587,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3324,6 +3392,7 @@ window.VOX_TOUR = {
    "doc": "Run `f` with `owner` as the owner of everything it registers (commands, mappings, subscriptions), so [`Editor::remove_owned`] can remove exactly those later.",
    "calls": [],
    "called_by": [
+    "vox::register_plugin_new",
     "vox-config-file::register_commands",
     "vox-editor::Editor::set_developer_mode",
     "vox-editor::Editor::apply_config",
@@ -3337,7 +3406,7 @@ window.VOX_TOUR = {
    "qual": "Editor::remove_owned",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 594,
+   "line": 600,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3348,6 +3417,7 @@ window.VOX_TOUR = {
    "called_by": [
     "vox-editor::Editor::set_developer_mode",
     "vox-editor::Editor::apply_config",
+    "vox-plugin-host::PluginHost::load_info",
     "vox-plugin-host::PluginHost::reload",
     "vox-plugin-host::PluginHost::reload_all"
    ]
@@ -3358,7 +3428,7 @@ window.VOX_TOUR = {
    "qual": "Editor::log",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 601,
+   "line": 607,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3373,7 +3443,7 @@ window.VOX_TOUR = {
     "vox-editor::Editor::set_scope",
     "vox-editor::Editor::set_developer_mode",
     "vox-editor::Editor::run_command",
-    "vox-plugin-host::PluginHost::load",
+    "vox-plugin-host::PluginHost::load_info",
     "vox-plugin-host::call_owned"
    ]
   },
@@ -3383,7 +3453,7 @@ window.VOX_TOUR = {
    "qual": "Editor::log_entries",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 608,
+   "line": 614,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3399,7 +3469,7 @@ window.VOX_TOUR = {
    "qual": "Editor::clear_log",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 613,
+   "line": 619,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3417,7 +3487,7 @@ window.VOX_TOUR = {
    "qual": "Editor::refresh_log_views",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 619,
+   "line": 625,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3436,7 +3506,7 @@ window.VOX_TOUR = {
    "qual": "Editor::set_scope",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 634,
+   "line": 640,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3456,7 +3526,7 @@ window.VOX_TOUR = {
    "qual": "Editor::scope",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 652,
+   "line": 658,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3474,7 +3544,7 @@ window.VOX_TOUR = {
    "qual": "Editor::global_scope",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 657,
+   "line": 663,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3485,12 +3555,30 @@ window.VOX_TOUR = {
    "called_by": []
   },
   {
+   "id": "vox-editor::Editor::plugin_config",
+   "name": "plugin_config",
+   "qual": "Editor::plugin_config",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 668,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn plugin_config(&self, name: &str) -> Option<&std::collections::BTreeMap<String, crate::config::Value>>",
+   "doc": "The user's `[plugins.NAME]` values (settings and `enabled`), if any.",
+   "calls": [],
+   "called_by": [
+    "vox-plugin-host::PluginHost::assess_and_load"
+   ]
+  },
+  {
    "id": "vox-editor::Editor::developer_mode",
    "name": "developer_mode",
    "qual": "Editor::developer_mode",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 662,
+   "line": 676,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3508,7 +3596,7 @@ window.VOX_TOUR = {
    "qual": "Editor::set_developer_mode",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 668,
+   "line": 682,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3530,7 +3618,7 @@ window.VOX_TOUR = {
    "qual": "Editor::emit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 686,
+   "line": 700,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3551,7 +3639,7 @@ window.VOX_TOUR = {
    "qual": "Editor::with_change_events",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 700,
+   "line": 714,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3575,7 +3663,7 @@ window.VOX_TOUR = {
    "qual": "Editor::mode_kind",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 727,
+   "line": 741,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3593,7 +3681,7 @@ window.VOX_TOUR = {
    "qual": "Editor::insert_text",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 739,
+   "line": 753,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3611,7 +3699,7 @@ window.VOX_TOUR = {
    "qual": "Editor::delete_text",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 744,
+   "line": 758,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3629,7 +3717,7 @@ window.VOX_TOUR = {
    "qual": "Editor::has_pending_keys",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 750,
+   "line": 764,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3645,7 +3733,7 @@ window.VOX_TOUR = {
    "qual": "Editor::key_timeout",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 755,
+   "line": 769,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3661,7 +3749,7 @@ window.VOX_TOUR = {
    "qual": "Editor::timeout",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 760,
+   "line": 774,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3682,7 +3770,7 @@ window.VOX_TOUR = {
    "qual": "Editor::map_mode",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 766,
+   "line": 780,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3700,7 +3788,7 @@ window.VOX_TOUR = {
    "qual": "Editor::resolve_mappings",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 778,
+   "line": 792,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3720,7 +3808,7 @@ window.VOX_TOUR = {
    "qual": "Editor::run_binding",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 801,
+   "line": 815,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3741,7 +3829,7 @@ window.VOX_TOUR = {
    "qual": "Editor::dispatch",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 809,
+   "line": 823,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3764,7 +3852,7 @@ window.VOX_TOUR = {
    "qual": "Editor::last_line",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 818,
+   "line": 832,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3788,7 +3876,7 @@ window.VOX_TOUR = {
    "qual": "Editor::max_col",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 823,
+   "line": 837,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3809,7 +3897,7 @@ window.VOX_TOUR = {
    "qual": "Editor::set_cursor",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 832,
+   "line": 846,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3839,7 +3927,7 @@ window.VOX_TOUR = {
    "qual": "Editor::move_lines",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 839,
+   "line": 853,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3862,7 +3950,7 @@ window.VOX_TOUR = {
    "qual": "Editor::enter_insert",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 849,
+   "line": 863,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3883,7 +3971,7 @@ window.VOX_TOUR = {
    "qual": "Editor::handle_normal",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 855,
+   "line": 869,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3904,7 +3992,7 @@ window.VOX_TOUR = {
    "qual": "Editor::exec",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 876,
+   "line": 890,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3941,7 +4029,7 @@ window.VOX_TOUR = {
    "qual": "Editor::motion_target",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 954,
+   "line": 968,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3970,7 +4058,7 @@ window.VOX_TOUR = {
    "qual": "Editor::search_target",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1034,
+   "line": 1048,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3991,7 +4079,7 @@ window.VOX_TOUR = {
    "qual": "Editor::operate",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1069,
+   "line": 1083,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -4018,7 +4106,7 @@ window.VOX_TOUR = {
    "qual": "Editor::apply",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1134,
+   "line": 1148,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -4048,7 +4136,7 @@ window.VOX_TOUR = {
    "qual": "Editor::delete_lines",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1183,
+   "line": 1197,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -4071,7 +4159,7 @@ window.VOX_TOUR = {
    "qual": "Editor::paste",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1198,
+   "line": 1212,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -4098,7 +4186,7 @@ window.VOX_TOUR = {
    "qual": "Editor::handle_insert",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1242,
+   "line": 1256,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -4125,7 +4213,7 @@ window.VOX_TOUR = {
    "qual": "Editor::undo",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1282,
+   "line": 1296,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -4146,7 +4234,7 @@ window.VOX_TOUR = {
    "qual": "Editor::redo",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1290,
+   "line": 1304,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -4167,7 +4255,7 @@ window.VOX_TOUR = {
    "qual": "Editor::handle_prompt",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1298,
+   "line": 1312,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -4188,7 +4276,7 @@ window.VOX_TOUR = {
    "qual": "Editor::search",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1323,
+   "line": 1337,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -4209,7 +4297,7 @@ window.VOX_TOUR = {
    "qual": "Editor::run_command",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1334,
+   "line": 1348,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -4236,7 +4324,7 @@ window.VOX_TOUR = {
    "qual": "Editor::commands",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1364,
+   "line": 1406,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -4252,7 +4340,7 @@ window.VOX_TOUR = {
    "qual": "Editor::commands_mut",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1369,
+   "line": 1411,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -4268,7 +4356,7 @@ window.VOX_TOUR = {
    "qual": "Editor::keymap",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1374,
+   "line": 1416,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -4284,7 +4372,7 @@ window.VOX_TOUR = {
    "qual": "Editor::keymap_mut",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1379,
+   "line": 1421,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -4300,7 +4388,7 @@ window.VOX_TOUR = {
    "qual": "Editor::apply_config",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1385,
+   "line": 1427,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -4322,7 +4410,7 @@ window.VOX_TOUR = {
    "qual": "Editor::map_key",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1402,
+   "line": 1445,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -4341,7 +4429,7 @@ window.VOX_TOUR = {
    "qual": "Editor::set_message",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1409,
+   "line": 1452,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -4357,7 +4445,7 @@ window.VOX_TOUR = {
    "qual": "Editor::quit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1414,
+   "line": 1457,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -4373,7 +4461,7 @@ window.VOX_TOUR = {
    "qual": "Editor::write",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1419,
+   "line": 1462,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -4395,7 +4483,7 @@ window.VOX_TOUR = {
    "qual": "Editor::edit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1447,
+   "line": 1490,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -4417,7 +4505,7 @@ window.VOX_TOUR = {
    "qual": "editor::focus_of",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1476,
+   "line": 1519,
    "public": false,
    "owner": null,
    "trait": null,
@@ -4437,7 +4525,7 @@ window.VOX_TOUR = {
    "qual": "editor::order",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1484,
+   "line": 1527,
    "public": false,
    "owner": null,
    "trait": null,
@@ -5081,8 +5169,9 @@ window.VOX_TOUR = {
    "doc": "Owner name of plugin `name`: `plugin:NAME`.",
    "calls": [],
    "called_by": [
+    "vox::load_plugins",
     "vox-editor::builtin::open_setup",
-    "vox-plugin-host::PluginHost::load",
+    "vox-plugin-host::PluginHost::load_info",
     "vox-plugin-host::PluginHost::reload",
     "vox-plugin-host::PluginHost::reload_all",
     "vox-plugin-host::PluginHost::register_commands",
@@ -5090,6 +5179,596 @@ window.VOX_TOUR = {
     "vox-plugin-host::call_owned",
     "vox-plugin-host::HostState::log"
    ]
+  },
+  {
+   "id": "vox-editor::HealthItem::ok",
+   "name": "ok",
+   "qual": "HealthItem::ok",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/health.rs",
+   "line": 23,
+   "public": true,
+   "owner": "HealthItem",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn ok(message: impl Into<String>) -> Self",
+   "doc": "A passed check.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::health::check",
+    "vox-editor::package::read_package",
+    "vox-editor::package::assess",
+    "vox-plugin-host::from_wit_health"
+   ]
+  },
+  {
+   "id": "vox-editor::HealthItem::problem",
+   "name": "problem",
+   "qual": "HealthItem::problem",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/health.rs",
+   "line": 32,
+   "public": true,
+   "owner": "HealthItem",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn problem(level: Level, message: impl Into<String>) -> Self",
+   "doc": "A failed check at `level`.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::health::check",
+    "vox-editor::package::read_package",
+    "vox-editor::package::assess",
+    "vox-plugin-host::PluginHost::load_info",
+    "vox-plugin-host::PluginHost::recheck",
+    "vox-plugin-host::from_wit_health"
+   ]
+  },
+  {
+   "id": "vox-editor::HealthStatus::name",
+   "name": "name",
+   "qual": "HealthStatus::name",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/health.rs",
+   "line": 58,
+   "public": true,
+   "owner": "HealthStatus",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn name(self) -> &'static str",
+   "doc": "Short name.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::health::status",
+   "name": "status",
+   "qual": "health::status",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/health.rs",
+   "line": 70,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn status(items: &[HealthItem]) -> HealthStatus",
+   "doc": "The overall status of `items`: the worst failed check decides.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::PluginInfo::add_items",
+    "vox-editor::package::assess"
+   ]
+  },
+  {
+   "id": "vox-editor::health::check",
+   "name": "check",
+   "qual": "health::check",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/health.rs",
+   "line": 96,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn check(m: &PluginManifest, env: &HealthEnv<'_>) -> Vec<HealthItem>",
+   "doc": "Check a manifest's API version and requirements.",
+   "calls": [
+    "vox-editor::HealthItem::ok",
+    "vox-editor::HealthItem::problem",
+    "vox-editor::health::short"
+   ],
+   "called_by": [
+    "vox-editor::package::assess"
+   ]
+  },
+  {
+   "id": "vox-editor::health::short",
+   "name": "short",
+   "qual": "health::short",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/health.rs",
+   "line": 159,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn short(v: Version) -> String",
+   "doc": "`0.2.0` → `0.2`.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::health::check"
+   ]
+  },
+  {
+   "id": "vox-editor::health::program_on_path",
+   "name": "program_on_path",
+   "qual": "health::program_on_path",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/health.rs",
+   "line": 168,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn program_on_path(name: &str) -> bool",
+   "doc": "Whether an executable named `name` is in a `PATH` folder.",
+   "calls": [
+    "vox-editor::health::is_executable"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::health::is_executable",
+   "name": "is_executable",
+   "qual": "health::is_executable",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/health.rs",
+   "line": 176,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn is_executable(p: &Path) -> bool",
+   "doc": "Whether `p` is a file the user may run.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::health::program_on_path"
+   ]
+  },
+  {
+   "id": "vox-editor::SettingValue::fmt",
+   "name": "fmt",
+   "qual": "SettingValue::fmt",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/manifest.rs",
+   "line": 88,
+   "public": true,
+   "owner": "SettingValue",
+   "trait": "Display",
+   "decl_only": false,
+   "sig": "fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result",
+   "doc": "Text form, used by `to_string()` (std `Display` trait).",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::SettingSpec::check",
+   "name": "check",
+   "qual": "SettingSpec::check",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/manifest.rs",
+   "line": 112,
+   "public": true,
+   "owner": "SettingSpec",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn check(&self, v: &Value) -> Result<SettingValue, String>",
+   "doc": "Check a user value against this spec.",
+   "calls": [
+    "vox-editor::manifest::kind_name"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::manifest::kind_name",
+   "name": "kind_name",
+   "qual": "manifest::kind_name",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/manifest.rs",
+   "line": 138,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn kind_name(k: &SettingKind) -> &'static str",
+   "doc": "Human name of a setting type, for error messages.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::SettingSpec::check"
+   ]
+  },
+  {
+   "id": "vox-editor::manifest::string",
+   "name": "string",
+   "qual": "manifest::string",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/manifest.rs",
+   "line": 167,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn string(t: &BTreeMap<String, Value>, key: &str, errors: &mut Vec<String>) -> Option<String>",
+   "doc": "Get a string field.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::PluginManifest::from_value",
+    "vox-editor::manifest::parse_requirement",
+    "vox-editor::manifest::parse_setting"
+   ]
+  },
+  {
+   "id": "vox-editor::PluginManifest::from_value",
+   "name": "from_value",
+   "qual": "PluginManifest::from_value",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/manifest.rs",
+   "line": 180,
+   "public": true,
+   "owner": "PluginManifest",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn from_value(v: &Value) -> Result<PluginManifest, Vec<String>>",
+   "doc": "Read a manifest from a parsed `plugin.toml`. Collects all problems.",
+   "calls": [
+    "vox-editor::Version::parse",
+    "vox-editor::VersionReq::parse",
+    "vox-editor::manifest::string",
+    "vox-editor::manifest::parse_requirement",
+    "vox-editor::manifest::parse_setting"
+   ],
+   "called_by": [
+    "vox-editor::package::read_package"
+   ]
+  },
+  {
+   "id": "vox-editor::PluginManifest::setting",
+   "name": "setting",
+   "qual": "PluginManifest::setting",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/manifest.rs",
+   "line": 285,
+   "public": true,
+   "owner": "PluginManifest",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn setting(&self, key: &str) -> Option<&SettingSpec>",
+   "doc": "The spec of setting `key`.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::manifest::parse_requirement",
+   "name": "parse_requirement",
+   "qual": "manifest::parse_requirement",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/manifest.rs",
+   "line": 291,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn parse_requirement(v: &Value) -> Result<Requirement, String>",
+   "doc": "Read one `[[requires]]` table.",
+   "calls": [
+    "vox-editor::VersionReq::parse",
+    "vox-editor::manifest::string"
+   ],
+   "called_by": [
+    "vox-editor::PluginManifest::from_value"
+   ]
+  },
+  {
+   "id": "vox-editor::manifest::parse_setting",
+   "name": "parse_setting",
+   "qual": "manifest::parse_setting",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/manifest.rs",
+   "line": 330,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn parse_setting(key: &str, v: &Value) -> Result<SettingSpec, String>",
+   "doc": "Read one `[settings.KEY]` table, checking its default against its type.",
+   "calls": [
+    "vox-editor::manifest::string"
+   ],
+   "called_by": [
+    "vox-editor::PluginManifest::from_value"
+   ]
+  },
+  {
+   "id": "vox-editor::manifest::resolve_settings",
+   "name": "resolve_settings",
+   "qual": "manifest::resolve_settings",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/manifest.rs",
+   "line": 385,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn resolve_settings(specs: &[SettingSpec], user: Option<&BTreeMap<String, Value>>) -> (Vec<(String, SettingValue)>, Vec<String>)",
+   "doc": "Effective settings: manifest defaults overridden by valid user values from `[plugins.NAME]`. Returns the values and one warning per ignored user value. The `enabled` key is not a setting and is skipped.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::package::assess"
+   ]
+  },
+  {
+   "id": "vox-editor::package::read_package",
+   "name": "read_package",
+   "qual": "package::read_package",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/package.rs",
+   "line": 32,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn read_package(path: &Path, parse: ValueParser) -> Package",
+   "doc": "Read the package at `path` (a folder or a `.wasm` file).",
+   "calls": [
+    "vox-editor::HealthItem::ok",
+    "vox-editor::HealthItem::problem",
+    "vox-editor::PluginManifest::from_value"
+   ],
+   "called_by": [
+    "vox-editor::package::discover",
+    "vox-plugin-host::PluginHost::load"
+   ]
+  },
+  {
+   "id": "vox-editor::package::discover",
+   "name": "discover",
+   "qual": "package::discover",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/package.rs",
+   "line": 109,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn discover(dir: &Path, parse: ValueParser) -> Vec<Package>",
+   "doc": "All packages in `dir` (folders and `.wasm` files), sorted by name. A missing folder yields none. Other files are ignored.",
+   "calls": [
+    "vox-editor::package::read_package"
+   ],
+   "called_by": [
+    "vox-plugin-host::PluginHost::load_dir"
+   ]
+  },
+  {
+   "id": "vox-editor::PluginInfo::version",
+   "name": "version",
+   "qual": "PluginInfo::version",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/package.rs",
+   "line": 142,
+   "public": true,
+   "owner": "PluginInfo",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn version(&self) -> Option<Version>",
+   "doc": "Version from the manifest.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::PluginInfo::loadable",
+   "name": "loadable",
+   "qual": "PluginInfo::loadable",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/package.rs",
+   "line": 147,
+   "public": true,
+   "owner": "PluginInfo",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn loadable(&self) -> bool",
+   "doc": "Whether the plugin may be loaded (not failed, not disabled).",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::PluginInfo::add_items",
+   "name": "add_items",
+   "qual": "PluginInfo::add_items",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/package.rs",
+   "line": 152,
+   "public": true,
+   "owner": "PluginInfo",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn add_items(&mut self, items: impl IntoIterator<Item = HealthItem>)",
+   "doc": "Add findings and recompute the status (keeps `Disabled`).",
+   "calls": [
+    "vox-editor::health::status"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::package::assess",
+   "name": "assess",
+   "qual": "package::assess",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/package.rs",
+   "line": 177,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn assess(packages: Vec<Package>, env: &AssessEnv<'_>) -> Vec<PluginInfo>",
+   "doc": "Decide for each package whether it can load: disabled by the user, broken package, API version, requirements (including other plugins, re-checked until stable so a plugin that needs a failed plugin fails too), and settings.",
+   "calls": [
+    "vox-editor::HealthItem::problem",
+    "vox-editor::HealthItem::ok",
+    "vox-editor::health::status",
+    "vox-editor::health::check",
+    "vox-editor::manifest::resolve_settings"
+   ],
+   "called_by": [
+    "vox-plugin-host::PluginHost::assess_and_load"
+   ]
+  },
+  {
+   "id": "vox-editor::package::report",
+   "name": "report",
+   "qual": "package::report",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/package.rs",
+   "line": 269,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn report(infos: &[PluginInfo]) -> Vec<(&'static str, String)>",
+   "doc": "Report lines for `:checkhealth`: (style key, text). Style key: `ok`, `info`, `warn`, `error`, `title`.",
+   "calls": [],
+   "called_by": [
+    "vox-plugin-host::PluginHost::register_commands"
+   ]
+  },
+  {
+   "id": "vox-editor::template::valid_name",
+   "name": "valid_name",
+   "qual": "template::valid_name",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/template.rs",
+   "line": 37,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn valid_name(name: &str) -> bool",
+   "doc": "Whether `name` is a valid plugin name: lowercase letters, digits, `-`, starting with a letter.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::template::create"
+   ]
+  },
+  {
+   "id": "vox-editor::template::create",
+   "name": "create",
+   "qual": "template::create",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/template.rs",
+   "line": 47,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn create(dir: &Path, name: &str, sdk: &str, vox_version: &str) -> io::Result<Vec<PathBuf>>",
+   "doc": "Create a new plugin project `dir/name` from the template. `sdk` is how its Cargo.toml finds the SDK (e.g. `path = \"/src/vox/crates/vox-plugin-sdk\"`). Fails if the folder exists. Returns the created files.",
+   "calls": [
+    "vox-editor::template::valid_name",
+    "vox-plugin-sdk::init",
+    "vox-plugin-sdk::run_command"
+   ],
+   "called_by": [
+    "vox::register_plugin_new"
+   ]
+  },
+  {
+   "id": "vox-editor::Version::parse",
+   "name": "parse",
+   "qual": "Version::parse",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/version.rs",
+   "line": 18,
+   "public": true,
+   "owner": "Version",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn parse(s: &str) -> Result<Version, String>",
+   "doc": "Parse `1`, `1.2`, or `1.2.3` (a leading `v` is allowed; `-pre`/`+build` are ignored).",
+   "calls": [],
+   "called_by": [
+    "vox-editor::PluginManifest::from_value",
+    "vox-editor::VersionReq::parse",
+    "vox-plugin-host::vox_version"
+   ]
+  },
+  {
+   "id": "vox-editor::Version::fmt",
+   "name": "fmt",
+   "qual": "Version::fmt",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/version.rs",
+   "line": 44,
+   "public": true,
+   "owner": "Version",
+   "trait": "Display",
+   "decl_only": false,
+   "sig": "fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result",
+   "doc": "Text form, used by `to_string()` (std `Display` trait).",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::VersionReq::parse",
+   "name": "parse",
+   "qual": "VersionReq::parse",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/version.rs",
+   "line": 71,
+   "public": true,
+   "owner": "VersionReq",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn parse(s: &str) -> Result<VersionReq, String>",
+   "doc": "Parse e.g. `>=0.10`, `^1.2`, `1.2`, `>=1, <2`, `=0.3.1`, `*`.",
+   "calls": [
+    "vox-editor::Version::parse"
+   ],
+   "called_by": [
+    "vox-editor::PluginManifest::from_value",
+    "vox-editor::manifest::parse_requirement"
+   ]
+  },
+  {
+   "id": "vox-editor::VersionReq::matches",
+   "name": "matches",
+   "qual": "VersionReq::matches",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/version.rs",
+   "line": 97,
+   "public": true,
+   "owner": "VersionReq",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn matches(&self, v: Version) -> bool",
+   "doc": "Whether `v` satisfies every comparison.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::VersionReq::fmt",
+   "name": "fmt",
+   "qual": "VersionReq::fmt",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/version.rs",
+   "line": 117,
+   "public": true,
+   "owner": "VersionReq",
+   "trait": "Display",
+   "decl_only": false,
+   "sig": "fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result",
+   "doc": "Text form, used by `to_string()` (std `Display` trait).",
+   "calls": [],
+   "called_by": []
   },
   {
    "id": "vox-editor::Clipboard::get",
@@ -6572,7 +7251,8 @@ window.VOX_TOUR = {
    "calls": [],
    "called_by": [
     "vox-editor::builtin::messages",
-    "vox-editor::builtin::scope"
+    "vox-editor::builtin::scope",
+    "vox-plugin-host::PluginHost::register_commands"
    ]
   },
   {
@@ -6828,18 +7508,38 @@ window.VOX_TOUR = {
    "called_by": []
   },
   {
+   "id": "vox-plugin-host::vox_version",
+   "name": "vox_version",
+   "qual": "vox_version",
+   "crate": "vox-plugin-host",
+   "file": "crates/vox-plugin-host/src/lib.rs",
+   "line": 65,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn vox_version() -> Version",
+   "doc": "This vox's version, for `vox = \">=...\"` requirements.",
+   "calls": [
+    "vox-editor::Version::parse"
+   ],
+   "called_by": [
+    "vox-plugin-host::PluginHost::assess_and_load"
+   ]
+  },
+  {
    "id": "vox-plugin-host::PluginHost::new",
    "name": "new",
    "qual": "PluginHost::new",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 51,
+   "line": 72,
    "public": true,
    "owner": "PluginHost",
    "trait": null,
    "decl_only": false,
-   "sig": "pub fn new() -> Result<Self, String>",
-   "doc": "Create a host. Starts a background thread that drives call time limits.",
+   "sig": "pub fn new(parse: ValueParser) -> Result<Self, String>",
+   "doc": "Create a host. `parse` reads `plugin.toml` files. Starts a background thread that drives call time limits.",
    "calls": [],
    "called_by": [
     "vox::load_plugins"
@@ -6851,21 +7551,91 @@ window.VOX_TOUR = {
    "qual": "PluginHost::load",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 75,
+   "line": 97,
    "public": true,
    "owner": "PluginHost",
    "trait": null,
    "decl_only": false,
    "sig": "pub fn load(&self, editor: &mut Editor, path: &Path) -> Result<String, String>",
-   "doc": "Load the plugin at `path` into `editor`: compile it, call its `init`, and install the commands, mappings, and event subscriptions it asked for. Returns the plugin's name (the file name without `.wasm`).",
+   "doc": "Load the plugin at `path` (a package folder or a `.wasm` file): check its health, then compile it, call `init` and `health`, and install what it registered. Returns the plugin's name, or why it was not loaded.",
    "calls": [
-    "vox-plugin-host::PluginHost::load_inner",
-    "vox-editor::Editor::log",
-    "vox-editor::owner::plugin"
+    "vox-plugin-host::PluginHost::assess_and_load",
+    "vox-editor::package::read_package",
+    "vox-plugin-host::failure"
    ],
    "called_by": [
-    "vox-plugin-host::PluginHost::reload",
+    "vox-plugin-host::PluginHost::reload"
+   ]
+  },
+  {
+   "id": "vox-plugin-host::PluginHost::load_dir",
+   "name": "load_dir",
+   "qual": "PluginHost::load_dir",
+   "crate": "vox-plugin-host",
+   "file": "crates/vox-plugin-host/src/lib.rs",
+   "line": 109,
+   "public": true,
+   "owner": "PluginHost",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn load_dir(&self, editor: &mut Editor, dir: &Path) -> Vec<PluginInfo>",
+   "doc": "Load every plugin in `dir` (package folders and `.wasm` files, by name). Returns what happened to each, including disabled and failed ones. A missing folder yields none.",
+   "calls": [
+    "vox-plugin-host::PluginHost::assess_and_load",
+    "vox-editor::package::discover"
+   ],
+   "called_by": [
+    "vox-plugin-host::PluginHost::reload_all"
+   ]
+  },
+  {
+   "id": "vox-plugin-host::PluginHost::assess_and_load",
+   "name": "assess_and_load",
+   "qual": "PluginHost::assess_and_load",
+   "crate": "vox-plugin-host",
+   "file": "crates/vox-plugin-host/src/lib.rs",
+   "line": 115,
+   "public": false,
+   "owner": "PluginHost",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn assess_and_load(&self, editor: &mut Editor, packages: Vec<Package>) -> Vec<PluginInfo>",
+   "doc": "Health-check `packages` together, then load the ones that may load.",
+   "calls": [
+    "vox-plugin-host::PluginHost::load_info",
+    "vox-editor::Editor::plugin_config",
+    "vox-editor::package::assess",
+    "vox-plugin-host::vox_version"
+   ],
+   "called_by": [
+    "vox-plugin-host::PluginHost::load",
     "vox-plugin-host::PluginHost::load_dir"
+   ]
+  },
+  {
+   "id": "vox-plugin-host::PluginHost::load_info",
+   "name": "load_info",
+   "qual": "PluginHost::load_info",
+   "crate": "vox-plugin-host",
+   "file": "crates/vox-plugin-host/src/lib.rs",
+   "line": 160,
+   "public": false,
+   "owner": "PluginHost",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn load_info(&self, editor: &mut Editor, mut info: PluginInfo) -> PluginInfo",
+   "doc": "Load one assessed plugin (if loadable), record it, and log the outcome.",
+   "calls": [
+    "vox-plugin-host::PluginHost::instantiate",
+    "vox-editor::Editor::remove_owned",
+    "vox-editor::Editor::log",
+    "vox-editor::owner::plugin",
+    "vox-editor::HealthItem::problem",
+    "vox-plugin-host::call",
+    "vox-plugin-host::failure"
+   ],
+   "called_by": [
+    "vox-plugin-host::PluginHost::assess_and_load"
    ]
   },
   {
@@ -6874,13 +7644,13 @@ window.VOX_TOUR = {
    "qual": "PluginHost::reload",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 96,
+   "line": 220,
    "public": true,
    "owner": "PluginHost",
    "trait": null,
    "decl_only": false,
    "sig": "pub fn reload(&self, editor: &mut Editor, name: &str) -> Result<String, String>",
-   "doc": "Unload plugin `name` (remove everything it registered) and load it again from the same file.",
+   "doc": "Unload plugin `name` (remove everything it registered) and load it again from the same place, re-reading its manifest and settings.",
    "calls": [
     "vox-plugin-host::PluginHost::load",
     "vox-editor::Editor::remove_owned",
@@ -6894,13 +7664,13 @@ window.VOX_TOUR = {
    "qual": "PluginHost::reload_all",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 109,
+   "line": 234,
    "public": true,
    "owner": "PluginHost",
    "trait": null,
    "decl_only": false,
-   "sig": "pub fn reload_all(&self, editor: &mut Editor, dir: &Path) -> Vec<Result<String, String>>",
-   "doc": "Unload every plugin and load all `*.wasm` files in `dir` again.",
+   "sig": "pub fn reload_all(&self, editor: &mut Editor, dir: &Path) -> Vec<PluginInfo>",
+   "doc": "Unload every plugin and load all plugins in `dir` again.",
    "calls": [
     "vox-plugin-host::PluginHost::load_dir",
     "vox-editor::Editor::remove_owned",
@@ -6914,14 +7684,49 @@ window.VOX_TOUR = {
    "qual": "PluginHost::names",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 118,
+   "line": 248,
    "public": true,
    "owner": "PluginHost",
    "trait": null,
    "decl_only": false,
    "sig": "pub fn names(&self) -> Vec<String>",
-   "doc": "Names of loaded plugins (including ones that failed), in load order.",
+   "doc": "Names of all known plugins (loaded, failed, disabled), in load order.",
    "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-plugin-host::PluginHost::plugins",
+   "name": "plugins",
+   "qual": "PluginHost::plugins",
+   "crate": "vox-plugin-host",
+   "file": "crates/vox-plugin-host/src/lib.rs",
+   "line": 257,
+   "public": true,
+   "owner": "PluginHost",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn plugins(&self) -> Vec<PluginInfo>",
+   "doc": "What is known about each plugin: status, findings, settings.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-plugin-host::PluginHost::recheck",
+   "name": "recheck",
+   "qual": "PluginHost::recheck",
+   "crate": "vox-plugin-host",
+   "file": "crates/vox-plugin-host/src/lib.rs",
+   "line": 267,
+   "public": false,
+   "owner": "PluginHost",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn recheck(&self, editor: &mut Editor)",
+   "doc": "Run the custom `health()` check of every running plugin again and update its findings (the other checks ran at load time).",
+   "calls": [
+    "vox-editor::HealthItem::problem",
+    "vox-plugin-host::call"
+   ],
    "called_by": []
   },
   {
@@ -6930,15 +7735,18 @@ window.VOX_TOUR = {
    "qual": "PluginHost::register_commands",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 128,
+   "line": 291,
    "public": true,
    "owner": "PluginHost",
    "trait": null,
    "decl_only": false,
    "sig": "pub fn register_commands(host: Rc<PluginHost>, editor: &mut Editor, dir: PathBuf)",
-   "doc": "Register `:reload-plugins [NAME]` (owner `builtin`): reload one plugin, or all from `dir`. Results are logged and shown as a notification.",
+   "doc": "Register `:reload plugins [NAME]` and `:checkhealth [NAME]` (owner `builtin`).",
    "calls": [
     "vox-editor::Editor::with_owner",
+    "vox-editor::package::report",
+    "vox-editor::TextView::new",
+    "vox-plugin-host::failure",
     "vox-editor::owner::plugin"
    ],
    "called_by": [
@@ -6946,43 +7754,63 @@ window.VOX_TOUR = {
    ]
   },
   {
-   "id": "vox-plugin-host::PluginHost::load_inner",
-   "name": "load_inner",
-   "qual": "PluginHost::load_inner",
+   "id": "vox-plugin-host::PluginHost::instantiate",
+   "name": "instantiate",
+   "qual": "PluginHost::instantiate",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 154,
+   "line": 358,
    "public": false,
    "owner": "PluginHost",
    "trait": null,
    "decl_only": false,
-   "sig": "fn load_inner(&self, editor: &mut Editor, path: &Path, name: &str) -> Result<String, String>",
-   "doc": "Compile, instantiate, and `init` one plugin.",
+   "sig": "fn instantiate(&self, editor: &mut Editor, info: &PluginInfo) -> Result<Rc<RefCell<Instance>>, String>",
+   "doc": "Compile and instantiate a plugin, give it its settings, and call `init`.",
    "calls": [
     "vox-plugin-host::call"
    ],
    "called_by": [
-    "vox-plugin-host::PluginHost::load"
+    "vox-plugin-host::PluginHost::load_info"
    ]
   },
   {
-   "id": "vox-plugin-host::PluginHost::load_dir",
-   "name": "load_dir",
-   "qual": "PluginHost::load_dir",
+   "id": "vox-plugin-host::from_wit_health",
+   "name": "from_wit_health",
+   "qual": "from_wit_health",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 184,
-   "public": true,
-   "owner": "PluginHost",
+   "line": 396,
+   "public": false,
+   "owner": null,
    "trait": null,
    "decl_only": false,
-   "sig": "pub fn load_dir(&self, editor: &mut Editor, dir: &Path) -> Vec<Result<String, String>>",
-   "doc": "Load every `*.wasm` file in `dir` (sorted by name). Returns one result per file. A missing directory yields no results.",
+   "sig": "fn from_wit_health(item: wit::HealthItem) -> HealthItem",
+   "doc": "WIT health item → core finding.",
    "calls": [
-    "vox-plugin-host::PluginHost::load"
+    "vox-editor::HealthItem::ok",
+    "vox-editor::HealthItem::problem",
+    "vox-plugin-host::to_level"
    ],
+   "called_by": []
+  },
+  {
+   "id": "vox-plugin-host::failure",
+   "name": "failure",
+   "qual": "failure",
+   "crate": "vox-plugin-host",
+   "file": "crates/vox-plugin-host/src/lib.rs",
+   "line": 406,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn failure(info: &PluginInfo) -> String",
+   "doc": "The reason a plugin is not loaded: its first error finding.",
+   "calls": [],
    "called_by": [
-    "vox-plugin-host::PluginHost::reload_all"
+    "vox-plugin-host::PluginHost::load",
+    "vox-plugin-host::PluginHost::load_info",
+    "vox-plugin-host::PluginHost::register_commands"
    ]
   },
   {
@@ -6991,7 +7819,7 @@ window.VOX_TOUR = {
    "qual": "HostState::editor",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 233,
+   "line": 453,
    "public": false,
    "owner": "HostState",
    "trait": null,
@@ -7021,7 +7849,7 @@ window.VOX_TOUR = {
    "qual": "HostState::ctx",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 246,
+   "line": 466,
    "public": true,
    "owner": "HostState",
    "trait": "WasiView",
@@ -7037,7 +7865,7 @@ window.VOX_TOUR = {
    "qual": "call",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 256,
+   "line": 476,
    "public": false,
    "owner": null,
    "trait": null,
@@ -7050,7 +7878,9 @@ window.VOX_TOUR = {
     "vox-plugin-host::call_owned"
    ],
    "called_by": [
-    "vox-plugin-host::PluginHost::load_inner",
+    "vox-plugin-host::PluginHost::load_info",
+    "vox-plugin-host::PluginHost::recheck",
+    "vox-plugin-host::PluginHost::instantiate",
     "vox-plugin-host::install"
    ]
   },
@@ -7060,7 +7890,7 @@ window.VOX_TOUR = {
    "qual": "call_owned",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 269,
+   "line": 489,
    "public": false,
    "owner": null,
    "trait": null,
@@ -7083,7 +7913,7 @@ window.VOX_TOUR = {
    "qual": "describe",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 306,
+   "line": 526,
    "public": false,
    "owner": null,
    "trait": null,
@@ -7101,7 +7931,7 @@ window.VOX_TOUR = {
    "qual": "install",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 317,
+   "line": 537,
    "public": false,
    "owner": null,
    "trait": null,
@@ -7123,7 +7953,7 @@ window.VOX_TOUR = {
    "qual": "to_level",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 344,
+   "line": 564,
    "public": false,
    "owner": null,
    "trait": null,
@@ -7132,6 +7962,7 @@ window.VOX_TOUR = {
    "doc": "WIT level → core level.",
    "calls": [],
    "called_by": [
+    "vox-plugin-host::from_wit_health",
     "vox-plugin-host::HostState::notify",
     "vox-plugin-host::HostState::log"
    ]
@@ -7142,7 +7973,7 @@ window.VOX_TOUR = {
    "qual": "to_wit_mode",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 354,
+   "line": 574,
    "public": false,
    "owner": null,
    "trait": null,
@@ -7161,7 +7992,7 @@ window.VOX_TOUR = {
    "qual": "to_wit_event",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 365,
+   "line": 585,
    "public": false,
    "owner": null,
    "trait": null,
@@ -7181,7 +8012,7 @@ window.VOX_TOUR = {
    "qual": "to_pos",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 375,
+   "line": 595,
    "public": false,
    "owner": null,
    "trait": null,
@@ -7203,7 +8034,7 @@ window.VOX_TOUR = {
    "qual": "from_pos",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 380,
+   "line": 600,
    "public": false,
    "owner": null,
    "trait": null,
@@ -7222,7 +8053,7 @@ window.VOX_TOUR = {
    "qual": "HostState::register_command",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 391,
+   "line": 611,
    "public": true,
    "owner": "HostState",
    "trait": "Host",
@@ -7238,7 +8069,7 @@ window.VOX_TOUR = {
    "qual": "HostState::map_key",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 396,
+   "line": 616,
    "public": true,
    "owner": "HostState",
    "trait": "Host",
@@ -7256,7 +8087,7 @@ window.VOX_TOUR = {
    "qual": "HostState::subscribe",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 406,
+   "line": 626,
    "public": true,
    "owner": "HostState",
    "trait": "Host",
@@ -7272,7 +8103,7 @@ window.VOX_TOUR = {
    "qual": "HostState::message",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 417,
+   "line": 637,
    "public": true,
    "owner": "HostState",
    "trait": "Host",
@@ -7290,7 +8121,7 @@ window.VOX_TOUR = {
    "qual": "HostState::notify",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 422,
+   "line": 642,
    "public": true,
    "owner": "HostState",
    "trait": "Host",
@@ -7309,7 +8140,7 @@ window.VOX_TOUR = {
    "qual": "HostState::log",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 427,
+   "line": 647,
    "public": true,
    "owner": "HostState",
    "trait": "Host",
@@ -7324,12 +8155,28 @@ window.VOX_TOUR = {
    "called_by": []
   },
   {
+   "id": "vox-plugin-host::HostState::setting",
+   "name": "setting",
+   "qual": "HostState::setting",
+   "crate": "vox-plugin-host",
+   "file": "crates/vox-plugin-host/src/lib.rs",
+   "line": 653,
+   "public": true,
+   "owner": "HostState",
+   "trait": "Host",
+   "decl_only": false,
+   "sig": "fn setting(&mut self, key: String) -> Option<wit::SettingValue>",
+   "doc": "WIT `setting`: the value of one of this plugin's settings.",
+   "calls": [],
+   "called_by": []
+  },
+  {
    "id": "vox-plugin-host::HostState::run_command",
    "name": "run_command",
    "qual": "HostState::run_command",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 433,
+   "line": 666,
    "public": true,
    "owner": "HostState",
    "trait": "Host",
@@ -7347,7 +8194,7 @@ window.VOX_TOUR = {
    "qual": "HostState::file_path",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 438,
+   "line": 671,
    "public": true,
    "owner": "HostState",
    "trait": "Host",
@@ -7365,7 +8212,7 @@ window.VOX_TOUR = {
    "qual": "HostState::line_count",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 446,
+   "line": 679,
    "public": true,
    "owner": "HostState",
    "trait": "Host",
@@ -7383,7 +8230,7 @@ window.VOX_TOUR = {
    "qual": "HostState::line",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 451,
+   "line": 684,
    "public": true,
    "owner": "HostState",
    "trait": "Host",
@@ -7401,7 +8248,7 @@ window.VOX_TOUR = {
    "qual": "HostState::insert_text",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 456,
+   "line": 689,
    "public": true,
    "owner": "HostState",
    "trait": "Host",
@@ -7421,7 +8268,7 @@ window.VOX_TOUR = {
    "qual": "HostState::delete_text",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 461,
+   "line": 694,
    "public": true,
    "owner": "HostState",
    "trait": "Host",
@@ -7440,7 +8287,7 @@ window.VOX_TOUR = {
    "qual": "HostState::cursor",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 466,
+   "line": 699,
    "public": true,
    "owner": "HostState",
    "trait": "Host",
@@ -7459,7 +8306,7 @@ window.VOX_TOUR = {
    "qual": "HostState::set_cursor",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 471,
+   "line": 704,
    "public": true,
    "owner": "HostState",
    "trait": "Host",
@@ -7478,7 +8325,7 @@ window.VOX_TOUR = {
    "qual": "HostState::current_mode",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 476,
+   "line": 709,
    "public": true,
    "owner": "HostState",
    "trait": "Host",
@@ -7489,6 +8336,188 @@ window.VOX_TOUR = {
     "vox-plugin-host::HostState::editor",
     "vox-plugin-host::to_wit_mode"
    ],
+   "called_by": []
+  },
+  {
+   "id": "vox-plugin-sdk::Plugin::init",
+   "name": "init",
+   "qual": "Plugin::init",
+   "crate": "vox-plugin-sdk",
+   "file": "crates/vox-plugin-sdk/src/lib.rs",
+   "line": 52,
+   "public": true,
+   "owner": "Plugin",
+   "trait": null,
+   "decl_only": true,
+   "sig": "fn init() -> Result<(), String>",
+   "doc": "Called once at load: register commands, mappings, and event subscriptions.",
+   "calls": [],
+   "called_by": [],
+   "implemented_by": []
+  },
+  {
+   "id": "vox-plugin-sdk::Plugin::run_command",
+   "name": "run_command",
+   "qual": "Plugin::run_command",
+   "crate": "vox-plugin-sdk",
+   "file": "crates/vox-plugin-sdk/src/lib.rs",
+   "line": 54,
+   "public": true,
+   "owner": "Plugin",
+   "trait": null,
+   "decl_only": true,
+   "sig": "fn run_command(name: String, arg: Option<String>, force: bool) -> Result<(), String>",
+   "doc": "Run one of this plugin's commands. An `Err` is shown to the user.",
+   "calls": [],
+   "called_by": [],
+   "implemented_by": []
+  },
+  {
+   "id": "vox-plugin-sdk::Plugin::on_event",
+   "name": "on_event",
+   "qual": "Plugin::on_event",
+   "crate": "vox-plugin-sdk",
+   "file": "crates/vox-plugin-sdk/src/lib.rs",
+   "line": 56,
+   "public": true,
+   "owner": "Plugin",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn on_event(_event: Event)",
+   "doc": "Handle an event this plugin subscribed to.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-plugin-sdk::Plugin::health",
+   "name": "health",
+   "qual": "Plugin::health",
+   "crate": "vox-plugin-sdk",
+   "file": "crates/vox-plugin-sdk/src/lib.rs",
+   "line": 59,
+   "public": true,
+   "owner": "Plugin",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn health() -> Vec<HealthItem>",
+   "doc": "Custom health checks (after `init`, and in `:checkhealth`). An `Error` item unloads the plugin.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-plugin-sdk::SettingValue::as_text",
+   "name": "as_text",
+   "qual": "SettingValue::as_text",
+   "crate": "vox-plugin-sdk",
+   "file": "crates/vox-plugin-sdk/src/lib.rs",
+   "line": 66,
+   "public": true,
+   "owner": "SettingValue",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn as_text(&self) -> Option<String>",
+   "doc": "The text, if this is a text (or choice) setting.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-plugin-sdk::SettingValue::as_integer",
+   "name": "as_integer",
+   "qual": "SettingValue::as_integer",
+   "crate": "vox-plugin-sdk",
+   "file": "crates/vox-plugin-sdk/src/lib.rs",
+   "line": 74,
+   "public": true,
+   "owner": "SettingValue",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn as_integer(&self) -> Option<i64>",
+   "doc": "The number, if this is an integer setting.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-plugin-sdk::SettingValue::as_bool",
+   "name": "as_bool",
+   "qual": "SettingValue::as_bool",
+   "crate": "vox-plugin-sdk",
+   "file": "crates/vox-plugin-sdk/src/lib.rs",
+   "line": 82,
+   "public": true,
+   "owner": "SettingValue",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn as_bool(&self) -> Option<bool>",
+   "doc": "The flag, if this is a bool setting.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-plugin-sdk::init",
+   "name": "init",
+   "qual": "init",
+   "crate": "vox-plugin-sdk",
+   "file": "crates/vox-plugin-sdk/src/lib.rs",
+   "line": 99,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn init() -> Result<(), String>",
+   "doc": "Forwards to [`Plugin::init`].",
+   "calls": [],
+   "called_by": [
+    "vox-editor::template::create"
+   ]
+  },
+  {
+   "id": "vox-plugin-sdk::run_command",
+   "name": "run_command",
+   "qual": "run_command",
+   "crate": "vox-plugin-sdk",
+   "file": "crates/vox-plugin-sdk/src/lib.rs",
+   "line": 103,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn run_command(name: String, arg: Option<String>, force: bool) -> Result<(), String>",
+   "doc": "Forwards to [`Plugin::run_command`].",
+   "calls": [],
+   "called_by": [
+    "vox-editor::template::create"
+   ]
+  },
+  {
+   "id": "vox-plugin-sdk::on_event",
+   "name": "on_event",
+   "qual": "on_event",
+   "crate": "vox-plugin-sdk",
+   "file": "crates/vox-plugin-sdk/src/lib.rs",
+   "line": 107,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn on_event(event: $crate::Event)",
+   "doc": "Forwards to [`Plugin::on_event`].",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-plugin-sdk::health",
+   "name": "health",
+   "qual": "health",
+   "crate": "vox-plugin-sdk",
+   "file": "crates/vox-plugin-sdk/src/lib.rs",
+   "line": 111,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn health() -> Vec<$crate::HealthItem>",
+   "doc": "Forwards to [`Plugin::health`].",
+   "calls": [],
    "called_by": []
   },
   {
@@ -8225,12 +9254,22 @@ window.VOX_TOUR = {
    "doc": "All commands, by name, plus short aliases (`w` → `write`).  Registering a name that exists hides the old command; removing the newer owner's commands (e.g. unloading a plugin) brings the old one back."
   },
   {
+   "id": "vox-editor::ValueParser",
+   "name": "ValueParser",
+   "kind": "type",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/config.rs",
+   "line": 10,
+   "public": true,
+   "doc": "Parses a file's text (e.g. TOML) into a [`Value`]; provided by an adapter."
+  },
+  {
    "id": "vox-editor::Value",
    "name": "Value",
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 11,
+   "line": 14,
    "public": true,
    "doc": "A format-neutral configuration value."
   },
@@ -8240,7 +9279,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 42,
+   "line": 45,
    "public": true,
    "doc": "Validated settings."
   },
@@ -8300,7 +9339,7 @@ window.VOX_TOUR = {
    "kind": "type",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1469,
+   "line": 1512,
    "public": false,
    "doc": "The open views: (side panel, bottom panel, modal)."
   },
@@ -8523,6 +9562,156 @@ window.VOX_TOUR = {
    "line": 85,
    "public": false,
    "doc": "What a parsed command does."
+  },
+  {
+   "id": "vox-editor::HealthItem",
+   "name": "HealthItem",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/health.rs",
+   "line": 12,
+   "public": true,
+   "doc": "One line of a health report."
+  },
+  {
+   "id": "vox-editor::HealthStatus",
+   "name": "HealthStatus",
+   "kind": "enum",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/health.rs",
+   "line": 43,
+   "public": true,
+   "doc": "Overall result for one plugin."
+  },
+  {
+   "id": "vox-editor::HealthEnv",
+   "name": "HealthEnv",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/health.rs",
+   "line": 84,
+   "public": true,
+   "doc": "What the checks compare against."
+  },
+  {
+   "id": "vox-editor::Need",
+   "name": "Need",
+   "kind": "enum",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/manifest.rs",
+   "line": 33,
+   "public": true,
+   "doc": "What a requirement asks for."
+  },
+  {
+   "id": "vox-editor::Requirement",
+   "name": "Requirement",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/manifest.rs",
+   "line": 49,
+   "public": true,
+   "doc": "One `[[requires]]` entry."
+  },
+  {
+   "id": "vox-editor::SettingKind",
+   "name": "SettingKind",
+   "kind": "enum",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/manifest.rs",
+   "line": 60,
+   "public": true,
+   "doc": "The type of a setting."
+  },
+  {
+   "id": "vox-editor::SettingValue",
+   "name": "SettingValue",
+   "kind": "enum",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/manifest.rs",
+   "line": 78,
+   "public": true,
+   "doc": "A setting's value."
+  },
+  {
+   "id": "vox-editor::SettingSpec",
+   "name": "SettingSpec",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/manifest.rs",
+   "line": 99,
+   "public": true,
+   "doc": "One `[settings.KEY]` entry."
+  },
+  {
+   "id": "vox-editor::PluginManifest",
+   "name": "PluginManifest",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/manifest.rs",
+   "line": 149,
+   "public": true,
+   "doc": "A parsed `plugin.toml`."
+  },
+  {
+   "id": "vox-editor::Package",
+   "name": "Package",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/package.rs",
+   "line": 18,
+   "public": true,
+   "doc": "An installed plugin as found on disk."
+  },
+  {
+   "id": "vox-editor::PluginInfo",
+   "name": "PluginInfo",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/package.rs",
+   "line": 123,
+   "public": true,
+   "doc": "A plugin's state as known to vox: what it is, whether it can load, and why."
+  },
+  {
+   "id": "vox-editor::AssessEnv",
+   "name": "AssessEnv",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/package.rs",
+   "line": 161,
+   "public": true,
+   "doc": "What [`assess`] compares packages against."
+  },
+  {
+   "id": "vox-editor::Version",
+   "name": "Version",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/version.rs",
+   "line": 7,
+   "public": true,
+   "doc": "A `MAJOR.MINOR.PATCH` version. Missing parts are 0 (`1.2` = `1.2.0`)."
+  },
+  {
+   "id": "vox-editor::Op",
+   "name": "Op",
+   "kind": "enum",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/version.rs",
+   "line": 51,
+   "public": false,
+   "doc": "One comparison in a requirement."
+  },
+  {
+   "id": "vox-editor::VersionReq",
+   "name": "VersionReq",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/plugin/version.rs",
+   "line": 64,
+   "public": true,
+   "doc": "A version requirement: comparisons joined by commas, all must hold. A bare version means `^` (compatible), like Cargo."
   },
   {
    "id": "vox-editor::Reg",
@@ -8820,9 +10009,19 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 42,
+   "line": 48,
    "public": true,
    "doc": "Loads and runs plugins."
+  },
+  {
+   "id": "vox-plugin-host::Entry",
+   "name": "Entry",
+   "kind": "struct",
+   "crate": "vox-plugin-host",
+   "file": "crates/vox-plugin-host/src/lib.rs",
+   "line": 58,
+   "public": false,
+   "doc": "A plugin known to the host."
   },
   {
    "id": "vox-plugin-host::Instance",
@@ -8830,7 +10029,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 198,
+   "line": 416,
    "public": false,
    "doc": "One loaded plugin."
   },
@@ -8840,7 +10039,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 207,
+   "line": 425,
    "public": false,
    "doc": "Pointer to the editor, valid only while the editor is inside a call into the plugin."
   },
@@ -8850,7 +10049,7 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 215,
+   "line": 433,
    "public": false,
    "doc": "Registration requested by the plugin during a call; installed after the call returns, when the host has the plugin's handle again."
   },
@@ -8860,9 +10059,19 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-plugin-host",
    "file": "crates/vox-plugin-host/src/lib.rs",
-   "line": 221,
+   "line": 439,
    "public": false,
    "doc": "Per-plugin state seen by the host functions."
+  },
+  {
+   "id": "vox-plugin-sdk::Plugin",
+   "name": "Plugin",
+   "kind": "trait",
+   "crate": "vox-plugin-sdk",
+   "file": "crates/vox-plugin-sdk/src/lib.rs",
+   "line": 50,
+   "public": true,
+   "doc": "What a plugin implements. `on_event` and `health` are optional."
   },
   {
    "id": "vox-storage::Storage",
@@ -9028,7 +10237,7 @@ window.VOX_TOUR = {
     },
     {
      "fn": "vox::load_config",
-     "text": "Tries the project's `config.toml`: it does not exist yet, so nothing is applied. `:reload-config` is registered for the project path anyway."
+     "text": "Tries the project's `config.toml`: it does not exist yet, so nothing is applied. `:reload config` is registered for the project path anyway."
     },
     {
      "fn": "vox::load_plugins",
@@ -9040,7 +10249,7 @@ window.VOX_TOUR = {
     },
     {
      "fn": "vox-editor::builtin::scope_init",
-     "text": "“Copy everything” runs `:scope-init all`."
+     "text": "“Copy everything” runs `:scope init all`."
     },
     {
      "fn": "vox-editor::scope::setup_local",
@@ -9048,7 +10257,7 @@ window.VOX_TOUR = {
     },
     {
      "fn": "vox-editor::Editor::run_command",
-     "text": "Runs `:reload-config` and `:reload-plugins`, which read from the project paths: the copied config and plugins are active immediately."
+     "text": "Runs `:reload config` and `:reload plugins`, which read from the project paths: the copied config and plugins are active immediately."
     }
    ]
   },
@@ -9539,43 +10748,59 @@ window.VOX_TOUR = {
   {
    "id": "plugin-load",
    "title": "Loading a plugin",
-   "summary": "How `text_tools.wasm` in the plugin folder becomes new commands, a key mapping, and an event handler.",
+   "summary": "How the package `text-tools/` (with `plugin.toml`) in the plugin folder is checked, loaded, and given its settings.",
    "steps": [
     {
      "fn": "vox::load_plugins",
-     "text": "Finds the plugin folder next to the config file and creates the plugin host."
-    },
-    {
-     "fn": "vox-plugin-host::PluginHost::new",
-     "text": "Sets up the `wasmtime` engine with time limits, a clock thread that ticks every 10 ms, and the functions plugins may call (`wit/vox.wit`)."
+     "text": "Creates the plugin host with the TOML parser from `vox-config-file` and loads the active scope's plugin folder."
     },
     {
      "fn": "vox-plugin-host::PluginHost::load_dir",
-     "text": "Loads each `*.wasm` file, sorted by name."
+     "text": "Finds all plugins in the folder and decides, together, which may load."
     },
     {
-     "fn": "vox-plugin-host::PluginHost::load",
-     "text": "Compiles the WebAssembly component, gives it its own memory-limited store with no file or network access, and calls its `init`."
+     "fn": "vox-editor::package::discover",
+     "text": "Core: every folder and `.wasm` file is a package. A folder must contain `plugin.toml` and `plugin.wasm`."
+    },
+    {
+     "fn": "vox-editor::package::read_package",
+     "text": "Reads and validates `plugin.toml` (through the injected parser, so core never parses TOML) and checks the folder name matches."
+    },
+    {
+     "fn": "vox-editor::PluginManifest::from_value",
+     "text": "Turns the manifest into name, version, API version, requirements, and typed settings, collecting every problem."
+    },
+    {
+     "fn": "vox-editor::package::assess",
+     "text": "Applies `enabled = false`, resolves settings against `[plugins.NAME]`, and runs the requirement checks — repeatedly, so a plugin that needs a failed plugin fails too."
+    },
+    {
+     "fn": "vox-editor::health::check",
+     "text": "API version, vox version, other plugins, programs on PATH. Each unmet requirement gets its level: error (not loaded), warning, info."
+    },
+    {
+     "fn": "vox-plugin-host::PluginHost::load_info",
+     "text": "For each plugin that may load: start it, call its own `health()`, record the result, and log it."
+    },
+    {
+     "fn": "vox-plugin-host::PluginHost::instantiate",
+     "text": "Compiles the WebAssembly, gives it its own memory-limited store with its effective settings, and calls `init`."
     },
     {
      "fn": "vox-plugin-host::call",
-     "text": "Every call into a plugin goes through here: it lends the editor to the plugin for the duration of the call, sets the time budget (about 1 s), and disables the plugin if it crashes or breaks a limit."
+     "text": "Every call into a plugin goes through here: owner `plugin:NAME`, time budget (about 1 s), and the plugin is stopped if it crashes or breaks a limit."
     },
     {
      "fn": "vox-plugin-host::HostState::register_command",
-     "text": "During `init` the plugin calls `register-command(\"wordcount\", ...)`. The request is queued..."
-    },
-    {
-     "fn": "vox-plugin-host::HostState::map_key",
-     "text": "`map-key(normal, \"<leader>c\", \":wordcount\")` is applied right away with the user's leader key."
+     "text": "During `init` the plugin calls `register-command(\"wordcount\", ...)`; the request is queued..."
     },
     {
      "fn": "vox-plugin-host::install",
-     "text": "...and installed after `init` returns: a normal editor command whose handler calls back into the plugin, and an event subscription that forwards events to the plugin."
+     "text": "...and installed after the call: a normal editor command whose handler calls back into the plugin."
     },
     {
-     "fn": "vox-editor::Commands::register",
-     "text": "The plugin's command is registered exactly like a built-in one."
+     "fn": "vox-plugin-host::from_wit_health",
+     "text": "The plugin's own health findings join the others. An `Error` unloads the plugin again (everything it registered is removed)."
     }
    ]
   },
@@ -9621,11 +10846,11 @@ window.VOX_TOUR = {
   {
    "id": "reload-plugin",
    "title": "Reloading a plugin",
-   "summary": "`:reload-plugins text_tools` after rebuilding the plugin.",
+   "summary": "`:reload plugins text_tools` after rebuilding the plugin.",
    "steps": [
     {
      "fn": "vox-plugin-host::PluginHost::register_commands",
-     "text": "At start-up the binary registered `:reload-plugins`; its handler holds the plugin host."
+     "text": "At start-up the binary registered `:reload plugins`; its handler holds the plugin host."
     },
     {
      "fn": "vox-plugin-host::PluginHost::reload",
@@ -9681,6 +10906,41 @@ window.VOX_TOUR = {
     {
      "fn": "vox-editor::LogView::handle_key",
      "text": "In the panel, `f` and `s` change the level and source filters and ask the editor to refresh; `c` clears."
+    }
+   ]
+  },
+  {
+   "id": "checkhealth",
+   "title": "Plugin settings and :checkhealth",
+   "summary": "`[plugins.text-tools] case = \"title\"` in config.toml, then `:upper` and `:checkhealth`.",
+   "steps": [
+    {
+     "fn": "vox-editor::Config::from_value",
+     "text": "`[plugins.NAME]` tables are kept as they are; only `enabled` is checked here, because the allowed settings are known only from each plugin's manifest."
+    },
+    {
+     "fn": "vox-editor::Editor::plugin_config",
+     "text": "The host asks the editor for a plugin's user values when it loads the plugin."
+    },
+    {
+     "fn": "vox-editor::manifest::resolve_settings",
+     "text": "Defaults from `[settings.KEY]`, replaced by valid user values. A wrong value (say `case = \"shout\"`) is ignored with a warning."
+    },
+    {
+     "fn": "vox-editor::SettingSpec::check",
+     "text": "Checks one value: type, min/max, or allowed choices."
+    },
+    {
+     "fn": "vox-plugin-host::HostState::setting",
+     "text": "When the plugin calls `setting(\"case\")`, the host answers from the settings it was given at load time."
+    },
+    {
+     "fn": "vox-plugin-host::PluginHost::recheck",
+     "text": "`:checkhealth` runs each running plugin's `health()` again..."
+    },
+    {
+     "fn": "vox-editor::package::report",
+     "text": "...and shows every plugin: version, status, each finding (✓ ok, ! warning, ✗ error, i info), and the settings in use."
     }
    ]
   }

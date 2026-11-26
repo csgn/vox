@@ -9,6 +9,7 @@ use std::rc::Rc;
 
 use vox_clipboard::SystemClipboard;
 use vox_core::Document;
+use vox_editor::plugin::{HealthStatus, PluginInfo};
 use vox_editor::scope::{self, Scope};
 use vox_editor::{Editor, Level, ScopeKind, Services};
 use vox_storage::Storage;
@@ -67,6 +68,7 @@ fn main() -> ExitCode {
     editor.set_scope(active.clone(), global);
     load_config(&mut editor, &active);
     load_plugins(&mut editor, &active);
+    register_plugin_new(&mut editor);
     if active.kind == ScopeKind::Local && !active.exists() {
         editor.run_command("scope setup");
     }
@@ -78,7 +80,7 @@ fn main() -> ExitCode {
     ExitCode::SUCCESS
 }
 
-/// Read the scope's config file, if any, and register `:reload-config`.
+/// Read the scope's config file, if any, and register `:reload config`.
 fn load_config(editor: &mut Editor, scope: &Scope) {
     let Some(path) = scope.config_path() else {
         return;
@@ -87,30 +89,76 @@ fn load_config(editor: &mut Editor, scope: &Scope) {
     vox_config_file::register_commands(editor, path);
 }
 
-/// Load every plugin in the scope's plugin folder and register `:reload-plugins`.
-/// Failures are logged and shown as a notification; the editor runs without them.
+/// Load every plugin in the scope's plugin folder and register `:reload plugins` and
+/// `:checkhealth`. Failed plugins and plugins with warnings are summed up in a notification.
 fn load_plugins(editor: &mut Editor, scope: &Scope) {
     let Some(dir) = scope.plugin_dir() else {
         return;
     };
-    let host = match vox_plugin_host::PluginHost::new() {
+    let host = match vox_plugin_host::PluginHost::new(vox_config_file::parse) {
         Ok(host) => Rc::new(host),
         Err(e) => {
             editor.notify(Level::Error, format!("plugins: {e}"));
             return;
         }
     };
-    let errors: Vec<String> = host
-        .load_dir(editor, &dir)
-        .into_iter()
-        .filter_map(Result::err)
+    let infos = host.load_dir(editor, &dir);
+    let failed: Vec<&PluginInfo> = infos
+        .iter()
+        .filter(|i| i.status == HealthStatus::Failed)
         .collect();
-    if let Some(first) = errors.first() {
-        let more = match errors.len() {
-            1 => String::new(),
-            n => format!(" ({} more, see :log)", n - 1),
-        };
-        editor.notify(Level::Error, format!("{first}{more}"));
+    let warned = infos
+        .iter()
+        .filter(|i| i.status == HealthStatus::Warning)
+        .count();
+    if !failed.is_empty() {
+        let names: Vec<&str> = failed.iter().map(|i| i.name.as_str()).collect();
+        editor.notify(
+            Level::Error,
+            format!(
+                "plugin(s) not loaded: {} — see :checkhealth",
+                names.join(", ")
+            ),
+        );
+    }
+    if warned > 0 {
+        editor.notify(
+            Level::Warn,
+            format!("{warned} plugin(s) with warnings — see :checkhealth"),
+        );
     }
     vox_plugin_host::PluginHost::register_commands(host, editor, dir);
+}
+
+/// Register `:plugin new NAME [DIR]`: create a plugin project in the standard layout.
+fn register_plugin_new(editor: &mut Editor) {
+    // Plugins built from this source tree use this SDK.
+    let sdk = concat!(env!("CARGO_MANIFEST_DIR"), "/../vox-plugin-sdk");
+    editor.with_owner(vox_editor::owner::BUILTIN, |ed| {
+        ed.commands_mut().register(
+            "plugin new",
+            "Create a plugin project: `:plugin new NAME [DIR]` (DIR defaults to the current folder).",
+            move |ed, args| {
+                let mut words = args.arg.unwrap_or("").split_whitespace();
+                let name = words.next().ok_or("E471: Use :plugin new NAME [DIR]")?;
+                let dir = words.next().map_or_else(|| std::env::current_dir().unwrap_or_default(), Into::into);
+                let sdk_path = std::fs::canonicalize(sdk).unwrap_or_else(|_| sdk.into());
+                let dep = format!("path = \"{}\"", sdk_path.display());
+                let files = vox_editor::plugin::template::create(&dir, name, &dep, env!("CARGO_PKG_VERSION"))
+                    .map_err(|e| format!("E900: {e}"))?;
+                for f in &files {
+                    ed.log(Level::Info, "editor", format!("created {}", f.display()));
+                }
+                ed.notify(
+                    Level::Info,
+                    format!(
+                        "created {} — build with scripts/build-plugin.sh {} --install <plugins folder>",
+                        dir.join(name).display(),
+                        dir.join(name).display()
+                    ),
+                );
+                Ok(())
+            },
+        );
+    });
 }

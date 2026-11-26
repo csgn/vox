@@ -117,6 +117,15 @@ impl Commands {
             .map(|(a, _)| a.as_str())
     }
 
+    /// Subcommands of `root` (commands named `"ROOT SUB"`, e.g. `reload config`), by name.
+    pub fn subcommands_of<'a>(&'a self, root: &'a str) -> impl Iterator<Item = &'a Command> + 'a {
+        self.iter().filter(move |c| {
+            c.name
+                .strip_prefix(root)
+                .is_some_and(|rest| rest.starts_with(' '))
+        })
+    }
+
     /// Remove every command and alias registered by `owner`.
     pub fn remove_owned(&mut self, owner: &str) {
         for stack in self.by_name.values_mut() {
@@ -130,6 +139,9 @@ impl Commands {
     }
 }
 
+/// Command names may contain one space for a subcommand: registering `"reload config"`
+/// makes `:reload config` work, and different owners can add subcommands to the same root.
+///
 /// Split a command line into name, force flag, and argument: `"w! a.txt"` →
 /// `("w", Args { arg: Some("a.txt"), force: true })`.
 pub fn parse_line(line: &str) -> (&str, Args<'_>) {

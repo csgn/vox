@@ -8,7 +8,11 @@ use std::time::Instant;
 use std::rc::Rc;
 use vox_core::Document;
 
-use vox_editor::{Editor, Level, owner, parse_keys};
+use std::collections::BTreeMap;
+
+use vox_editor::config::Value;
+use vox_editor::plugin::HealthStatus;
+use vox_editor::{Config, Editor, Level, owner, parse_keys};
 use vox_plugin_host::PluginHost;
 
 fn root() -> PathBuf {
@@ -54,7 +58,7 @@ fn feed(ed: &mut Editor, keys: &str) {
 fn host() -> &'static PluginHost {
     // The host is not `Sync`, so make one per thread.
     thread_local! {
-        static HOST: &'static PluginHost = Box::leak(Box::new(PluginHost::new().unwrap()));
+        static HOST: &'static PluginHost = Box::leak(Box::new(PluginHost::new(vox_config_file::parse).unwrap()));
     }
     HOST.with(|h| *h)
 }
@@ -187,7 +191,11 @@ fn load_dir_loads_all_wasm_files() {
     let mut ed = editor("x");
     let results = host().load_dir(&mut ed, &dir);
     std::fs::remove_dir_all(&dir).unwrap();
-    assert_eq!(results, vec![Ok("a".to_string())]);
+    let names: Vec<_> = results
+        .iter()
+        .map(|i| (i.name.as_str(), i.loadable()))
+        .collect();
+    assert_eq!(names, [("a", true)]);
     assert!(ed.commands().get("wordcount").is_some());
     assert!(host().load_dir(&mut ed, &dir).is_empty(), "missing dir");
 }
@@ -226,7 +234,7 @@ fn unloading_restores_replaced_builtin() {
 
 #[test]
 fn reload_brings_back_a_disabled_plugin() {
-    let host = Rc::new(PluginHost::new().unwrap());
+    let host = Rc::new(PluginHost::new(vox_config_file::parse).unwrap());
     let mut ed = editor("x");
     host.load(&mut ed, &plugin("misbehave")).unwrap();
     feed(&mut ed, ":crash<CR>:ok<CR>");
@@ -238,7 +246,7 @@ fn reload_brings_back_a_disabled_plugin() {
     );
     let dir = root().join("plugins/target/wasm32-wasip2/release");
     PluginHost::register_commands(host.clone(), &mut ed, dir);
-    feed(&mut ed, ":reload-plugins misbehave<CR>");
+    feed(&mut ed, ":reload plugins misbehave<CR>");
     assert_eq!(
         ed.notifications().last().unwrap().text,
         "reloaded 1 plugin(s)"
@@ -246,7 +254,7 @@ fn reload_brings_back_a_disabled_plugin() {
     feed(&mut ed, ":ok<CR>");
     assert_eq!(ed.message(), Some("ok"), "fresh instance after reload");
     assert_eq!(host.names(), ["misbehave"]);
-    feed(&mut ed, ":reload-plugins nope<CR>");
+    feed(&mut ed, ":reload plugins nope<CR>");
     assert!(
         ed.notifications()
             .last()
@@ -261,11 +269,11 @@ fn reload_all_from_dir() {
     let dir = std::env::temp_dir().join(format!("vox-reload-dir-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::copy(plugin("text-tools"), dir.join("text_tools.wasm")).unwrap();
-    let host = Rc::new(PluginHost::new().unwrap());
+    let host = Rc::new(PluginHost::new(vox_config_file::parse).unwrap());
     let mut ed = editor("a b");
     host.load_dir(&mut ed, &dir);
     PluginHost::register_commands(host.clone(), &mut ed, dir.clone());
-    feed(&mut ed, ":reload-plugins<CR>");
+    feed(&mut ed, ":reload plugins<CR>");
     std::fs::remove_dir_all(&dir).unwrap();
     assert_eq!(
         ed.notifications().last().unwrap().text,
@@ -280,4 +288,160 @@ fn reload_all_from_dir() {
         .filter(|m| m.3 == "plugin:text_tools")
         .count();
     assert_eq!(maps, 1);
+}
+
+/// Install plugin `name` as a package folder `dest/name/{plugin.toml, plugin.wasm}`.
+fn install_package(name: &str, dest: &std::path::Path) -> PathBuf {
+    let dir = dest.join(name);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::copy(
+        root().join(format!("plugins/{name}/plugin.toml")),
+        dir.join("plugin.toml"),
+    )
+    .unwrap();
+    std::fs::copy(plugin(name), dir.join("plugin.wasm")).unwrap();
+    dir
+}
+
+fn temp_dir(name: &str) -> PathBuf {
+    let d = std::env::temp_dir().join(format!("vox-pkg-test-{}-{name}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&d);
+    std::fs::create_dir_all(&d).unwrap();
+    d
+}
+
+/// Editor whose config sets `[plugins.NAME] KEY = VALUE`.
+fn editor_with(text: &str, plugin: &str, values: &[(&str, Value)]) -> Editor {
+    let mut ed = editor(text);
+    let mut cfg = Config::default();
+    cfg.plugins.insert(
+        plugin.to_string(),
+        values
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.clone()))
+            .collect::<BTreeMap<_, _>>(),
+    );
+    ed.apply_config(&cfg);
+    ed
+}
+
+#[test]
+fn package_with_settings_from_config() {
+    let dir = temp_dir("settings");
+    install_package("text-tools", &dir);
+    let mut ed = editor_with(
+        "mixed Case words",
+        "text-tools",
+        &[("case", Value::String("title".into()))],
+    );
+    let host = PluginHost::new(vox_config_file::parse).unwrap();
+    let infos = host.load_dir(&mut ed, &dir);
+    assert_eq!(infos[0].name, "text-tools");
+    assert_eq!(infos[0].status, HealthStatus::Ok, "{:?}", infos[0].items);
+    assert_eq!(infos[0].version().unwrap().to_string(), "0.2.0");
+    feed(&mut ed, ":upper<CR>");
+    assert_eq!(ed.document().to_string(), "Mixed Case Words");
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn bad_setting_falls_back_with_warning() {
+    let dir = temp_dir("badsetting");
+    install_package("text-tools", &dir);
+    let mut ed = editor_with(
+        "abc",
+        "text-tools",
+        &[("case", Value::String("shout".into()))],
+    );
+    let host = PluginHost::new(vox_config_file::parse).unwrap();
+    let info = host.load_dir(&mut ed, &dir).remove(0);
+    assert_eq!(info.status, HealthStatus::Warning);
+    assert!(
+        info.items
+            .iter()
+            .any(|i| i.message.contains("must be one of: upper, lower, title"))
+    );
+    feed(&mut ed, ":upper<CR>");
+    assert_eq!(ed.document().to_string(), "ABC", "default case is used");
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn disabled_in_config_is_not_loaded() {
+    let dir = temp_dir("disabled");
+    install_package("text-tools", &dir);
+    let mut ed = editor_with("abc", "text-tools", &[("enabled", Value::Bool(false))]);
+    let host = PluginHost::new(vox_config_file::parse).unwrap();
+    let info = host.load_dir(&mut ed, &dir).remove(0);
+    assert_eq!(info.status, HealthStatus::Disabled);
+    assert!(ed.commands().get("wordcount").is_none());
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn custom_health_levels() {
+    for (setting, status, loaded) in [
+        ("ok", HealthStatus::Info, true), // the manifest's info-level requirement is unmet
+        ("warning", HealthStatus::Warning, true),
+        ("error", HealthStatus::Failed, false),
+    ] {
+        let dir = temp_dir(&format!("health-{setting}"));
+        install_package("misbehave", &dir);
+        let mut ed = editor_with(
+            "x",
+            "misbehave",
+            &[("health", Value::String(setting.into()))],
+        );
+        let host = PluginHost::new(vox_config_file::parse).unwrap();
+        let info = host.load_dir(&mut ed, &dir).remove(0);
+        assert_eq!(info.status, status, "{setting}: {:?}", info.items);
+        assert_eq!(
+            ed.commands().get("ok").is_some(),
+            loaded,
+            "{setting}: commands removed on error"
+        );
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+}
+
+#[test]
+fn wrong_api_version_is_not_loaded() {
+    let dir = temp_dir("api");
+    let pkg = install_package("text-tools", &dir);
+    let toml = std::fs::read_to_string(pkg.join("plugin.toml")).unwrap();
+    std::fs::write(
+        pkg.join("plugin.toml"),
+        toml.replace("api = \"0.2\"", "api = \"0.1\""),
+    )
+    .unwrap();
+    let mut ed = editor("x");
+    let host = PluginHost::new(vox_config_file::parse).unwrap();
+    let err = host.load(&mut ed, &pkg).unwrap_err();
+    assert!(err.contains("built for plugin API 0.1"), "{err}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn checkhealth_report() {
+    let dir = temp_dir("report");
+    install_package("text-tools", &dir);
+    install_package("misbehave", &dir);
+    let mut ed = editor_with(
+        "x",
+        "misbehave",
+        &[("health", Value::String("warning".into()))],
+    );
+    let host = Rc::new(PluginHost::new(vox_config_file::parse).unwrap());
+    host.load_dir(&mut ed, &dir);
+    PluginHost::register_commands(host.clone(), &mut ed, dir.clone());
+    feed(&mut ed, ":checkhealth<CR>");
+    let screen = ed.render().to_string();
+    assert!(screen.contains("misbehave 0.1.0 — warning"), "{screen}");
+    assert!(
+        screen.contains("plugin check: told to be unhealthy"),
+        "{screen}"
+    );
+    feed(&mut ed, "q:checkhealth nope<CR>");
+    assert!(ed.message().unwrap().contains("no plugin named nope"));
+    std::fs::remove_dir_all(&dir).unwrap();
 }

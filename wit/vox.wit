@@ -3,7 +3,7 @@
 /// A plugin is a WebAssembly component (Rust compiled to `wasm32-wasip2`). It can only use
 /// what the `editor` interface below offers; it has no file system, network, or environment
 /// access. Each call into a plugin is limited in time and memory.
-package vox:plugin@0.1.0;
+package vox:plugin@0.2.0;
 
 /// Shared data types.
 interface types {
@@ -37,6 +37,21 @@ interface types {
         error,
     }
 
+    /// A plugin setting's value (from `[plugins.NAME]` in config.toml, else the default in
+    /// the plugin's `plugin.toml`).
+    variant setting-value {
+        text(string),
+        integer(s64),
+        boolean(bool),
+    }
+
+    /// One line of a custom health check.
+    record health-item {
+        /// `error` means the plugin should not be used; it is unloaded.
+        level: level,
+        message: string,
+    }
+
     /// Event categories a plugin can subscribe to.
     enum event-kind {
         buf-open,
@@ -60,7 +75,7 @@ interface types {
 
 /// What a plugin can ask the editor to do.
 interface editor {
-    use types.{position, mode, map-mode, event-kind, level};
+    use types.{position, mode, map-mode, event-kind, level, setting-value};
 
     /// Add a `:` command. When the user runs it, vox calls the plugin's `run-command`.
     register-command: func(name: string, description: string);
@@ -76,6 +91,8 @@ interface editor {
     notify: func(level: level, text: string);
     /// Add a line to the log (`:log`), with this plugin as the source.
     log: func(level: level, text: string);
+    /// The value of setting `key` declared in this plugin's `plugin.toml`.
+    setting: func(key: string) -> option<setting-value>;
     /// Run a command line, e.g. `w` or `e notes.txt`.
     run-command: func(line: string);
 
@@ -99,7 +116,7 @@ interface editor {
 
 /// A vox plugin.
 world plugin {
-    use types.{event};
+    use types.{event, health-item};
     import editor;
 
     /// Called once when the plugin is loaded. Register commands, mappings, and events here.
@@ -109,4 +126,7 @@ world plugin {
     export run-command: func(name: string, arg: option<string>, force: bool) -> result<_, string>;
     /// Handle an event this plugin subscribed to.
     export on-event: func(event: event);
+    /// Custom health checks, run after `init` and by `:checkhealth`. Return nothing if all
+    /// is well.
+    export health: func() -> list<health-item>;
 }

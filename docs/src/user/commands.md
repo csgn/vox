@@ -3,6 +3,10 @@
 Commands run from the `:` line or from key mappings (`"<leader>w" = ":w"`). Each command
 has a full name and short aliases; both work.
 
+Related commands share one name with a **subcommand**: `:log clear`, `:reload plugins`,
+`:scope init`. The root alone either does the main thing (`:log`, `:scope`) or, if it has
+none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
+
 | Command | Action |
 |---|---|
 | `:write`, `:w` | write to the current file |
@@ -21,14 +25,16 @@ has a full name and short aliases; both work.
 | `:close` | close the modal or the focused panel |
 | `:focus editor\|side\|bottom` | move focus |
 | `:log [LEVEL] [SOURCE]` | open the log ([Developer mode](developer-mode.md)) |
-| `:log-clear`, `:log-refresh` | clear / refresh the log |
+| `:log clear`, `:log refresh` | clear / refresh the log |
 | `:devmode [on\|off]` | toggle developer mode |
-| `:reload-config` | re-read the config file |
-| `:reload-plugins [NAME]` | reload all plugins or one |
+| `:reload config` | re-read the config file |
+| `:reload plugins [NAME]` | reload all plugins or one |
+| `:checkhealth [NAME]` | plugin health report |
+| `:plugin new NAME [DIR]` | create a plugin project ([Writing plugins](../dev/plugins.md)) |
 | `:scope` | show the active scope (global / local / vanilla) and its paths |
 | `:scope setup` | open the project set-up dialog (local mode) |
-| `:scope-pick` | checklist of global config and plugins to copy into the project |
-| `:scope-init empty\|all\|[config] [PLUGIN...]` | create `.vox/` and copy from the global setup |
+| `:scope pick` | checklist of global config and plugins to copy into the project |
+| `:scope init empty\|all\|[config] [PLUGIN...]` | create `.vox/` and copy from the global setup |
 
 ## Messages
 | Message | Meaning |

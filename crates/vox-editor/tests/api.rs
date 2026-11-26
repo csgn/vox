@@ -308,3 +308,63 @@ mod events {
         assert_eq!(ed.cursor().col, 2);
     }
 }
+
+#[test]
+fn subcommands_share_a_root() {
+    let mut ed = editor("x");
+    let seen = Rc::new(std::cell::RefCell::new(Vec::new()));
+    for name in ["demo a", "demo b"] {
+        let s = seen.clone();
+        ed.with_owner(&format!("plugin:{name}"), |ed| {
+            ed.commands_mut().register(name, "", move |_, args| {
+                s.borrow_mut()
+                    .push(format!("{name}:{:?}:{}", args.arg, args.force));
+                Ok(())
+            });
+        });
+    }
+    feed(&mut ed, ":demo<CR>");
+    assert_eq!(ed.message(), Some("E471: Use :demo a|b"));
+    feed(&mut ed, ":demo a<CR>:demo! b  some arg <CR>");
+    assert_eq!(
+        *seen.borrow(),
+        ["demo a:None:false", "demo b:Some(\"some arg\"):true"]
+    );
+    // A root command can exist next to its subcommands; unknown words are its argument.
+    let s = seen.clone();
+    ed.commands_mut().register("demo", "", move |_, args| {
+        s.borrow_mut().push(format!("demo:{:?}", args.arg));
+        Ok(())
+    });
+    feed(&mut ed, ":demo c<CR>");
+    assert_eq!(seen.borrow().last().unwrap(), "demo:Some(\"c\")");
+    feed(&mut ed, ":nothing here<CR>");
+    assert_eq!(
+        ed.message(),
+        Some("E492: Not an editor command: nothing here")
+    );
+}
+
+#[test]
+fn builtin_subcommands() {
+    let mut ed = editor("x");
+    for name in [
+        "log clear",
+        "log refresh",
+        "scope setup",
+        "scope init",
+        "scope pick",
+    ] {
+        assert!(ed.commands().get(name).is_some(), "{name}");
+    }
+    assert!(
+        ed.commands().iter().all(|c| !c.name.contains('-')),
+        "no hyphenated names"
+    );
+    ed.log(vox_editor::Level::Info, "test", "x");
+    feed(&mut ed, ":log clear<CR>");
+    assert!(
+        ed.log_entries().entries().all(|e| e.message != "x"),
+        "cleared"
+    );
+}

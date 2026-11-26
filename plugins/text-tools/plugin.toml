@@ -1,0 +1,18 @@
+[plugin]
+name = "text-tools"
+version = "0.2.0"
+description = "Word count and case changes"
+authors = ["vox"]
+api = "0.2"
+vox = ">=0.10"
+
+[settings.case]
+type = "choice"
+choices = ["upper", "lower", "title"]
+default = "upper"
+description = "What :upper does to the cursor line"
+
+[settings.count_on_save]
+type = "bool"
+default = true
+description = "Show the word count after each save"

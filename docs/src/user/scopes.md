@@ -37,8 +37,8 @@ Copied files belong to the project from then on: changing them does not change y
 setup, and vox never overwrites files that already exist in `.vox/`. After copying, the
 project's config and plugins are loaded right away.
 
-The same actions are commands: `:scope setup`, `:scope-pick`, and
-`:scope-init empty|all|[config] [PLUGIN...]` (e.g. `:scope-init config text_tools`).
+The same actions are commands: `:scope setup`, `:scope pick`, and
+`:scope init empty|all|[config] [PLUGIN...]` (e.g. `:scope init config text_tools`).
 
 ## Where the global setup lives
 

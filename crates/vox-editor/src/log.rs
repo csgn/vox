@@ -173,7 +173,7 @@ impl View for LogView {
                     Level::Warn => Level::Error,
                     Level::Error => Level::Debug,
                 };
-                return Outcome::Run("log-refresh".into());
+                return Outcome::Run("log refresh".into());
             }
             KeyCode::Char('s') => {
                 let next = match &self.source {
@@ -184,9 +184,9 @@ impl View for LogView {
                     }
                 };
                 self.source = next;
-                return Outcome::Run("log-refresh".into());
+                return Outcome::Run("log refresh".into());
             }
-            KeyCode::Char('c') => return Outcome::Run("log-clear".into()),
+            KeyCode::Char('c') => return Outcome::Run("log clear".into()),
             KeyCode::Char('q') | KeyCode::Esc => return Outcome::Close,
             _ => return Outcome::Ignored,
         }
@@ -237,7 +237,7 @@ mod tests {
         assert_eq!(v.lines().len(), 3);
         assert_eq!(v.lines()[0].time, Duration::from_millis(1500));
         for k in parse_keys("f") {
-            assert_eq!(v.handle_key(k), Outcome::Run("log-refresh".into()));
+            assert_eq!(v.handle_key(k), Outcome::Run("log refresh".into()));
         }
         v.refresh(&log);
         assert_eq!(

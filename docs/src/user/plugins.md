@@ -5,15 +5,38 @@ file (a WebAssembly component).
 
 ## Installing
 
-Put the `.wasm` file in the `plugins` folder of the active [scope](scopes.md):
+A plugin is a folder (`NAME/` with `plugin.toml` and `plugin.wasm`) or a single `.wasm` file
+in the plugin folder of the active [scope](scopes.md):
 
 ```
-~/.config/vox/plugins/text_tools.wasm        # global (default)
-<project>/.vox/plugins/text_tools.wasm       # local, with --local-config
+~/.config/vox/plugins/text-tools/        # global (default)
+<project>/.vox/plugins/text-tools/       # local, with --local-config
 ```
 
-vox loads every `*.wasm` file there at start-up, in name order. Remove the file to
-uninstall. With `--vanilla` no plugins load.
+vox loads them at start-up, in name order. Remove the folder to uninstall. With `--vanilla`
+no plugins load.
+
+## Settings and turning plugins off
+
+Each plugin lists its settings in its README and `plugin.toml`. Set them in `config.toml`:
+
+```toml
+[plugins.text-tools]
+case = "title"
+count_on_save = false
+enabled = true        # false: do not load this plugin
+```
+
+Wrong values are ignored (the default is used) with a warning.
+
+## Health
+
+Before loading a plugin, vox checks what it needs: the right plugin API, a vox version, other
+plugins, programs. Each requirement is an error (not loaded), a warning, or info.
+
+`:checkhealth` shows every plugin's status — **ok**, **info**, **warning**, **failed**,
+**disabled** — with each finding and the settings in use; `:checkhealth NAME` shows one. At
+start-up vox notifies you about plugins that failed or have warnings.
 
 ## Safety
 
@@ -34,9 +57,7 @@ The repository includes an example plugin in `plugins/text-tools`. Build and ins
 
 ```sh
 rustup target add wasm32-wasip2      # once
-./scripts/build-plugins.sh
-mkdir -p ~/.config/vox/plugins
-cp plugins/target/wasm32-wasip2/release/text_tools.wasm ~/.config/vox/plugins/
+./scripts/build-plugin.sh plugins/text-tools --install ~/.config/vox/plugins
 ```
 
 It adds:
@@ -44,7 +65,7 @@ It adds:
 | Command / key | Action |
 |---|---|
 | `:wordcount`, `<leader>c` | show words, lines, and characters |
-| `:upper` | uppercase the cursor line (one `u` undoes it) |
-| after `:w` | shows the word count |
+| `:upper` | change the case of the cursor line: setting `case` = upper, lower, title (one `u` undoes it) |
+| after `:w` | shows the word count (setting `count_on_save`) |
 
 To write your own, see [Writing plugins](../dev/plugins.md).

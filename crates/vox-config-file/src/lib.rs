@@ -72,11 +72,11 @@ pub fn load_and_apply(editor: &mut Editor, path: &Path) -> bool {
     true
 }
 
-/// Register `:reload-config` (owner `builtin`): re-read `path` and apply it.
+/// Register `:reload config` (owner `builtin`): re-read `path` and apply it.
 pub fn register_commands(editor: &mut Editor, path: PathBuf) {
     editor.with_owner(owner::BUILTIN, |ed| {
         ed.commands_mut().register(
-            "reload-config",
+            "reload config",
             "Re-read the config file and apply it.",
             move |ed, _| {
                 if load_and_apply(ed, &path) {
@@ -185,7 +185,7 @@ mod tests {
             "developer_mode = true\nbogus = 1\n[keymap.normal]\nH = \"0\"\n",
         )
         .unwrap();
-        ed.run_command("reload-config");
+        ed.run_command("reload config");
         std::fs::remove_file(&p).unwrap();
         let config_maps: Vec<_> = ed
             .keymap()

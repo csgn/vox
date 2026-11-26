@@ -56,11 +56,11 @@ pub(crate) fn register(c: &mut Commands) {
         "Show the log in the bottom panel: `:log [debug|info|warn|error] [SOURCE]`.",
         log,
     );
-    c.register("log-refresh", "Refresh open log views.", |ed, _| {
+    c.register("log refresh", "Refresh open log views.", |ed, _| {
         ed.refresh_log_views();
         Ok(())
     });
-    c.register("log-clear", "Clear the log.", |ed, _| {
+    c.register("log clear", "Clear the log.", |ed, _| {
         ed.clear_log();
         Ok(())
     });
@@ -71,16 +71,21 @@ pub(crate) fn register(c: &mut Commands) {
     );
     c.register(
         "scope",
-        "Show the active scope (global, local, vanilla); `:scope setup` sets up a project.",
+        "Show the active scope (global, local, vanilla) and its paths.",
         scope,
     );
     c.register(
-        "scope-init",
-        "Set up the project's .vox: `:scope-init empty|all|[config] [PLUGIN...]`.",
+        "scope setup",
+        "Open the project set-up dialog (local mode).",
+        |ed, _| open_setup(ed),
+    );
+    c.register(
+        "scope init",
+        "Set up the project's .vox: `:scope init empty|all|[config] [PLUGIN...]`.",
         scope_init,
     );
     c.register(
-        "scope-pick",
+        "scope pick",
         "Choose global config/plugins to copy into the project.",
         scope_pick,
     );
@@ -293,8 +298,7 @@ fn scope(ed: &mut Editor, a: Args<'_>) -> CommandResult {
             ed.open_modal(Box::new(TextView::new("Scope", lines)));
             Ok(())
         }
-        Some("setup") => open_setup(ed),
-        Some(_) => Err("E474: Use :scope or :scope setup".into()),
+        Some(_) => Err("E474: Use :scope, :scope setup, :scope init, or :scope pick".into()),
     }
 }
 
@@ -326,25 +330,25 @@ fn open_setup(ed: &mut Editor) -> CommandResult {
     let mut items = vec![
         ListItem::new("Start empty")
             .detail("no config, no plugins")
-            .command("scope-init empty"),
+            .command("scope init empty"),
     ];
     if has_config {
         items.push(
             ListItem::new("Copy global config")
                 .detail("config.toml")
-                .command("scope-init config"),
+                .command("scope init config"),
         );
     }
     if has_config || !plugins.is_empty() {
         items.push(
             ListItem::new("Choose what to copy…")
                 .detail("pick config and plugins")
-                .command("scope-pick"),
+                .command("scope pick"),
         );
         items.push(
             ListItem::new("Copy everything")
                 .detail(format!("config + {} plugin(s)", plugins.len()))
-                .command("scope-init all"),
+                .command("scope init all"),
         );
     }
     items.push(
@@ -357,7 +361,7 @@ fn open_setup(ed: &mut Editor) -> CommandResult {
     Ok(())
 }
 
-/// `:scope-pick`: checkboxes for the global config and each global plugin.
+/// `:scope pick`: checkboxes for the global config and each global plugin.
 fn scope_pick(ed: &mut Editor, _: Args<'_>) -> CommandResult {
     require_local(ed)?;
     let global = ed
@@ -378,12 +382,12 @@ fn scope_pick(ed: &mut Editor, _: Args<'_>) -> CommandResult {
     ed.open_modal(Box::new(CheckList::new(
         "Copy into project",
         items,
-        "scope-init {}",
+        "scope init {}",
     )));
     Ok(())
 }
 
-/// `:scope-init empty|all|[config] [PLUGIN...]`: create `.vox/`, copy, then reload.
+/// `:scope init empty|all|[config] [PLUGIN...]`: create `.vox/`, copy, then reload.
 fn scope_init(ed: &mut Editor, a: Args<'_>) -> CommandResult {
     require_local(ed)?;
     let global = ed
@@ -412,7 +416,7 @@ fn scope_init(ed: &mut Editor, a: Args<'_>) -> CommandResult {
     for line in &report {
         ed.log(Level::Info, "editor", line);
     }
-    for cmd in ["reload-config", "reload-plugins"] {
+    for cmd in ["reload config", "reload plugins"] {
         if ed.commands().get(cmd).is_some() {
             ed.run_command(cmd);
         }

@@ -1,0 +1,16 @@
+[plugin]
+name = "misbehave"
+version = "0.1.0"
+description = "Test plugin that breaks the rules on purpose (not an example to copy)"
+api = "0.2"
+
+[[requires]]
+program = "vox-test-program-that-does-not-exist"
+level = "info"
+reason = "tests info-level findings"
+
+[settings.health]
+type = "choice"
+choices = ["ok", "warning", "error"]
+default = "ok"
+description = "What the custom health check reports"

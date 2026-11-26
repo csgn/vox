@@ -1,10 +1,11 @@
 //! Write vox plugins in Rust.
 //!
-//! A plugin is a type implementing [`Plugin`], exported with [`export_plugin!`], and built
-//! for the `wasm32-wasip2` target as a `cdylib`. The contract is `wit/vox.wit`.
+//! A plugin is a type implementing [`Plugin`], exported with [`export_plugin!`], built for the
+//! `wasm32-wasip2` target as a `cdylib`, and shipped with a `plugin.toml` manifest. The
+//! contract is `wit/vox.wit`. Start a new plugin with `:plugin new NAME DIR` in vox.
 //!
 //! ```ignore
-//! use vox_plugin_sdk::{Event, Plugin, editor, export_plugin};
+//! use vox_plugin_sdk::{Plugin, editor, export_plugin};
 //!
 //! struct Hello;
 //!
@@ -14,13 +15,10 @@
 //!         Ok(())
 //!     }
 //!     fn run_command(name: String, _arg: Option<String>, _force: bool) -> Result<(), String> {
-//!         match name.as_str() {
-//!             "hello" => editor::message("hello from a plugin"),
-//!             _ => {}
-//!         }
+//!         let text = editor::setting("greeting").and_then(|v| v.as_text());
+//!         editor::message(&text.unwrap_or_else(|| "hello".into()));
 //!         Ok(())
 //!     }
-//!     fn on_event(_event: Event) {}
 //! }
 //!
 //! export_plugin!(Hello);
@@ -41,16 +39,80 @@ pub mod bindings {
     });
 }
 
-/// What a plugin implements: `init`, `run_command`, `on_event`.
-pub use bindings::Guest as Plugin;
-/// Functions the plugin can call: register commands, map keys, read and edit the text.
+/// Functions the plugin can call: register commands, map keys, read and edit the text,
+/// read settings, log.
 pub use bindings::vox::plugin::editor;
-pub use bindings::vox::plugin::types::{Event, EventKind, Level, MapMode, Mode, Position};
+pub use bindings::vox::plugin::types::{
+    Event, EventKind, HealthItem, Level, MapMode, Mode, Position, SettingValue,
+};
+
+/// What a plugin implements. `on_event` and `health` are optional.
+pub trait Plugin {
+    /// Called once at load: register commands, mappings, and event subscriptions.
+    fn init() -> Result<(), String>;
+    /// Run one of this plugin's commands. An `Err` is shown to the user.
+    fn run_command(name: String, arg: Option<String>, force: bool) -> Result<(), String>;
+    /// Handle an event this plugin subscribed to.
+    fn on_event(_event: Event) {}
+    /// Custom health checks (after `init`, and in `:checkhealth`). An `Error` item unloads
+    /// the plugin.
+    fn health() -> Vec<HealthItem> {
+        Vec::new()
+    }
+}
+
+impl SettingValue {
+    /// The text, if this is a text (or choice) setting.
+    pub fn as_text(&self) -> Option<String> {
+        match self {
+            SettingValue::Text(s) => Some(s.clone()),
+            _ => None,
+        }
+    }
+
+    /// The number, if this is an integer setting.
+    pub fn as_integer(&self) -> Option<i64> {
+        match self {
+            SettingValue::Integer(n) => Some(*n),
+            _ => None,
+        }
+    }
+
+    /// The flag, if this is a bool setting.
+    pub fn as_bool(&self) -> Option<bool> {
+        match self {
+            SettingValue::Boolean(b) => Some(*b),
+            _ => None,
+        }
+    }
+}
 
 /// Export `$t` (the name of a type implementing [`Plugin`]) as this plugin.
 #[macro_export]
 macro_rules! export_plugin {
     ($t:ident) => {
-        $crate::bindings::__export_plugin!($t);
+        #[doc(hidden)]
+        struct __VoxPluginExport;
+
+        impl $crate::bindings::Guest for __VoxPluginExport {
+            /// Forwards to [`Plugin::init`].
+            fn init() -> Result<(), String> {
+                <$t as $crate::Plugin>::init()
+            }
+            /// Forwards to [`Plugin::run_command`].
+            fn run_command(name: String, arg: Option<String>, force: bool) -> Result<(), String> {
+                <$t as $crate::Plugin>::run_command(name, arg, force)
+            }
+            /// Forwards to [`Plugin::on_event`].
+            fn on_event(event: $crate::Event) {
+                <$t as $crate::Plugin>::on_event(event)
+            }
+            /// Forwards to [`Plugin::health`].
+            fn health() -> Vec<$crate::HealthItem> {
+                <$t as $crate::Plugin>::health()
+            }
+        }
+
+        $crate::bindings::__export_plugin!(__VoxPluginExport);
     };
 }

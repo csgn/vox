@@ -7,14 +7,20 @@
 //! running.
 
 use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::rc::Rc;
+use std::rc::Weak;
 use std::time::Duration;
 
 use std::path::PathBuf;
 use vox_core::Position;
 
-use vox_editor::{Editor, Event, EventKind, Level, MapMode, ModeKind, owner};
+use vox_editor::config::{Value, ValueParser};
+use vox_editor::plugin::package::{self, AssessEnv, Package, PluginInfo};
+use vox_editor::plugin::{API_VERSION, HealthItem, HealthStatus, Version, health};
+use vox_editor::ui::TextView;
+use vox_editor::{Color, Editor, Event, EventKind, Level, MapMode, ModeKind, Style, owner};
 use wasmtime::component::{Component, HasSelf, Linker, ResourceTable};
 use wasmtime::{Config, Engine, Store, StoreLimits, StoreLimitsBuilder};
 use wasmtime_wasi::{WasiCtx, WasiCtxView, WasiView};
@@ -42,13 +48,28 @@ const MEMORY_LIMIT: usize = 64 << 20;
 pub struct PluginHost {
     engine: Engine,
     linker: Linker<HostState>,
-    /// Plugins loaded (or tried) so far: (name, path), for reloading.
-    loaded: RefCell<Vec<(String, PathBuf)>>,
+    /// Reads `plugin.toml` text into a [`Value`] (TOML parser from an adapter).
+    parse: ValueParser,
+    /// Every plugin seen so far (loaded, failed, or disabled), with its running instance.
+    registry: RefCell<Vec<Entry>>,
+}
+
+/// A plugin known to the host.
+struct Entry {
+    info: PluginInfo,
+    /// The running plugin; gone once its commands and handlers are removed.
+    instance: Weak<RefCell<Instance>>,
+}
+
+/// This vox's version, for `vox = ">=..."` requirements.
+fn vox_version() -> Version {
+    Version::parse(env!("CARGO_PKG_VERSION")).expect("crate version is valid")
 }
 
 impl PluginHost {
-    /// Create a host. Starts a background thread that drives call time limits.
-    pub fn new() -> Result<Self, String> {
+    /// Create a host. `parse` reads `plugin.toml` files. Starts a background thread that
+    /// drives call time limits.
+    pub fn new(parse: ValueParser) -> Result<Self, String> {
         let mut config = Config::new();
         config.epoch_interruption(true);
         let engine = Engine::new(&config).map_err(|e| e.to_string())?;
@@ -65,78 +86,232 @@ impl PluginHost {
         Ok(Self {
             engine,
             linker,
-            loaded: RefCell::new(Vec::new()),
+            parse,
+            registry: RefCell::new(Vec::new()),
         })
     }
 
-    /// Load the plugin at `path` into `editor`: compile it, call its `init`, and install the
-    /// commands, mappings, and event subscriptions it asked for. Returns the plugin's name
-    /// (the file name without `.wasm`).
+    /// Load the plugin at `path` (a package folder or a `.wasm` file): check its health,
+    /// then compile it, call `init` and `health`, and install what it registered. Returns
+    /// the plugin's name, or why it was not loaded.
     pub fn load(&self, editor: &mut Editor, path: &Path) -> Result<String, String> {
-        let name = path
-            .file_stem()
-            .map(|s| s.to_string_lossy().into_owned())
-            .unwrap_or_else(|| "plugin".into());
-        {
-            let mut loaded = self.loaded.borrow_mut();
-            loaded.retain(|(n, _)| *n != name);
-            loaded.push((name.clone(), path.to_path_buf()));
+        let package = package::read_package(path, self.parse);
+        let info = self.assess_and_load(editor, vec![package]).remove(0);
+        if info.loadable() {
+            Ok(info.name)
+        } else {
+            Err(failure(&info))
         }
-        let source = owner::plugin(&name);
-        let result = self.load_inner(editor, path, &name);
-        match &result {
-            Ok(_) => editor.log(Level::Info, &source, format!("loaded {}", path.display())),
-            Err(e) => editor.log(Level::Error, &source, e),
+    }
+
+    /// Load every plugin in `dir` (package folders and `.wasm` files, by name). Returns what
+    /// happened to each, including disabled and failed ones. A missing folder yields none.
+    pub fn load_dir(&self, editor: &mut Editor, dir: &Path) -> Vec<PluginInfo> {
+        let packages = package::discover(dir, self.parse);
+        self.assess_and_load(editor, packages)
+    }
+
+    /// Health-check `packages` together, then load the ones that may load.
+    fn assess_and_load(&self, editor: &mut Editor, packages: Vec<Package>) -> Vec<PluginInfo> {
+        let names: Vec<String> = packages.iter().map(|p| p.name.clone()).collect();
+        let loaded: Vec<(String, Version)> = self
+            .registry
+            .borrow()
+            .iter()
+            .filter(|e| e.info.loadable() && !names.contains(&e.info.name))
+            .map(|e| {
+                (
+                    e.info.name.clone(),
+                    e.info.version().unwrap_or(Version {
+                        major: 0,
+                        minor: 0,
+                        patch: 0,
+                    }),
+                )
+            })
+            .collect();
+        let config: Vec<(String, Option<BTreeMap<String, Value>>)> = names
+            .iter()
+            .map(|n| (n.clone(), editor.plugin_config(n).cloned()))
+            .collect();
+        let lookup = |n: &str| {
+            config
+                .iter()
+                .find(|(k, _)| k == n)
+                .and_then(|(_, v)| v.as_ref())
+        };
+        let infos = package::assess(
+            packages,
+            &AssessEnv {
+                vox: vox_version(),
+                api: API_VERSION,
+                loaded: &loaded,
+                config: &lookup,
+                program_exists: &health::program_on_path,
+            },
+        );
+        infos
+            .into_iter()
+            .map(|info| self.load_info(editor, info))
+            .collect()
+    }
+
+    /// Load one assessed plugin (if loadable), record it, and log the outcome.
+    fn load_info(&self, editor: &mut Editor, mut info: PluginInfo) -> PluginInfo {
+        let source = owner::plugin(&info.name);
+        let mut instance = Weak::new();
+        if info.loadable() {
+            match self.instantiate(editor, &info) {
+                Ok(inst) => {
+                    instance = Rc::downgrade(&inst);
+                    let custom = match call(&inst, editor, |b, s| b.call_health(s)) {
+                        Ok(items) => items.into_iter().map(from_wit_health).collect(),
+                        Err(e) => vec![HealthItem::problem(
+                            Level::Error,
+                            format!("health check: {e}"),
+                        )],
+                    };
+                    info.add_items(custom);
+                    if !info.loadable() {
+                        // Its own health check failed: take back what it registered.
+                        editor.remove_owned(&source);
+                        instance = Weak::new();
+                    }
+                }
+                Err(e) => info.add_items([HealthItem::problem(Level::Error, e)]),
+            }
         }
-        result
+        match info.status {
+            HealthStatus::Disabled => editor.log(Level::Info, &source, "disabled in config"),
+            HealthStatus::Failed => editor.log(
+                Level::Error,
+                &source,
+                format!("not loaded: {}", failure(&info)),
+            ),
+            status => {
+                let level = if status == HealthStatus::Warning {
+                    Level::Warn
+                } else {
+                    Level::Info
+                };
+                let version = info.version().map_or(String::new(), |v| format!(" {v}"));
+                editor.log(
+                    level,
+                    &source,
+                    format!(
+                        "loaded{version} from {} ({})",
+                        info.path.display(),
+                        status.name()
+                    ),
+                );
+            }
+        }
+        let mut registry = self.registry.borrow_mut();
+        registry.retain(|e| e.info.name != info.name);
+        registry.push(Entry {
+            info: info.clone(),
+            instance,
+        });
+        info
     }
 
     /// Unload plugin `name` (remove everything it registered) and load it again from the
-    /// same file.
+    /// same place, re-reading its manifest and settings.
     pub fn reload(&self, editor: &mut Editor, name: &str) -> Result<String, String> {
         let path = self
-            .loaded
+            .registry
             .borrow()
             .iter()
-            .find(|(n, _)| n == name)
-            .map(|(_, p)| p.clone())
+            .find(|e| e.info.name == name)
+            .map(|e| e.info.path.clone())
             .ok_or_else(|| format!("no plugin named {name}"))?;
         editor.remove_owned(&owner::plugin(name));
+        self.registry.borrow_mut().retain(|e| e.info.name != name);
         self.load(editor, &path)
     }
 
-    /// Unload every plugin and load all `*.wasm` files in `dir` again.
-    pub fn reload_all(&self, editor: &mut Editor, dir: &Path) -> Vec<Result<String, String>> {
-        let names: Vec<String> = self.loaded.borrow_mut().drain(..).map(|(n, _)| n).collect();
+    /// Unload every plugin and load all plugins in `dir` again.
+    pub fn reload_all(&self, editor: &mut Editor, dir: &Path) -> Vec<PluginInfo> {
+        let names: Vec<String> = self
+            .registry
+            .borrow_mut()
+            .drain(..)
+            .map(|e| e.info.name)
+            .collect();
         for n in names {
             editor.remove_owned(&owner::plugin(&n));
         }
         self.load_dir(editor, dir)
     }
 
-    /// Names of loaded plugins (including ones that failed), in load order.
+    /// Names of all known plugins (loaded, failed, disabled), in load order.
     pub fn names(&self) -> Vec<String> {
-        self.loaded
+        self.registry
             .borrow()
             .iter()
-            .map(|(n, _)| n.clone())
+            .map(|e| e.info.name.clone())
             .collect()
     }
 
-    /// Register `:reload-plugins [NAME]` (owner `builtin`): reload one plugin, or all from
-    /// `dir`. Results are logged and shown as a notification.
+    /// What is known about each plugin: status, findings, settings.
+    pub fn plugins(&self) -> Vec<PluginInfo> {
+        self.registry
+            .borrow()
+            .iter()
+            .map(|e| e.info.clone())
+            .collect()
+    }
+
+    /// Run the custom `health()` check of every running plugin again and update its
+    /// findings (the other checks ran at load time).
+    fn recheck(&self, editor: &mut Editor) {
+        let running: Vec<(String, Rc<RefCell<Instance>>)> = self
+            .registry
+            .borrow()
+            .iter()
+            .filter_map(|e| e.instance.upgrade().map(|i| (e.info.name.clone(), i)))
+            .collect();
+        for (name, inst) in running {
+            let custom: Vec<HealthItem> = match call(&inst, editor, |b, s| b.call_health(s)) {
+                Ok(items) => items.into_iter().map(from_wit_health).collect(),
+                Err(e) => vec![HealthItem::problem(
+                    Level::Error,
+                    format!("health check: {e}"),
+                )],
+            };
+            let mut registry = self.registry.borrow_mut();
+            if let Some(entry) = registry.iter_mut().find(|e| e.info.name == name) {
+                entry.info.items.retain(|i| !i.message.starts_with(CUSTOM));
+                entry.info.add_items(custom);
+            }
+        }
+    }
+
+    /// Register `:reload plugins [NAME]` and `:checkhealth [NAME]` (owner `builtin`).
     pub fn register_commands(host: Rc<PluginHost>, editor: &mut Editor, dir: PathBuf) {
+        let h = host.clone();
         editor.with_owner(owner::BUILTIN, |ed| {
             ed.commands_mut().register(
-                "reload-plugins",
-                "Reload one plugin (`:reload-plugins NAME`) or all plugins.",
+                "reload plugins",
+                "Reload one plugin (`:reload plugins NAME`) or all plugins.",
                 move |ed, args| {
-                    let results = match args.arg {
-                        Some(name) => vec![host.reload(ed, name)],
-                        None => host.reload_all(ed, &dir),
+                    let infos: Vec<Result<String, String>> = match args.arg {
+                        Some(name) => vec![h.reload(ed, name)],
+                        None => h
+                            .reload_all(ed, &dir)
+                            .into_iter()
+                            .filter(|i| i.status != HealthStatus::Disabled)
+                            .map(|i| {
+                                if i.loadable() {
+                                    Ok(i.name.clone())
+                                } else {
+                                    Err(failure(&i))
+                                }
+                            })
+                            .collect(),
                     };
-                    let ok = results.iter().filter(|r| r.is_ok()).count();
-                    let errors: Vec<String> = results.into_iter().filter_map(Result::err).collect();
+                    let ok = infos.iter().filter(|r| r.is_ok()).count();
+                    let errors: Vec<String> = infos.into_iter().filter_map(Result::err).collect();
                     match errors.first() {
                         None => ed.notify(Level::Info, format!("reloaded {ok} plugin(s)")),
                         Some(e) => ed.notify(
@@ -147,20 +322,54 @@ impl PluginHost {
                     Ok(())
                 },
             );
+            ed.commands_mut().register(
+                "checkhealth",
+                "Health report of all plugins, or one: `:checkhealth NAME`.",
+                move |ed, args| {
+                    host.recheck(ed);
+                    let mut infos = host.plugins();
+                    if let Some(name) = args.arg {
+                        infos.retain(|i| i.name == name);
+                        if infos.is_empty() {
+                            return Err(format!("E900: no plugin named {name}"));
+                        }
+                    }
+                    let lines = package::report(&infos)
+                        .into_iter()
+                        .map(|(key, text)| {
+                            let style = match key {
+                                "title" => Style::BOLD,
+                                "ok" => Style::default().fg(Color::Green),
+                                "warn" => Style::default().fg(Color::Yellow),
+                                "error" => Style::default().fg(Color::Red),
+                                _ => Style::default(),
+                            };
+                            (style, text)
+                        })
+                        .collect();
+                    ed.open_modal(Box::new(TextView::new("Plugin health", lines)));
+                    Ok(())
+                },
+            );
         });
     }
 
-    /// Compile, instantiate, and `init` one plugin.
-    fn load_inner(&self, editor: &mut Editor, path: &Path, name: &str) -> Result<String, String> {
-        let name = name.to_string();
+    /// Compile and instantiate a plugin, give it its settings, and call `init`.
+    fn instantiate(
+        &self,
+        editor: &mut Editor,
+        info: &PluginInfo,
+    ) -> Result<Rc<RefCell<Instance>>, String> {
+        let name = info.name.clone();
         let fail = |e: wasmtime::Error| format!("plugin {name}: {e}");
-        let component = Component::from_file(&self.engine, path).map_err(fail)?;
+        let component = Component::from_file(&self.engine, &info.wasm).map_err(fail)?;
         let mut store = Store::new(
             &self.engine,
             HostState {
                 name: name.clone(),
                 editor: EditorPtr(std::ptr::null_mut()),
                 requests: Vec::new(),
+                settings: info.settings.clone(),
                 limits: StoreLimitsBuilder::new().memory_size(MEMORY_LIMIT).build(),
                 wasi: WasiCtx::builder().build(),
                 table: ResourceTable::new(),
@@ -176,22 +385,31 @@ impl PluginHost {
             disabled: false,
         }));
         call(&plugin, editor, |b, s| b.call_init(s))??;
-        Ok(name)
+        Ok(plugin)
     }
+}
 
-    /// Load every `*.wasm` file in `dir` (sorted by name). Returns one result per file.
-    /// A missing directory yields no results.
-    pub fn load_dir(&self, editor: &mut Editor, dir: &Path) -> Vec<Result<String, String>> {
-        let Ok(entries) = std::fs::read_dir(dir) else {
-            return Vec::new();
-        };
-        let mut paths: Vec<_> = entries
-            .filter_map(|e| e.ok().map(|e| e.path()))
-            .filter(|p| p.extension().is_some_and(|x| x == "wasm"))
-            .collect();
-        paths.sort();
-        paths.iter().map(|p| self.load(editor, p)).collect()
+/// Prefix of findings from a plugin's own `health()`.
+const CUSTOM: &str = "plugin check: ";
+
+/// WIT health item → core finding.
+fn from_wit_health(item: wit::HealthItem) -> HealthItem {
+    let level = to_level(item.level);
+    let message = format!("{CUSTOM}{}", item.message);
+    match level {
+        Level::Debug | Level::Info => HealthItem::ok(message),
+        _ => HealthItem::problem(level, message),
     }
+}
+
+/// The reason a plugin is not loaded: its first error finding.
+fn failure(info: &PluginInfo) -> String {
+    let reason = info
+        .items
+        .iter()
+        .find(|i| !i.ok && i.level == Level::Error)
+        .map_or("unknown reason".to_string(), |i| i.message.clone());
+    format!("plugin {}: {reason}", info.name)
 }
 
 /// One loaded plugin.
@@ -223,6 +441,8 @@ struct HostState {
     name: String,
     editor: EditorPtr,
     requests: Vec<Request>,
+    /// Effective settings from the manifest and `[plugins.NAME]`.
+    settings: Vec<(String, vox_editor::plugin::SettingValue)>,
     limits: StoreLimits,
     wasi: WasiCtx,
     table: ResourceTable,
@@ -427,6 +647,19 @@ impl bindings::vox::plugin::editor::Host for HostState {
     fn log(&mut self, level: wit::Level, text: String) {
         let source = owner::plugin(&self.name);
         self.editor().log(to_level(level), &source, text);
+    }
+
+    /// WIT `setting`: the value of one of this plugin's settings.
+    fn setting(&mut self, key: String) -> Option<wit::SettingValue> {
+        use vox_editor::plugin::SettingValue as V;
+        self.settings
+            .iter()
+            .find(|(k, _)| *k == key)
+            .map(|(_, v)| match v {
+                V::String(s) => wit::SettingValue::Text(s.clone()),
+                V::Integer(n) => wit::SettingValue::Integer(*n),
+                V::Bool(b) => wit::SettingValue::Boolean(*b),
+            })
     }
 
     /// WIT `run-command`: run a command line in the editor.

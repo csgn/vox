@@ -5,6 +5,41 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-27 — M8 plugin packages and health
+
+### Added
+- Standard plugin project layout and installed package layout (`NAME/{plugin.toml,
+  plugin.wasm, README.md}`); single `.wasm` files still load.
+- `plugin.toml` manifest: name, version, description, authors, `api`, `vox`; `[[requires]]`
+  (plugin + version, vox version, program on PATH) with level error / warning / info;
+  typed `[settings.KEY]` (string, integer with min/max, bool, choice).
+- Health checks before loading (package, API version, requirements; plugin-on-plugin
+  requirements re-checked until stable) and the plugin's own `health()` after `init`;
+  `error` = not loaded. Statuses: ok, info, warning, failed, disabled.
+- `:checkhealth [NAME]` report; start-up notifications for failed / warning plugins.
+- Plugin settings from `[plugins.NAME]` in `config.toml`, checked against the manifest
+  (bad values: warning + default); `enabled = false` turns a plugin off.
+- Plugin API 0.2 (`wit/vox.wit`): `setting(key)`, optional `health()` export.
+- SDK: `Plugin` trait with optional `on_event` / `health`; `SettingValue::as_text` /
+  `as_integer` / `as_bool`.
+- `:plugin new NAME [DIR]` (template project) and `scripts/build-plugin.sh DIR [--install
+  DEST]`.
+- Core `vox_editor::plugin`: `Version`, `VersionReq`, `PluginManifest`, health, package
+  discovery and assessment, template (std only).
+- `plugins/text-tools` 0.2.0: manifest, settings `case` and `count_on_save`.
+
+- Subcommands: a command name with a space (`"reload plugins"`) is a subcommand of its root;
+  `:ROOT` alone lists the subcommands when there is no root command.
+
+### Changed
+- Related commands are subcommands now: `:log clear`, `:log refresh`, `:reload config`,
+  `:reload plugins [NAME]`, `:scope setup`, `:scope init`, `:scope pick` (were `:log-clear`,
+  `:log-refresh`, `:reload-config`, `:reload-plugins`, `:scope-init`, `:scope-pick`).
+- Plugin API 0.1 → 0.2: plugins must be rebuilt with the current SDK (vox reports the
+  mismatch in `:checkhealth`).
+- `PluginHost::new` takes a `ValueParser`; `load_dir` / `reload_all` return `PluginInfo`s.
+- Owner and log source of a packaged plugin is `plugin:NAME` with the folder name.
+
 ## [0.9.0] - 2026-11-26 — M7 project setups
 
 ### Added

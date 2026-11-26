@@ -57,7 +57,7 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
   `config` owner's mappings, so it also reloads.
 - `log.rs`: `Log` ring buffer (2000 entries) and the live `LogView`; views expose
   `as_log_view()` so the editor can refresh them.
-- `:reload-config` is registered by `vox-config-file::register_commands`; `:reload-plugins`
+- `:reload config` is registered by `vox-config-file::register_commands`; `:reload plugins`
   by `vox-plugin-host::PluginHost::register_commands` (the adapters own the file and plugin
   access). The plugin host runs every plugin call under the owner `plugin:NAME`.
 
@@ -68,6 +68,16 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
 - The binary (`crates/vox/src/cli.rs`, `main.rs`) parses `--local-config [DIR]` /
   `--vanilla`, builds the active scope, and loads config and plugins only from its paths.
   The editor only stores the scope (for `:scope`, the badge, and the set-up dialog).
+
+## Plugin packages (`vox-editor/src/plugin/`)
+- `version.rs`: `Version`, `VersionReq` (`>=`, `^`, ranges).
+- `manifest.rs`: `PluginManifest::from_value` (from the neutral `Value`), requirements,
+  typed settings, `resolve_settings`.
+- `health.rs`: `check` (API, vox, plugins, programs) with levels; `program_on_path`.
+- `package.rs`: `discover` (folders + single `.wasm`), `assess` (repeats until plugin-on-plugin
+  requirements are stable), `report` for `:checkhealth`.
+- `template.rs`: the standard project for `:plugin new`.
+- The host takes a `ValueParser` (TOML from `vox-config-file`) so core never parses TOML.
 
 ## vox-term
 - `Terminal::enter()` (raw mode, alternate screen, panic-safe restore), `draw(&Surface)` with

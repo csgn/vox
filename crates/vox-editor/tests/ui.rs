@@ -379,3 +379,49 @@ fn three_levels_of_dialogs_go_back_one_at_a_time() {
     feed(&mut ed, "<Esc>");
     assert!(!ed.has_modal());
 }
+
+#[test]
+fn running_job_shows_progress_until_done() {
+    use std::sync::mpsc;
+    let (mut ed, now) = editor("x");
+    let (step_tx, step_rx) = mpsc::channel::<&str>();
+    let (seen_tx, seen_rx) = mpsc::channel::<()>();
+    ed.spawn_job("installing demo", move |progress| {
+        for text in step_rx {
+            progress(text);
+            seen_tx.send(()).unwrap();
+        }
+        Box::new(|ed: &mut Editor| ed.notify(Level::Info, "installed demo"))
+    });
+    let job_box = |ed: &Editor| ed.render().to_string();
+    assert_eq!(ed.job_status().len(), 1);
+    assert!(job_box(&ed).contains("⠋ 0s"));
+    assert!(job_box(&ed).contains("installing demo"));
+    assert!(ed.notifications().is_empty(), "no popup that disappears");
+    assert_eq!(ed.history().last().unwrap().1, "installing demo…");
+
+    step_tx.send("compiling (1): serde v1.0.0").unwrap();
+    seen_rx.recv().unwrap();
+    now.set(now.get() + Duration::from_millis(65_300));
+    ed.tick();
+    assert_eq!(
+        ed.job_status()[0].detail.as_deref(),
+        Some("compiling (1): serde v1.0.0")
+    );
+    insta::assert_snapshot!(ed.render());
+
+    // Notifications expire; the job box stays while the job runs.
+    now.set(now.get() + Duration::from_secs(600));
+    ed.tick();
+    assert!(job_box(&ed).contains("11m 05s"));
+
+    drop(step_tx);
+    while ed.jobs_running() > 0 {
+        std::thread::sleep(Duration::from_millis(10));
+        ed.tick();
+    }
+    assert!(ed.job_status().is_empty());
+    let screen = job_box(&ed);
+    assert!(!screen.contains("installing demo"), "box gone when done");
+    assert!(screen.contains("installed demo"));
+}

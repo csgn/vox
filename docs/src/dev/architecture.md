@@ -89,7 +89,8 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
 - `manager.rs`: `ManagerView`, the plugin manager list; refreshes from `Editor::plugin_infos`
   and `vox.lock` through `View::refresh` after every command and finished job.
 - `manage.rs`: `:plugins`, `:plugin add|remove|enable|disable|files`, `:plugins sync`; installs run as editor jobs
-  (`Editor::spawn_job`: a thread plus a channel drained in `tick`).
+  (`Editor::spawn_job`: a thread plus a channel drained in `tick`; `JobStatus` per running
+  job, drawn with the notifications).
 - The host takes a `ValueParser` (TOML from `vox-config-file`) so core never parses TOML.
 
 ## Settings (`vox-editor/src/settings/`)

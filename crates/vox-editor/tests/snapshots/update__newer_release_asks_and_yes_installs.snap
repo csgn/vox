@@ -2,9 +2,9 @@
 source: crates/vox-editor/tests/update.rs
 expression: ed.render()
 ---
-"  1 x                ┌─ info ───────────────────────────────────────┐ "
-"~                    │checking for updates…                         │ "
-"~         ┌─ Update v└──────────────────────────────────────────────┘ "
+"  1 x                                                                 "
+"~                                                                     "
+"~         ┌─ Update vox ──────────────────────────────────┐           "
 "~         │Install vox 0.10.0? You have 0.9.0.            │           "
 "~         │                                               │           "
 "~         │[y] yes   [n] no                               │           "

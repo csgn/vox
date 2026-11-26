@@ -13,7 +13,8 @@ At start-up vox looks for a newer release in the background: it reads the `vX.Y.
 
 - `y` / `Enter` builds and installs it with
   `cargo install --locked --force --git … --tag vX.Y.Z --root ROOT vox` in the background,
-  into the same place as the running vox. Restart vox to use it.
+  into the same place as the running vox. A box shows the progress (each crate cargo
+  compiles, and the time so far) until it is done. Restart vox to use it.
 - `n` / `Esc` does nothing; vox asks again next time.
 
 If a dialog is already open, vox shows a notification instead of asking.

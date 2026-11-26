@@ -5,8 +5,10 @@
 //! `:update install [VERSION]` installs one. The binary checks once at start-up
 //! ([`check_on_start`]) unless `check_updates = false`.
 
+use std::cell::Cell;
+use std::io::BufRead;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use crate::Editor;
 use crate::command::{Args, CommandResult, Commands};
@@ -87,6 +89,49 @@ pub fn install_args(repo: &str, version: Version, root: &Path) -> Vec<String> {
     args
 }
 
+/// Run `cmd` and pass each line it writes to stderr (where cargo reports progress) to
+/// `on_line`. On failure the error ends with its last few lines.
+pub fn run_lines(cmd: &mut Command, on_line: &dyn Fn(&str)) -> Result<(), String> {
+    let program = cmd.get_program().to_string_lossy().into_owned();
+    let mut child = cmd
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("{program}: {e}"))?;
+    let mut tail: Vec<String> = Vec::new();
+    if let Some(err) = child.stderr.take() {
+        for line in std::io::BufReader::new(err).lines().map_while(Result::ok) {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            on_line(line);
+            tail.push(line.to_string());
+            if tail.len() > 3 {
+                tail.remove(0);
+            }
+        }
+    }
+    let status = child.wait().map_err(|e| format!("{program}: {e}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("{program} failed: {}", tail.join(" / ")))
+    }
+}
+
+/// Progress text for a line of cargo output: `Compiling NAME vX` lines are counted
+/// (`compiling (12): NAME vX`); other lines are shown as they are.
+pub fn cargo_progress(line: &str, compiled: &Cell<usize>) -> String {
+    match line.strip_prefix("Compiling ") {
+        Some(what) => {
+            compiled.set(compiled.get() + 1);
+            format!("compiling ({}): {what}", compiled.get())
+        }
+        None => line.to_string(),
+    }
+}
+
 /// Check in the background. `quiet` (start-up): no "checking" notification, and errors
 /// and "up to date" only go to the log.
 fn spawn_check(ed: &mut Editor, src: UpdateSource, quiet: bool) {
@@ -158,7 +203,11 @@ fn install_cmd(ed: &mut Editor, a: Args<'_>) -> CommandResult {
             progress(&format!(
                 "building vox {version} with cargo (takes a few minutes)"
             ));
-            run(Command::new("cargo").args(install_args(&src.repo, version, &root)))?;
+            let compiled = std::cell::Cell::new(0);
+            run_lines(
+                Command::new("cargo").args(install_args(&src.repo, version, &root)),
+                &|line| progress(&cargo_progress(line, &compiled)),
+            )?;
             Ok::<Version, String>(version)
         })();
         Box::new(move |ed: &mut Editor| match result {
@@ -216,6 +265,39 @@ mod tests {
             None
         );
         assert_eq!(install_root_of(Path::new("vox")), None);
+    }
+
+    #[test]
+    fn cargo_lines_become_progress() {
+        let n = Cell::new(0);
+        assert_eq!(
+            cargo_progress("Updating git repository `x`", &n),
+            "Updating git repository `x`"
+        );
+        assert_eq!(
+            cargo_progress("Compiling serde v1.0.0", &n),
+            "compiling (1): serde v1.0.0"
+        );
+        assert_eq!(
+            cargo_progress("Compiling vox v0.16.0 (/x)", &n),
+            "compiling (2): vox v0.16.0 (/x)"
+        );
+    }
+
+    #[test]
+    fn run_lines_streams_stderr() {
+        let seen = std::cell::RefCell::new(Vec::new());
+        let ok = run_lines(
+            Command::new("sh").args(["-c", "echo out; echo '  one ' >&2; echo >&2; echo two >&2"]),
+            &|l| seen.borrow_mut().push(l.to_string()),
+        );
+        assert_eq!(ok, Ok(()));
+        assert_eq!(*seen.borrow(), ["one", "two"]);
+        let err = run_lines(
+            Command::new("sh").args(["-c", "for i in 1 2 3 4 5; do echo l$i >&2; done; exit 3"]),
+            &|_| {},
+        );
+        assert_eq!(err, Err("sh failed: l3 / l4 / l5".into()));
     }
 
     #[test]

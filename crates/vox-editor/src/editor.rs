@@ -120,6 +120,10 @@ pub struct Editor {
     jobs_tx: std::sync::mpsc::Sender<JobMsg>,
     jobs_rx: std::sync::mpsc::Receiver<JobMsg>,
     jobs_running: usize,
+    /// Jobs shown on screen while they run (not quiet ones).
+    job_status: Vec<ui::JobStatus>,
+    /// Id for the next job.
+    next_job_id: u64,
     /// Reads and writes plugin/lock files (from an adapter).
     file_format: Option<(crate::config::ValueParser, crate::config::ValueFormatter)>,
     /// The config last applied (what the settings dialog edits).
@@ -224,6 +228,8 @@ impl Editor {
             jobs_tx,
             jobs_rx,
             jobs_running: 0,
+            job_status: Vec::new(),
+            next_job_id: 0,
             file_format: None,
             plugin_settings: Default::default(),
             plugin_infos: Vec::new(),
@@ -629,33 +635,59 @@ impl Editor {
         mapping.into_iter().chain(note).chain(jobs).min()
     }
 
-    /// Run `work` on a background thread (e.g. building a plugin). `work` gets a function
-    /// to report progress (shown as notifications) and returns what to do on the editor's
-    /// thread when it is done. Results arrive in [`Editor::tick`].
+    /// Run `work` on a background thread (e.g. building a plugin). While it runs, a box
+    /// shows `title`, the last progress `work` reported, and the time so far (see
+    /// [`Editor::job_status`]). `work` returns what to do on the editor's thread when it is
+    /// done. Results arrive in [`Editor::tick`].
     pub fn spawn_job(
         &mut self,
         title: &str,
         work: impl FnOnce(&dyn Fn(&str)) -> JobDone + Send + 'static,
     ) {
-        self.notify(Level::Info, format!("{title}…"));
-        self.spawn_quiet_job(work);
+        self.history.push((Level::Info, format!("{title}…")));
+        let id = self.start_job(work);
+        self.job_status.push(ui::JobStatus {
+            id,
+            title: title.to_string(),
+            detail: None,
+            started: (self.clock)(),
+        });
     }
 
-    /// Like [`Editor::spawn_job`], without the notification that the job started.
+    /// Like [`Editor::spawn_job`], but nothing is shown while it runs; progress only goes
+    /// to the log.
     pub fn spawn_quiet_job(
         &mut self,
         work: impl FnOnce(&dyn Fn(&str)) -> JobDone + Send + 'static,
     ) {
+        self.start_job(work);
+    }
+
+    /// Start `work` on a thread; returns its job id.
+    fn start_job(&mut self, work: impl FnOnce(&dyn Fn(&str)) -> JobDone + Send + 'static) -> u64 {
+        let id = self.next_job_id;
+        self.next_job_id += 1;
         let tx = self.jobs_tx.clone();
         self.jobs_running += 1;
         std::thread::spawn(move || {
             let progress_tx = tx.clone();
             let progress = |text: &str| {
-                let _ = progress_tx.send(JobMsg::Progress(text.to_string()));
+                let _ = progress_tx.send(JobMsg::Progress(id, text.to_string()));
             };
             let done = work(&progress);
-            let _ = tx.send(JobMsg::Done(done));
+            let _ = tx.send(JobMsg::Done(id, done));
         });
+        id
+    }
+
+    /// The current time (from [`Services::clock`]).
+    pub(crate) fn now(&self) -> Instant {
+        (self.clock)()
+    }
+
+    /// Jobs shown on screen while they run, oldest first.
+    pub fn job_status(&self) -> &[ui::JobStatus] {
+        &self.job_status
     }
 
     /// Where vox updates come from, if set (see [`crate::update`]).
@@ -694,12 +726,15 @@ impl Editor {
     pub fn tick(&mut self) {
         while let Ok(msg) = self.jobs_rx.try_recv() {
             match msg {
-                JobMsg::Progress(text) => {
+                JobMsg::Progress(id, text) => {
                     self.log(Level::Info, "job", &text);
-                    self.notify(Level::Info, text);
+                    if let Some(j) = self.job_status.iter_mut().find(|j| j.id == id) {
+                        j.detail = Some(text);
+                    }
                 }
-                JobMsg::Done(done) => {
+                JobMsg::Done(id, done) => {
                     self.jobs_running = self.jobs_running.saturating_sub(1);
+                    self.job_status.retain(|j| j.id != id);
                     done(self);
                     self.refresh_views();
                 }
@@ -1850,8 +1885,10 @@ pub type JobDone = Box<dyn FnOnce(&mut Editor) + Send>;
 
 /// A message from a background job.
 enum JobMsg {
-    Progress(String),
-    Done(JobDone),
+    /// Job id, progress text.
+    Progress(u64, String),
+    /// Job id, what to do on the editor's thread.
+    Done(u64, JobDone),
 }
 
 /// The focus value of a panel slot.

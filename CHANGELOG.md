@@ -5,6 +5,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.16.1] - 2026-11-27 — job progress
+
+### Added
+- Running jobs (plugin install, sync, vox update) show a box with a spinner, the time so
+  far, the title, and the latest step until they finish (`Editor::job_status`, `JobStatus`).
+- `:update install` reports cargo's progress (`compiling (N): CRATE`) as it builds.
+- `vox run` prints job progress to stderr (`vox: progress: …`).
+
+### Changed
+- Job progress no longer pops up as notifications that disappear; the "started" message is
+  only in `:messages`.
+
 ## [0.16.0] - 2026-11-27 — M14 vox run
 
 ### Added

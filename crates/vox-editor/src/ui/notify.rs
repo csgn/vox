@@ -50,6 +50,18 @@ impl Level {
     }
 }
 
+/// A background job shown on screen while it runs (see [`crate::Editor::spawn_job`]).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct JobStatus {
+    pub(crate) id: u64,
+    /// What it does, e.g. `installing vox 0.16.0`.
+    pub title: String,
+    /// The last progress it reported, if any.
+    pub detail: Option<String>,
+    /// When it started.
+    pub started: Instant,
+}
+
 /// A notification on screen.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Notification {

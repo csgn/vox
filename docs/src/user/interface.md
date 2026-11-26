@@ -48,6 +48,19 @@ Short messages in a box colored by level: **info** (blue), **warning** (yellow),
 (red). They disappear after `notify_timeout_ms`. All messages and notifications are kept in
 `:messages`.
 
+## Background work
+
+Long work such as installing a plugin or updating vox runs in the background. While it runs,
+a box in the notification corner shows a spinner, the time so far, what it does, and its
+latest step. The box stays until the work is done; then a notification says how it went.
+
+```text
+┌─ ⠸ 1m 05s ─────────────────────────┐
+│installing vox 0.16.0               │
+│compiling (57): toml_edit v0.22.0   │
+└────────────────────────────────────┘
+```
+
 ## Settings
 
 In `config.toml`:

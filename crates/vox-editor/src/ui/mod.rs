@@ -12,7 +12,7 @@ mod views;
 pub use form::Form;
 pub(crate) use layout::{Layout, compute};
 pub use layout::{ManagerPlace, NotifyPosition, SidePosition, UiConfig};
-pub use notify::{Level, Notification};
+pub use notify::{JobStatus, Level, Notification};
 pub use views::{CheckList, Confirm, Input, ListItem, ListView, TextView};
 
 use vox_view::CharWidth;

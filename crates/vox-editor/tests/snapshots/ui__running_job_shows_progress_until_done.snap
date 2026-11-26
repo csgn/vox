@@ -1,0 +1,20 @@
+---
+source: crates/vox-editor/tests/ui.rs
+expression: ed.render()
+---
+"  1 x      ┌─ ⠸ 1m 05s ───────────────────────────────────┐ "
+"~          │installing demo                               │ "
+"~          │compiling (1): serde v1.0.0                   │ "
+"~          └──────────────────────────────────────────────┘ "
+"~                                                           "
+"~                                                           "
+"~                                                           "
+"~                                                           "
+"~                                                           "
+"~                                                           "
+"~                                                           "
+"~                                                           "
+"~                                                           "
+"~                                                           "
+" NORMAL  [No Name]                                      1:1 "
+"                                                            "

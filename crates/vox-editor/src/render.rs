@@ -206,7 +206,8 @@ impl Editor {
         s.put_str(0, row, &text, Style::default(), self.width.as_ref());
     }
 
-    /// Draw notifications stacked in a corner of `body`, oldest first.
+    /// Draw running jobs, then notifications, stacked in a corner of `body`, oldest first.
+    /// A job's box shows a spinner and the time so far, its title, and its last progress.
     fn render_notifications(&self, s: &mut Surface, body: Rect) {
         let nw = NOTIFY_WIDTH.min(body.w.saturating_sub(2));
         if nw < 10 {
@@ -214,9 +215,27 @@ impl Editor {
         }
         let x = body.x + body.w - nw - 1;
         let bottom_up = self.ui_config().notify_position == NotifyPosition::BottomRight;
+        let width = (nw - 2) as usize;
+        let now = self.now();
+        let jobs = self.job_status().iter().map(|j| {
+            let elapsed = now.saturating_duration_since(j.started);
+            let frame = SPINNER[(elapsed.as_millis() / 100) as usize % SPINNER.len()];
+            let mut lines = wrap(&j.title, width, 1);
+            if let Some(d) = &j.detail {
+                lines.extend(wrap(d, width, NOTIFY_LINES - 1));
+            }
+            (
+                format!("{frame} {}", duration(elapsed.as_secs())),
+                Color::Blue,
+                lines,
+            )
+        });
+        let notes = self.notifications().iter().map(|n| {
+            let lines = wrap(&n.text, width, NOTIFY_LINES);
+            (n.level.name().to_string(), n.level.color(), lines)
+        });
         let mut used = 0u16;
-        for n in self.notifications() {
-            let lines = wrap(&n.text, (nw - 2) as usize, NOTIFY_LINES);
+        for (title, color, lines) in jobs.chain(notes) {
             let h = lines.len() as u16 + 2;
             if used + h > body.h {
                 break;
@@ -227,12 +246,7 @@ impl Editor {
                 body.y + used
             };
             let rect = Rect::new(x, y, nw, h);
-            s.draw_box(
-                rect,
-                n.level.name(),
-                Style::BOLD.fg(n.level.color()),
-                self.width.as_ref(),
-            );
+            s.draw_box(rect, &title, Style::BOLD.fg(color), self.width.as_ref());
             for (i, line) in lines.iter().enumerate() {
                 s.put_in(
                     rect.inner(),
@@ -244,6 +258,18 @@ impl Editor {
             }
             used += h;
         }
+    }
+}
+
+/// Frames of the spinner shown on running jobs (one per 100 ms).
+const SPINNER: [char; 10] = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+
+/// Seconds as `12s` or `3m 05s`.
+fn duration(secs: u64) -> String {
+    if secs < 60 {
+        format!("{secs}s")
+    } else {
+        format!("{}m {:02}s", secs / 60, secs % 60)
     }
 }
 

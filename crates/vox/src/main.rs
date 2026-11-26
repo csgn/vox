@@ -107,8 +107,8 @@ fn main() -> ExitCode {
     ExitCode::SUCCESS
 }
 
-/// `vox run`: run each command line, wait for its background jobs, print its reply to stdout
-/// and its messages to stderr. Stops at the first command that fails (its error, or an
+/// `vox run`: run each command line, wait for its background jobs (printing their progress),
+/// print its reply to stdout and its messages to stderr. Stops at the first command that fails (its error, or an
 /// error message such as a failed install); exit status 1 then.
 fn run_commands(editor: &mut Editor, run: &Run) -> ExitCode {
     let mut lines = run.commands.clone();
@@ -127,9 +127,20 @@ fn run_commands(editor: &mut Editor, run: &Run) -> ExitCode {
     let mut shown = print_messages(editor, 0);
     for line in &lines {
         let result = editor.execute(line);
+        let mut last_progress: Vec<String> = Vec::new();
         while editor.jobs_running() > 0 {
             std::thread::sleep(std::time::Duration::from_millis(20));
             editor.tick();
+            for detail in editor.job_status().iter().filter_map(|j| j.detail.as_ref()) {
+                if !last_progress.contains(detail) {
+                    eprintln!("vox: progress: {detail}");
+                }
+            }
+            last_progress = editor
+                .job_status()
+                .iter()
+                .filter_map(|j| j.detail.clone())
+                .collect();
         }
         let failed = editor.history()[shown..]
             .iter()

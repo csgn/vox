@@ -89,9 +89,9 @@ into a `Value`. A new setting means: a field in `Config`, a case in `from_value`
 | `set_plugin_settings(name, specs)`, `plugin_settings()` | plugin settings schemas (from the plugin host) |
 | `plugin_infos()`, `set_plugin_infos(infos)` | status of every plugin (set by the plugin host) |
 | `refresh_views()` | let open panels and the modal update (`View::refresh`); runs after commands and jobs |
-| `spawn_quiet_job(work)` | like `spawn_job`, without the "started" notification |
+| `spawn_quiet_job(work)` | like `spawn_job`, but nothing is shown; progress only goes to the log |
 | `set_update_source(src)`, `update_source()` | where vox updates come from (set by the binary) |
-| `spawn_job(title, work)`, `jobs_running()` | background work; `work` reports progress and returns a `JobDone` run on the editor's thread |
+| `spawn_job(title, work)`, `jobs_running()`, `job_status()` | background work; a box shows `title`, the last progress `work` reported, and the time so far until it is done; `work` returns a `JobDone` run on the editor's thread |
 | `set_file_format(parse, format)` | TOML reader/writer for plugin and lock files (from an adapter) |
 
 ## UI: panels, modal, notifications

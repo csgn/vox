@@ -16,8 +16,21 @@ Built one milestone at a time; each ships with tests, docs, and a changelog entr
 | M4 | 0.6.0 | WASM plugins: WIT contract, sandboxed host, Rust SDK, example plugin, events | done |
 | M5 | 0.7.0 | UI layer: side/bottom panels, modal, notifications, focus; configurable in `[ui]` | done |
 | M6 | 0.8.0 | Logging and developer mode: log panel, reload config/plugins shortcuts | done |
-| M7 | 0.9.0 | Plugin packages: standard project structure, `plugin.toml` manifest, health checks (error / warning / info) for plugins, vox version, programs, custom checks; plugin settings | next |
-| M8 | 0.10.0 | Plugin manager (modal or side panel): list, add (path or git URL), edit settings / open files, enable/disable, delete, reload, health | |
+| M7 | 0.9.0 | Scopes and start-up modes: global (default), `--local-config [DIR]` (project's `.vox/` only), `--clean` (vanilla: no config, no plugins); set-up dialog to copy global config / chosen plugins into a project | next |
+| M8 | 0.10.0 | Plugin packages: standard project structure, `plugin.toml` manifest, health checks (error / warning / info) for plugins, vox version, programs, custom checks; plugin settings | |
+| M9 | 0.11.0 | Lockfile and installer: `vox.lock` per scope (version, path or git URL + commit, checksum), install from path or git, `:plugins sync` | |
+| M10 | 0.12.0 | Plugin manager (modal or side panel), scope-aware: list, add (installs into the active scope only), edit settings / open files, enable/disable, delete, reload, health, sync | |
+
+## Scopes
+
+| Scope | Start with | Config | Plugins | Lockfile |
+|---|---|---|---|---|
+| global | `vox` | `~/.config/vox/config.toml` | `~/.config/vox/plugins/` | `~/.config/vox/vox.lock` |
+| local | `vox --local-config [DIR]` | `<project>/.vox/config.toml` | `<project>/.vox/plugins/` | `<project>/.vox/vox.lock` |
+| vanilla | `vox --clean` | none | none | none |
+
+Exactly one scope is active. Without `DIR`, the project is the nearest folder upward that
+contains `.vox/` (like git).
 
 ## Later (only if needed)
 Claude integration (postponed), plugin registry, plugin-defined panels, splits, fuzzy finder,

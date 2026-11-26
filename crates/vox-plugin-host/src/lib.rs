@@ -304,6 +304,12 @@ impl PluginHost {
                 "Reload one plugin (`:reload plugins NAME`) or all plugins.",
                 move |ed, args| {
                     let infos: Vec<Result<String, String>> = match args.arg {
+                        // A plugin the host does not know yet (just installed): load it.
+                        Some(name)
+                            if !h.names().iter().any(|n| n == name) && dir.join(name).exists() =>
+                        {
+                            vec![h.load(ed, &dir.join(name))]
+                        }
                         Some(name) => vec![h.reload(ed, name)],
                         None => h
                             .reload_all(ed, &dir)

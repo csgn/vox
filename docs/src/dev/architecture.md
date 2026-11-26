@@ -77,6 +77,13 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
 - `package.rs`: `discover` (folders + single `.wasm`), `assess` (repeats until plugin-on-plugin
   requirements are stable), `report` for `:checkhealth`.
 - `template.rs`: the standard project for `:plugin new`.
+- `lock.rs`: `Lockfile` (`vox.lock`) as a value tree; read/write via injected parser and
+  formatter.
+- `install.rs`: `install` (path or git; package or project built with `cargo`),
+  `install_locked`, `uninstall`, `check_lock`; uses `git` / `cargo` through std `process`.
+- `sha256.rs`: checksums, std only.
+- `manage.rs`: `:plugin add`, `:plugin remove`, `:plugins sync`; installs run as editor jobs
+  (`Editor::spawn_job`: a thread plus a channel drained in `tick`).
 - The host takes a `ValueParser` (TOML from `vox-config-file`) so core never parses TOML.
 
 ## Settings (`vox-editor/src/settings/`)

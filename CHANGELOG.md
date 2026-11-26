@@ -5,6 +5,29 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-27 — M10 lockfile and installer
+
+### Added
+- `:plugin add PATH` and `:plugin add GIT_URL[@REF]`: install into the active scope from a
+  packaged plugin or a plugin project (built with `cargo` for `wasm32-wasip2`); git sources
+  are cloned and the exact commit is recorded. Runs in the background with progress
+  notifications; the plugin loads when ready.
+- `:plugin remove NAME`: uninstall and unload.
+- `vox.lock` per scope (`version = 1`, `[[plugin]]` with name, version, source path or git
+  url/ref/rev, `sha256:` checksum of `plugin.wasm`). Path sources near the project are stored
+  relative to it.
+- `:plugins sync`: install what the lock lists (missing or changed plugins); start-up notice
+  when installed plugins differ from the lock.
+- Project set-up writes `.vox/.gitignore` (installed plugins and build files) and copies the
+  global lock entries of copied plugins.
+- Background jobs: `Editor::spawn_job`, `jobs_running`; run loop wakes up while jobs run.
+- Core: `plugin::lock`, `plugin::install`, `plugin::sha256` (std only), `plugin::manage`;
+  `ValueFormatter`; `vox-config-file::format`.
+- Docs: installing and the lockfile in Plugins and Project setups; code-tour walkthroughs.
+
+### Changed
+- `:reload plugins NAME` loads a plugin that is installed but not yet known.
+
 ## [0.11.0] - 2026-11-27 — M9 settings dialog
 
 ### Added

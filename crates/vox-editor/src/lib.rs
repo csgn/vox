@@ -22,7 +22,7 @@ pub mod ui;
 
 pub use command::{Args, CommandResult, Commands};
 pub use config::{Config, Value};
-pub use editor::{Editor, Mode, Services};
+pub use editor::{Editor, JobDone, Mode, Services};
 pub use event::{Event, EventKind, ModeKind};
 pub use keymap::{Binding, Keymap, MapMode};
 pub use keys::{Key, KeyCode, Modifiers, format_keys, parse_keys};

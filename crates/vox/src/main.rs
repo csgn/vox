@@ -67,8 +67,10 @@ fn main() -> ExitCode {
     };
     editor.set_scope(active.clone(), global);
     editor.set_config_writer(vox_config_file::write_edits);
+    editor.set_file_format(vox_config_file::parse, vox_config_file::format);
     load_config(&mut editor, &active);
     load_plugins(&mut editor, &active);
+    vox_editor::plugin::manage::lock_status_notice(&mut editor);
     register_plugin_new(&mut editor);
     if active.kind == ScopeKind::Local && !active.exists() {
         editor.run_command("scope setup");

@@ -116,6 +116,12 @@ pub struct Editor {
     owner: String,
     log: Log,
     developer_mode: bool,
+    /// Messages from background jobs.
+    jobs_tx: std::sync::mpsc::Sender<JobMsg>,
+    jobs_rx: std::sync::mpsc::Receiver<JobMsg>,
+    jobs_running: usize,
+    /// Reads and writes plugin/lock files (from an adapter).
+    file_format: Option<(crate::config::ValueParser, crate::config::ValueFormatter)>,
     /// The config last applied (what the settings dialog edits).
     config: Config,
     /// Writes edits into the scope's config file (from an adapter).
@@ -171,6 +177,7 @@ impl Editor {
     pub fn with_services(doc: Document, services: Services) -> Self {
         let mut registers = Registers::default();
         registers.clipboard = services.clipboard;
+        let (jobs_tx, jobs_rx) = std::sync::mpsc::channel();
         let mut commands = Commands::default();
         commands.owner = owner::BUILTIN.into();
         builtin::register(&mut commands);
@@ -202,6 +209,10 @@ impl Editor {
             plugin_config: Default::default(),
             config: Config::default(),
             config_writer: None,
+            jobs_tx,
+            jobs_rx,
+            jobs_running: 0,
+            file_format: None,
             plugin_settings: Default::default(),
             // Until the binary sets one: global without a folder (no badge, nothing loaded).
             scope: Scope {
@@ -580,11 +591,69 @@ impl Editor {
     pub fn next_deadline(&self) -> Option<Instant> {
         let mapping = self.pending_since.map(|t| t + self.key_timeout);
         let note = self.notifications.iter().map(|n| n.expires).min();
-        mapping.into_iter().chain(note).min()
+        // While jobs run, check for their messages often.
+        let jobs = (self.jobs_running > 0).then(|| (self.clock)() + Duration::from_millis(100));
+        mapping.into_iter().chain(note).chain(jobs).min()
     }
 
-    /// Handle time passing: remove expired notifications, time out pending mappings.
+    /// Run `work` on a background thread (e.g. building a plugin). `work` gets a function
+    /// to report progress (shown as notifications) and returns what to do on the editor's
+    /// thread when it is done. Results arrive in [`Editor::tick`].
+    pub fn spawn_job(
+        &mut self,
+        title: &str,
+        work: impl FnOnce(&dyn Fn(&str)) -> JobDone + Send + 'static,
+    ) {
+        let tx = self.jobs_tx.clone();
+        let title = title.to_string();
+        self.jobs_running += 1;
+        self.notify(Level::Info, format!("{title}…"));
+        std::thread::spawn(move || {
+            let progress_tx = tx.clone();
+            let progress = |text: &str| {
+                let _ = progress_tx.send(JobMsg::Progress(text.to_string()));
+            };
+            let done = work(&progress);
+            let _ = tx.send(JobMsg::Done(done));
+        });
+    }
+
+    /// Number of background jobs still running.
+    pub fn jobs_running(&self) -> usize {
+        self.jobs_running
+    }
+
+    /// Set the parser and formatter for plugin and lock files.
+    pub fn set_file_format(
+        &mut self,
+        parse: crate::config::ValueParser,
+        format: crate::config::ValueFormatter,
+    ) {
+        self.file_format = Some((parse, format));
+    }
+
+    /// The parser and formatter for plugin and lock files, if set.
+    pub fn file_format(
+        &self,
+    ) -> Option<(crate::config::ValueParser, crate::config::ValueFormatter)> {
+        self.file_format
+    }
+
+    /// Handle time passing: finish background jobs, remove expired notifications, time
+    /// out pending mappings.
     pub fn tick(&mut self) {
+        while let Ok(msg) = self.jobs_rx.try_recv() {
+            match msg {
+                JobMsg::Progress(text) => {
+                    self.log(Level::Info, "job", &text);
+                    self.notify(Level::Info, text);
+                }
+                JobMsg::Done(done) => {
+                    self.jobs_running = self.jobs_running.saturating_sub(1);
+                    done(self);
+                }
+            }
+        }
         let now = (self.clock)();
         self.notifications.retain(|n| n.expires > now);
         if self
@@ -1608,6 +1677,15 @@ pub(crate) type OpenViews<'a> = (
     Option<&'a dyn View>,
     Option<&'a dyn View>,
 );
+
+/// What a finished background job does on the editor's thread.
+pub type JobDone = Box<dyn FnOnce(&mut Editor) + Send>;
+
+/// A message from a background job.
+enum JobMsg {
+    Progress(String),
+    Done(JobDone),
+}
 
 /// The focus value of a panel slot.
 fn focus_of(slot: PanelSlot) -> Focus {

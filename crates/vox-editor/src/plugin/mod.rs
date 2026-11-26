@@ -2,8 +2,12 @@
 //! project template. Running plugins is done by the `vox-plugin-host` adapter.
 
 pub mod health;
+pub mod install;
+pub mod lock;
+pub mod manage;
 pub mod manifest;
 pub mod package;
+pub mod sha256;
 pub mod template;
 pub mod version;
 

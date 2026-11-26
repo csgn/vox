@@ -193,6 +193,26 @@ fn to_toml(v: &Value) -> toml_edit::Item {
     toml_edit::Item::Value(val(v))
 }
 
+/// Format a [`Value::Table`] as TOML text (used for `vox.lock`).
+pub fn format(v: &Value) -> Result<String, String> {
+    fn conv(v: &Value) -> toml::Value {
+        match v {
+            Value::String(s) => toml::Value::String(s.clone()),
+            Value::Integer(n) => toml::Value::Integer(*n),
+            Value::Float(f) => toml::Value::Float(*f),
+            Value::Bool(b) => toml::Value::Boolean(*b),
+            Value::Array(a) => toml::Value::Array(a.iter().map(conv).collect()),
+            Value::Table(t) => {
+                toml::Value::Table(t.iter().map(|(k, v)| (k.clone(), conv(v))).collect())
+            }
+        }
+    }
+    match conv(v) {
+        toml::Value::Table(t) => toml::to_string(&t).map_err(|e| e.to_string()),
+        _ => Err("only a table can be written as TOML".into()),
+    }
+}
+
 /// Parse TOML text into a [`Value::Table`].
 pub fn parse(text: &str) -> Result<Value, String> {
     let table: toml::Table = text.parse().map_err(|e: toml::de::Error| {
@@ -376,6 +396,36 @@ mod tests {
         std::fs::write(&p, "x = [").unwrap();
         assert!(write_edits(&p, &[ConfigEdit::Set(k("a"), Value::Bool(true))]).is_err());
         assert_eq!(std::fs::read_to_string(&p).unwrap(), "x = [");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn lockfile_text_round_trip() {
+        use vox_editor::plugin::lock::{self, LockEntry, Lockfile, Source};
+        let mut l = Lockfile::default();
+        l.upsert(LockEntry {
+            name: "text-tools".into(),
+            version: "0.2.0".into(),
+            source: Source::Git {
+                url: "file:///repo".into(),
+                reference: None,
+                rev: "abc".into(),
+            },
+            checksum: "sha256:00".into(),
+        });
+        let dir = std::env::temp_dir().join(format!("vox-lock-{}", std::process::id()));
+        let p = dir.join("vox.lock");
+        lock::write(&p, &l, format).unwrap();
+        let text = std::fs::read_to_string(&p).unwrap();
+        assert!(
+            text.starts_with("# vox.lock") && text.contains("[[plugin]]"),
+            "{text}"
+        );
+        assert_eq!(lock::read(&p, parse).unwrap(), l);
+        assert_eq!(
+            lock::read(&dir.join("missing.lock"), parse).unwrap(),
+            Lockfile::default()
+        );
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

@@ -9,6 +9,9 @@ use crate::ui::{NotifyPosition, SidePosition, UiConfig};
 /// Parses a file's text (e.g. TOML) into a [`Value`]; provided by an adapter.
 pub type ValueParser = fn(&str) -> Result<Value, String>;
 
+/// Formats a [`Value`] as file text (e.g. TOML); provided by an adapter.
+pub type ValueFormatter = fn(&Value) -> Result<String, String>;
+
 /// A format-neutral configuration value.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {

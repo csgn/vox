@@ -850,5 +850,79 @@
         "text": "The new value takes effect immediately (the side panel is narrower on the next frame). For plugin settings, the plugin is reloaded too."
       }
     ]
+  },
+  {
+    "id": "install",
+    "title": "Installing a plugin from git",
+    "summary": "`:plugin add https://…/hello.git@v0.1.0` in a project.",
+    "steps": [
+      {
+        "fn": "vox-editor::manage::add",
+        "text": "Reads the source: a git URL with `@v0.1.0`. Takes the active scope's paths (plugin folder, lockfile, `.build/` work folder) and starts a background job, so vox stays usable while it builds."
+      },
+      {
+        "fn": "vox-editor::install::parse_source",
+        "text": "Git URL or folder? `@REF` is only taken after the last `/`, so `git@host:...` stays intact."
+      },
+      {
+        "fn": "vox-editor::Editor::spawn_job",
+        "text": "Runs the work on a thread. Progress lines (cloning, building, installing) arrive as notifications."
+      },
+      {
+        "fn": "vox-editor::install::install",
+        "text": "Clones the repository, checks out the tag, and records the exact commit (`git rev-parse HEAD`)."
+      },
+      {
+        "fn": "vox-editor::install::install_dir",
+        "text": "Reads `plugin.toml`; a project is built with cargo for `wasm32-wasip2`. The package is assembled in a temp folder and renamed into place."
+      },
+      {
+        "fn": "vox-editor::install::build",
+        "text": "`cargo build --release --target wasm32-wasip2` into the scope's `.build/` folder; the output name comes from `Cargo.toml`."
+      },
+      {
+        "fn": "vox-editor::install::installed_checksum",
+        "text": "SHA-256 of the installed `plugin.wasm`, computed with std only."
+      },
+      {
+        "fn": "vox-editor::Editor::tick",
+        "text": "Back on the editor's thread: the job's result arrives through a channel."
+      },
+      {
+        "fn": "vox-editor::manage::record",
+        "text": "Adds the entry to `vox.lock` (name, version, url, ref, rev, checksum)."
+      },
+      {
+        "fn": "vox-editor::manage::load",
+        "text": "Runs `:reload plugins hello`, which loads the new plugin with health checks as usual."
+      }
+    ]
+  },
+  {
+    "id": "sync",
+    "title": "Setting up a cloned project: :plugins sync",
+    "summary": "A fresh clone has `.vox/config.toml` and `.vox/vox.lock` but no installed plugins.",
+    "steps": [
+      {
+        "fn": "vox-editor::manage::lock_status_notice",
+        "text": "At start-up vox compares the installed plugins with the lockfile and says that plugins are missing."
+      },
+      {
+        "fn": "vox-editor::install::check_lock",
+        "text": "Per plugin: ok (same checksum), missing, changed, or installed but not locked."
+      },
+      {
+        "fn": "vox-editor::manage::sync",
+        "text": "`:plugins sync` takes the missing and changed ones and installs them in a background job."
+      },
+      {
+        "fn": "vox-editor::install::install_locked",
+        "text": "Installs exactly what the lock says: git at the recorded commit, or the recorded path."
+      },
+      {
+        "fn": "vox-editor::lock::read",
+        "text": "The lockfile is read through the injected TOML parser; core never parses TOML itself."
+      }
+    ]
   }
 ]

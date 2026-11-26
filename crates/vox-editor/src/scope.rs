@@ -142,12 +142,22 @@ pub struct SetupChoice {
 /// Create `local`'s folder (with `plugins/`) and copy what `choice` asks for from `global`.
 /// Existing files in the project are not overwritten. Returns one line per action.
 pub fn setup_local(global: &Scope, local: &Scope, choice: &SetupChoice) -> io::Result<Vec<String>> {
-    let (Some(_), Some(plugin_dir)) = (&local.dir, local.plugin_dir()) else {
+    let (Some(vox_dir), Some(plugin_dir)) = (&local.dir, local.plugin_dir()) else {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "not a local scope",
         ));
     };
+    fs::create_dir_all(vox_dir)?;
+    // Installed plugins and build files are rebuilt from vox.lock (`:plugins sync`); commit
+    // config.toml and vox.lock.
+    let gitignore = vox_dir.join(".gitignore");
+    if !gitignore.exists() {
+        fs::write(
+            &gitignore,
+            "# Rebuilt from vox.lock with :plugins sync\nplugins/\n.build/\n",
+        )?;
+    }
     fs::create_dir_all(&plugin_dir)?;
     let mut report = Vec::new();
     if choice.config {
@@ -335,6 +345,8 @@ mod tests {
         .unwrap();
         assert!(report.is_empty());
         assert!(root.join("p/.vox/plugins").is_dir());
+        let ignore = fs::read_to_string(root.join("p/.vox/.gitignore")).unwrap();
+        assert!(ignore.contains("plugins/") && ignore.contains(".build/"));
         assert!(
             setup_local(
                 &Scope::vanilla(),

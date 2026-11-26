@@ -75,6 +75,7 @@ pub(crate) fn register(c: &mut Commands) {
         scope,
     );
     crate::settings::register(c);
+    crate::plugin::manage::register(c);
     c.register(
         "scope setup",
         "Open the project set-up dialog (local mode).",
@@ -417,6 +418,7 @@ fn scope_init(ed: &mut Editor, a: Args<'_>) -> CommandResult {
     for line in &report {
         ed.log(Level::Info, "editor", line);
     }
+    copy_lock_entries(ed, &global, &local, &choice.plugins);
     for cmd in ["reload config", "reload plugins"] {
         if ed.commands().get(cmd).is_some() {
             ed.run_command(cmd);
@@ -433,4 +435,44 @@ fn scope_init(ed: &mut Editor, a: Args<'_>) -> CommandResult {
     };
     ed.notify(Level::Info, summary);
     Ok(())
+}
+
+/// Copy the global lock entries of `plugins` into the project's `vox.lock`, so the project
+/// can reinstall them with `:plugins sync`.
+fn copy_lock_entries(
+    ed: &mut Editor,
+    global: &scope::Scope,
+    local: &scope::Scope,
+    plugins: &[String],
+) {
+    use crate::plugin::lock;
+    let (Some((parse, format)), Some(from), Some(to)) =
+        (ed.file_format(), global.lock_path(), local.lock_path())
+    else {
+        return;
+    };
+    let result = (|| -> Result<usize, String> {
+        let source = lock::read(&from, parse)?;
+        let mut target = lock::read(&to, parse)?;
+        let mut copied = 0;
+        for name in plugins {
+            if let Some(e) = source.get(name) {
+                target.upsert(e.clone());
+                copied += 1;
+            }
+        }
+        if copied > 0 {
+            lock::write(&to, &target, format)?;
+        }
+        Ok(copied)
+    })();
+    match result {
+        Ok(0) => {}
+        Ok(n) => ed.log(
+            Level::Info,
+            "editor",
+            format!("copied {n} lock entr(y/ies) to {}", to.display()),
+        ),
+        Err(e) => ed.notify(Level::Warn, format!("vox.lock not copied: {e}")),
+    }
 }

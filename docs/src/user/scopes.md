@@ -44,5 +44,9 @@ The same actions are commands: `:scope setup`, `:scope pick`, and
 
 `$VOX_CONFIG_DIR` if set, else `$XDG_CONFIG_HOME/vox`, else `~/.config/vox`.
 
-Coming next: a lockfile (`.vox/vox.lock`) that records each plugin's version and where it came
-from, so a project's plugins can be reinstalled exactly (see the [roadmap](../dev/roadmap.md)).
+## Lockfile
+
+Each scope has a `vox.lock` listing its plugins with exact versions and sources (see
+[Plugins](plugins.md#the-lockfile)). The project set-up also copies the global lock entries of
+the plugins it copies, and writes `.vox/.gitignore` so only `config.toml` and `vox.lock` are
+committed. After cloning a project: `vox --local-config`, then `:plugins sync`.

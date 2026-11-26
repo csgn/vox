@@ -30,6 +30,9 @@ none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
 | `:reload config` | re-read the config file |
 | `:reload plugins [NAME]` | reload all plugins or one |
 | `:checkhealth [NAME]` | plugin health report |
+| `:plugin add PATH`, `:plugin add GIT_URL[@REF]` | install into the active scope; updates `vox.lock` ([Plugins](plugins.md)) |
+| `:plugin remove NAME` | uninstall from the active scope |
+| `:plugins sync` | install exactly what `vox.lock` lists |
 | `:plugin new NAME [DIR]` | create a plugin project ([Writing plugins](../dev/plugins.md)) |
 | `:settings [NAME]` | settings dialog ([Settings dialog](settings.md)); `NAME` opens a plugin's settings |
 | `:settings vox`, `:settings keys`, `:settings plugin NAME` | open one part directly |

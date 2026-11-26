@@ -42,7 +42,8 @@ scripts/build-plugin.sh ~/src/my-plugin --install ~/.config/vox/plugins
 ```
 
 builds it, packages `dist/my-plugin/{plugin.toml, plugin.wasm, README.md}`, and copies the
-package into the plugin folder. In vox, `:reload plugins my-plugin` (or `<leader>dr` in
+package into the plugin folder. Inside vox, `:plugin add ~/src/my-plugin` does the same (and
+records it in `vox.lock`); users install from git with `:plugin add URL@TAG`. In vox, `:reload plugins my-plugin` (or `<leader>dr` in
 [developer mode](../user/developer-mode.md)) loads the new build.
 
 ## plugin.toml

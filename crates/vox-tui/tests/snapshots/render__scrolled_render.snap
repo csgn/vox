@@ -1,0 +1,10 @@
+---
+source: crates/vox-tui/tests/render.rs
+expression: "draw(&mut app, 30, 6)"
+---
+"  6 line 6                    "
+"  7 line 7                    "
+"  8 line 8                    "
+"  9 line 9                    "
+" NORMAL  [No Name]       6/20 "
+"                              "

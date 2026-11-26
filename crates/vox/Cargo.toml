@@ -1,0 +1,13 @@
+[package]
+name = "vox"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+anyhow = "1.0.105"
+ratatui = "0.30.2"
+vox-core = { version = "0.1.0", path = "../vox-core" }
+vox-tui = { version = "0.1.0", path = "../vox-tui" }

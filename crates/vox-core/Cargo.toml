@@ -1,0 +1,10 @@
+[package]
+name = "vox-core"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+ropey = "1.6.1"

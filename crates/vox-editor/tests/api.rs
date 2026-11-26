@@ -399,3 +399,169 @@ fn leader_p_opens_the_plugin_manager() {
     feed(&mut ed, "<Esc><Space>p");
     assert!(ed.has_modal(), "follows the leader");
 }
+
+#[test]
+fn execute_returns_reply_or_error() {
+    let mut ed = editor("x");
+    ed.commands_mut().register("answer", "", |ed, a| {
+        if a.force {
+            return Err("E1: no".into());
+        }
+        ed.reply(Value::Integer(42));
+        Ok(())
+    });
+    assert_eq!(ed.execute("answer"), Ok(Some(Value::Integer(42))));
+    assert_eq!(ed.execute("answer!"), Err("E1: no".into()));
+    assert_eq!(ed.execute("notify hi"), Ok(None));
+    assert!(ed.execute("nope").unwrap_err().starts_with("E492"));
+    assert!(ed.execute("log nope").is_ok(), "log takes a source name");
+    assert!(
+        ed.execute("plugin nope")
+            .unwrap_err()
+            .starts_with("E471: Use :plugin ")
+    );
+    assert_eq!(ed.message(), None, "execute shows nothing");
+}
+
+#[test]
+fn run_command_shows_reply() {
+    let mut ed = editor("x");
+    ed.commands_mut().register("one", "", |ed, _| {
+        ed.reply(Value::from("one line"));
+        Ok(())
+    });
+    ed.commands_mut().register("many", "", |ed, _| {
+        ed.reply(Value::table([("a", Value::from(1)), ("b", 2.into())]));
+        Ok(())
+    });
+    feed(&mut ed, ":one<CR>");
+    assert_eq!(ed.message(), Some("one line"));
+    feed(&mut ed, ":many<CR>");
+    assert_eq!(ed.modal_title().as_deref(), Some(":many"));
+    assert!(ed.render().to_string().contains("b: 2"));
+}
+
+#[test]
+fn nested_commands_keep_their_own_reply() {
+    let mut ed = editor("x");
+    ed.commands_mut().register("inner", "", |ed, _| {
+        ed.reply(Value::from("inner"));
+        Ok(())
+    });
+    ed.commands_mut().register("outer", "", |ed, _| {
+        ed.reply(Value::from("outer"));
+        ed.run_command("inner");
+        Ok(())
+    });
+    assert_eq!(ed.execute("outer"), Ok(Some(Value::from("outer"))));
+}
+
+#[test]
+fn views_fail_when_not_interactive() {
+    let mut ed = editor("x");
+    assert!(ed.interactive());
+    ed.set_interactive(false);
+    for cmd in ["commands", "keymaps", "messages", "scope", "plugins"] {
+        let e = ed.execute(cmd).unwrap_err();
+        assert!(e.contains("needs the editor UI"), "{cmd}: {e}");
+    }
+    assert_eq!(ed.modal_title(), None);
+    assert!(!ed.has_panel(vox_editor::PanelSlot::Side));
+    // A reply is still returned; run_command does not open a view for it.
+    ed.run_command("scope show");
+    assert_eq!(ed.modal_title(), None);
+}
+
+#[test]
+fn commands_list_and_scope_show() {
+    let mut ed = editor("x");
+    let Ok(Some(Value::Array(cmds))) = ed.execute("commands list") else {
+        panic!("commands list returns a list")
+    };
+    let write = cmds
+        .iter()
+        .find(|c| c.to_text().starts_with("aliases:\n  - w\n"))
+        .expect("write has alias w");
+    assert!(write.to_text().contains("name: write\nowner: builtin"));
+    ed.set_scope(vox_editor::Scope::global("/cfg".into()), None);
+    assert_eq!(
+        ed.execute("scope show"),
+        Ok(Some(Value::table([
+            ("kind", Value::from("global")),
+            ("config", "/cfg/config.toml".into()),
+            ("plugins", "/cfg/plugins".into()),
+            ("lockfile", "/cfg/vox.lock".into()),
+            ("exists", false.into()),
+        ])))
+    );
+    ed.set_scope(vox_editor::Scope::vanilla(), None);
+    assert_eq!(
+        ed.execute("scope show"),
+        Ok(Some(Value::table([
+            ("kind", Value::from("vanilla")),
+            ("exists", false.into()),
+        ])))
+    );
+}
+
+#[test]
+fn plugin_list_and_info() {
+    use vox_editor::plugin::{HealthItem, HealthStatus, PluginInfo, SettingValue};
+    let mut ed = editor("x");
+    let info = |name: &str, status| PluginInfo {
+        name: name.into(),
+        path: format!("/p/{name}").into(),
+        wasm: format!("/p/{name}/{name}.wasm").into(),
+        manifest: None,
+        status,
+        items: vec![
+            HealthItem::ok("api 0.2"),
+            HealthItem::problem(vox_editor::Level::Warn, "git not found"),
+        ],
+        settings: vec![("case".into(), SettingValue::String("upper".into()))],
+    };
+    ed.set_plugin_infos(vec![
+        info("a", HealthStatus::Warning),
+        info("b", HealthStatus::Disabled),
+    ]);
+    assert_eq!(
+        ed.execute("plugin list").unwrap().unwrap().to_text(),
+        "- name: a\n  path: /p/a\n  status: warning\n- name: b\n  path: /p/b\n  status: disabled"
+    );
+    assert_eq!(
+        ed.execute("plugin info a").unwrap().unwrap().to_text(),
+        "health:\n  - level: info\n    message: api 0.2\n    ok: true\n  \
+         - level: warning\n    message: git not found\n    ok: false\n\
+         name: a\npath: /p/a\nsettings:\n  case: upper\nstatus: warning"
+    );
+    assert!(
+        ed.execute("plugin info c")
+            .unwrap_err()
+            .contains("no plugin named c")
+    );
+    assert!(ed.execute("plugin info").unwrap_err().starts_with("E471"));
+}
+
+#[test]
+fn plugin_commands_do_not_ask_when_not_interactive() {
+    let dir = std::env::temp_dir().join(format!("vox-api-headless-{}", std::process::id()));
+    std::fs::create_dir_all(dir.join("plugins/demo")).unwrap();
+    let mut ed = editor("x");
+    ed.set_scope(vox_editor::Scope::global(dir.clone()), None);
+    ed.set_file_format(
+        |_| Ok(Value::Table(Default::default())),
+        |_| Ok(String::new()),
+    );
+    ed.set_interactive(false);
+    assert!(
+        ed.execute("plugin add")
+            .unwrap_err()
+            .starts_with("E471: Use :plugin add")
+    );
+    let e = ed.execute("plugin remove demo").unwrap_err();
+    assert!(e.contains("use :plugin remove! demo"), "{e}");
+    assert!(dir.join("plugins/demo").exists());
+    assert_eq!(ed.execute("plugin remove! demo"), Ok(None));
+    assert!(!dir.join("plugins/demo").exists());
+    std::fs::remove_dir_all(&dir).ok();
+}

@@ -159,6 +159,12 @@ pub struct Editor {
     event_depth: u32,
     /// A command ran since open views were last refreshed.
     views_stale: bool,
+    /// A person is at the keyboard (see [`Editor::interactive`]).
+    interactive: bool,
+    /// Data returned by the running command (see [`Editor::reply`]).
+    reply: Option<crate::config::Value>,
+    /// The running command tried to open a view while not interactive.
+    view_refused: bool,
 }
 
 impl std::fmt::Debug for Editor {
@@ -239,6 +245,9 @@ impl Editor {
             pending_since: None,
             event_depth: 0,
             views_stale: false,
+            interactive: true,
+            reply: None,
+            view_refused: false,
         };
         ed.default_mappings();
         ed
@@ -512,12 +521,22 @@ impl Editor {
     }
 
     /// Show `view` in the modal (replacing any open one). The modal takes all keys.
+    /// Not interactive (see [`Editor::interactive`]): nothing opens and the command fails.
     pub fn open_modal(&mut self, view: Box<dyn View>) {
+        if !self.interactive {
+            self.view_refused = true;
+            return;
+        }
         self.modal = Some(view);
     }
 
     /// Show `view` in a panel (replacing what was there) and focus it.
+    /// Not interactive (see [`Editor::interactive`]): nothing opens and the command fails.
     pub fn open_panel(&mut self, slot: PanelSlot, view: Box<dyn View>) {
+        if !self.interactive {
+            self.view_refused = true;
+            return;
+        }
         self.put_view(Some(slot), view);
         self.focus = focus_of(slot);
     }
@@ -1518,11 +1537,73 @@ impl Editor {
     }
 
     /// Run a command line such as `w`, `e! notes.txt`, or a user/plugin command.
-    /// Errors are shown as the message.
+    /// Errors are shown as the message; data the command replied with (see
+    /// [`Editor::reply`]) is shown in the message line or a modal.
     pub fn run_command(&mut self, line: &str) {
+        self.with_change_events(|ed| match ed.exec_command(line) {
+            Ok(Some(v)) => ed.show_reply(line, &v),
+            Ok(None) => {}
+            Err(e) => ed.message = Some(e),
+        });
+        self.refresh_if_stale();
+    }
+
+    /// Run a command line and return its outcome instead of showing it: the data it
+    /// replied with (see [`Editor::reply`]), or its error. Used by `vox run` and tests.
+    pub fn execute(&mut self, line: &str) -> Result<Option<crate::config::Value>, String> {
+        let mut out = Ok(None);
+        self.with_change_events(|ed| out = ed.exec_command(line));
+        self.refresh_if_stale();
+        out
+    }
+
+    /// Return `value` as the result of the running command. [`Editor::execute`] hands it to
+    /// the caller; [`Editor::run_command`] shows it.
+    pub fn reply(&mut self, value: crate::config::Value) {
+        self.reply = Some(value);
+    }
+
+    /// Whether a person is at the keyboard (the default). When not (`vox run`), commands
+    /// must not ask: a command that opens a view fails, and commands that would ask for a
+    /// missing argument or a confirmation fail instead.
+    pub fn interactive(&self) -> bool {
+        self.interactive
+    }
+
+    /// Set whether a person is at the keyboard (see [`Editor::interactive`]).
+    pub fn set_interactive(&mut self, on: bool) {
+        self.interactive = on;
+    }
+
+    /// Refresh open views once the outermost key or command is done.
+    fn refresh_if_stale(&mut self) {
+        if self.views_stale && self.event_depth == 0 {
+            self.refresh_views();
+        }
+    }
+
+    /// Show a command's reply: one line in the message line, more in a modal.
+    fn show_reply(&mut self, line: &str, value: &crate::config::Value) {
+        let text = value.to_text();
+        if !text.contains('\n') {
+            self.message = Some(text);
+        } else if self.interactive {
+            let lines = text
+                .lines()
+                .map(|l| (crate::surface::Style::default(), l.to_string()))
+                .collect();
+            self.open_modal(Box::new(ui::TextView::new(
+                format!(":{}", line.trim()),
+                lines,
+            )));
+        }
+    }
+
+    /// Find and run the command for `line`; see [`Editor::execute`].
+    fn exec_command(&mut self, line: &str) -> Result<Option<crate::config::Value>, String> {
         let (root, args) = command::parse_line(line);
         if root.is_empty() {
-            return;
+            return Ok(None);
         }
         // `:reload plugins x` runs the command "reload plugins" with the argument "x".
         let sub = args.arg.and_then(|a| {
@@ -1557,12 +1638,11 @@ impl Editor {
                 .subcommands_of(root)
                 .map(|c| &c.name[root.len() + 1..])
                 .collect();
-            self.message = Some(if subs.is_empty() {
+            return Err(if subs.is_empty() {
                 format!("E492: Not an editor command: {}", line.trim())
             } else {
                 format!("E471: Use :{root} {}", subs.join("|"))
             });
-            return;
         };
         let handler = cmd.handler.clone();
         let (cmd_name, cmd_owner) = (cmd.name.clone(), cmd.owner.clone());
@@ -1571,22 +1651,28 @@ impl Editor {
             "editor",
             format!(":{} ({cmd_owner})", line.trim()),
         );
-        self.with_change_events(|ed| {
-            if let Err(e) = handler(ed, args) {
-                ed.log(Level::Error, &cmd_owner, format!(":{cmd_name}: {e}"));
-                ed.message = Some(e);
-            }
-            // A command's edits are one undo step; keep the cursor valid after them.
-            if ed.mode != Mode::Insert {
-                ed.doc.commit();
-            }
-            ed.set_cursor(ed.cursor);
-        });
-        // Refreshed once the outermost key or command is done.
-        self.views_stale = true;
-        if self.event_depth == 0 {
-            self.refresh_views();
+        // Commands run from this one keep their own reply and refusal.
+        let outer_reply = self.reply.take();
+        let outer_refused = std::mem::take(&mut self.view_refused);
+        let result = handler(self, args);
+        let reply = std::mem::replace(&mut self.reply, outer_reply);
+        let refused = std::mem::replace(&mut self.view_refused, outer_refused);
+        // A command's edits are one undo step; keep the cursor valid after them.
+        if self.mode != Mode::Insert {
+            self.doc.commit();
         }
+        self.set_cursor(self.cursor);
+        self.views_stale = true;
+        let result = match result {
+            Ok(()) if refused => Err(format!(
+                "E900: :{cmd_name} needs the editor UI (not available here)"
+            )),
+            r => r,
+        };
+        if let Err(e) = &result {
+            self.log(Level::Error, &cmd_owner, format!(":{cmd_name}: {e}"));
+        }
+        result.map(|()| reply)
     }
 
     /// Let open views (panels, modal) update from editor state.

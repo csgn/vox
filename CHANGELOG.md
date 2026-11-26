@@ -5,7 +5,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-27 — M12 command API
+
 ### Added
+- M12 command API: `Editor::execute(line)` runs a command and returns its reply or error;
+  `Editor::reply(Value)` returns data from a command; `run_command` shows a reply in the
+  message line or a modal. `Value::table`, `Value::to_text`, `From<&str | String | i64 | bool>`.
+- Non-interactive mode: `Editor::set_interactive(false)`. Commands that open a view fail
+  with "needs the editor UI"; `:plugin add` without a source and `:plugin remove` without `!`
+  fail instead of asking.
+- Data commands: `:commands list`, `:scope show`, `:plugin list`, `:plugin info NAME`,
+  `:settings list`, `:settings get KEY`, `:settings set KEY VALUE`, `:settings unset KEY`,
+  `:settings key list`. Keys are dotted config paths (`ui.side_width`, `plugins.NAME.KEY`).
 - `install.sh`: `curl -fsSL …/install.sh | sh` builds and installs the latest tagged release
   with `cargo install` (`VOX_VERSION`, `VOX_REPO`, `VOX_INSTALL_ROOT`).
 

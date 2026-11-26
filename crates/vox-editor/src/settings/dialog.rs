@@ -46,7 +46,7 @@ pub(crate) fn register(c: &mut Commands) {
     );
     c.register(
         "settings key",
-        "Change key mappings: `:settings key add MODE KEYS TARGET`, `delete MODE KEYS`.",
+        "Key mappings: `:settings key add MODE KEYS TARGET`, `delete MODE KEYS`, `list`.",
         key,
     );
 }
@@ -85,7 +85,7 @@ fn settings(ed: &mut Editor, a: Args<'_>) -> CommandResult {
 }
 
 /// Current value of `spec` in `root`, or its default if missing or invalid.
-fn current(root: &Value, key: &str, spec: &SettingSpec) -> SettingValue {
+pub(super) fn current(root: &Value, key: &str, spec: &SettingSpec) -> SettingValue {
     get(root, key)
         .and_then(|v| spec.check(v).ok())
         .unwrap_or_else(|| spec.default.clone())
@@ -202,6 +202,20 @@ fn key(ed: &mut Editor, a: Args<'_>) -> CommandResult {
             .returning();
             ed.open_modal(Box::new(ask));
         }
+        "list" => {
+            let rows = key_rows(ed)
+                .into_iter()
+                .map(|r| {
+                    Value::table([
+                        ("mode", Value::from(mode_name(r.mode))),
+                        ("keys", r.lhs.into()),
+                        ("target", r.rhs.into()),
+                        ("owner", r.owner.into()),
+                    ])
+                })
+                .collect();
+            ed.reply(Value::Array(rows));
+        }
         "add" | "delete" => {
             let m = parse(mode)?;
             if lhs.is_empty() {
@@ -223,7 +237,7 @@ fn key(ed: &mut Editor, a: Args<'_>) -> CommandResult {
         }
         _ => {
             return Err(
-                "E471: Use :settings key add MODE KEYS TARGET or :settings key delete MODE KEYS"
+                "E471: Use :settings key add MODE KEYS TARGET, :settings key delete MODE KEYS, or :settings key list"
                     .into(),
             );
         }
@@ -243,6 +257,13 @@ fn current_rhs(ed: &Editor, mode: &str, lhs: &str) -> Option<String> {
 
 /// Open (or refresh) the key-mapping list: config mappings first, then other owners'.
 fn open_keys(ed: &mut Editor) {
+    let rows = key_rows(ed);
+    let selected = std::cell::Cell::new(0);
+    ed.open_modal(Box::new(KeymapView { rows, selected }));
+}
+
+/// All key mappings: config mappings first, then other owners'.
+fn key_rows(ed: &Editor) -> Vec<KeyRow> {
     let mut rows: Vec<KeyRow> = ed
         .config()
         .keymaps
@@ -269,8 +290,7 @@ fn open_keys(ed: &mut Editor) {
             owner: owner.into(),
         });
     }
-    let selected = std::cell::Cell::new(0);
-    ed.open_modal(Box::new(KeymapView { rows, selected }));
+    rows
 }
 
 /// One row of the key-mapping list.

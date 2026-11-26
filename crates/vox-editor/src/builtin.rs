@@ -2,6 +2,7 @@
 
 use crate::Editor;
 use crate::command::{Args, CommandResult, Commands};
+use crate::config::Value;
 use crate::keymap::{Binding, MapMode};
 use crate::keys::format_keys;
 use crate::log::LogView;
@@ -45,6 +46,11 @@ pub(crate) fn register(c: &mut Commands) {
     c.alias("mes", "messages");
     c.register("commands", "List all commands; Enter runs one.", commands);
     c.register(
+        "commands list",
+        "Return every command as data: name, description, owner, aliases.",
+        commands_list,
+    );
+    c.register(
         "keymaps",
         "List your key mappings in the side panel.",
         keymaps,
@@ -80,6 +86,11 @@ pub(crate) fn register(c: &mut Commands) {
         "scope setup",
         "Open the project set-up dialog (local mode).",
         |ed, _| open_setup(ed),
+    );
+    c.register(
+        "scope show",
+        "Return the active scope and its paths as data.",
+        scope_show,
     );
     c.register(
         "scope init",
@@ -178,6 +189,25 @@ fn commands(ed: &mut Editor, _: Args<'_>) -> CommandResult {
         })
         .collect();
     ed.open_modal(Box::new(ListView::new("Commands", items)));
+    Ok(())
+}
+
+/// `:commands list`: every command as data.
+fn commands_list(ed: &mut Editor, _: Args<'_>) -> CommandResult {
+    let list = ed
+        .commands()
+        .iter()
+        .map(|c| {
+            let aliases = ed.commands().aliases_of(&c.name).map(Value::from).collect();
+            Value::table([
+                ("name", Value::from(c.name.as_str())),
+                ("description", c.description.as_str().into()),
+                ("owner", c.owner.as_str().into()),
+                ("aliases", Value::Array(aliases)),
+            ])
+        })
+        .collect();
+    ed.reply(Value::Array(list));
     Ok(())
 }
 
@@ -300,8 +330,26 @@ fn scope(ed: &mut Editor, a: Args<'_>) -> CommandResult {
             ed.open_modal(Box::new(TextView::new("Scope", lines)));
             Ok(())
         }
-        Some(_) => Err("E474: Use :scope, :scope setup, :scope init, or :scope pick".into()),
+        Some(_) => {
+            Err("E474: Use :scope, :scope show, :scope setup, :scope init, or :scope pick".into())
+        }
     }
+}
+
+/// `:scope show`: the active scope and its paths (missing in vanilla mode) as data.
+fn scope_show(ed: &mut Editor, _: Args<'_>) -> CommandResult {
+    let sc = ed.scope();
+    let path = |p: Option<std::path::PathBuf>| p.map(|p| Value::from(p.display().to_string()));
+    let pairs = [
+        ("kind", Some(Value::from(sc.kind.name()))),
+        ("config", path(sc.config_path())),
+        ("plugins", path(sc.plugin_dir())),
+        ("lockfile", path(sc.lock_path())),
+        ("exists", Some(sc.exists().into())),
+    ];
+    let value = Value::table(pairs.into_iter().filter_map(|(k, v)| Some((k, v?))));
+    ed.reply(value);
+    Ok(())
 }
 
 /// Error unless the local scope is active.

@@ -227,3 +227,137 @@ fn added_mapping_takes_effect_immediately() {
     feed(&mut ed, "Q");
     assert_eq!(ed.notifications().last().unwrap().text, "mapped");
 }
+
+#[test]
+fn settings_get_set_unset_without_dialog() {
+    const DEFAULT: i64 = 40;
+    let mut ed = editor();
+    assert_eq!(
+        ed.execute("settings get ui.side_width"),
+        Ok(Some(Value::Integer(DEFAULT)))
+    );
+    assert_eq!(ed.execute("settings set ui.side_width 60"), Ok(None));
+    assert_eq!(ed.ui_config().side_width, 60);
+    assert_eq!(
+        ed.execute("settings get ui.side_width"),
+        Ok(Some(Value::Integer(60)))
+    );
+    assert_eq!(ed.execute("settings unset ui.side_width"), Ok(None));
+    assert_eq!(
+        written(),
+        [
+            vec![ConfigEdit::Set(path("ui.side_width"), Value::Integer(60))],
+            vec![ConfigEdit::Remove(path("ui.side_width"))],
+        ]
+    );
+    assert_eq!(
+        ed.execute("settings get ui.side_width"),
+        Ok(Some(Value::Integer(DEFAULT)))
+    );
+    assert_eq!(ed.execute("settings set developer_mode true"), Ok(None));
+    assert!(ed.developer_mode());
+    assert_eq!(
+        ed.execute("settings set leader <Space>"),
+        Ok(None),
+        "strings are taken as written"
+    );
+    assert_eq!(ed.config().leader, "<Space>");
+}
+
+#[test]
+fn settings_set_rejects_bad_values() {
+    let mut ed = editor();
+    let err = |ed: &mut Editor, line: &str| ed.execute(line).unwrap_err();
+    assert!(err(&mut ed, "settings set ui.side_width 5").contains("between 10 and 500"));
+    assert!(err(&mut ed, "settings set ui.side_width wide").contains("must be an integer"));
+    assert!(err(&mut ed, "settings set developer_mode yes").contains("true or false"));
+    assert!(err(&mut ed, "settings set ui.side_panel top").contains("one of: right, left"));
+    assert!(err(&mut ed, "settings set nope 1").contains("no setting `nope`"));
+    assert!(err(&mut ed, "settings set ui.side_width").starts_with("E471"));
+    assert!(err(&mut ed, "settings get plugins.demo").contains("plugins.NAME.KEY"));
+    assert!(written().is_empty());
+}
+
+#[test]
+fn plugin_settings_by_dotted_key() {
+    let mut ed = editor();
+    let reloaded = Rc::new(Cell::new(0));
+    let r = reloaded.clone();
+    ed.commands_mut()
+        .register("reload plugins", "", move |_, a| {
+            assert_eq!(a.arg, Some("demo"));
+            r.set(r.get() + 1);
+            Ok(())
+        });
+    ed.set_plugin_settings(
+        "demo",
+        vec![SettingSpec {
+            key: "case".into(),
+            kind: SettingKind::Choice(vec!["upper".into(), "lower".into()]),
+            default: SettingValue::String("upper".into()),
+            description: "Letter case".into(),
+        }],
+    );
+    let get = |ed: &mut Editor| ed.execute("settings get plugins.demo.case");
+    assert_eq!(get(&mut ed), Ok(Some(Value::from("upper"))));
+    assert_eq!(ed.execute("settings set plugins.demo.case lower"), Ok(None));
+    assert_eq!(get(&mut ed), Ok(Some(Value::from("lower"))));
+    assert_eq!(reloaded.get(), 1);
+    let e = ed
+        .execute("settings set plugins.demo.case mixed")
+        .unwrap_err();
+    assert!(e.contains("`plugins.demo.case` must be one of"), "{e}");
+    assert!(
+        ed.execute("settings get plugins.demo.nope")
+            .unwrap_err()
+            .contains("no setting")
+    );
+
+    let Ok(Some(Value::Array(rows))) = ed.execute("settings list") else {
+        panic!("settings list returns a list")
+    };
+    let last = rows.last().unwrap();
+    assert_eq!(
+        *last,
+        Value::table([
+            ("key", Value::from("plugins.demo.case")),
+            ("value", "lower".into()),
+            ("default", "upper".into()),
+            ("type", "one of: upper, lower".into()),
+            ("description", "Letter case".into()),
+        ])
+    );
+    assert!(
+        rows.iter()
+            .any(|r| r.to_text().contains("key: ui.side_width"))
+    );
+}
+
+#[test]
+fn key_list_returns_mappings() {
+    let mut ed = editor();
+    ed.execute("settings key add n Q :notify mapped").unwrap();
+    let Ok(Some(Value::Array(rows))) = ed.execute("settings key list") else {
+        panic!("key list returns a list")
+    };
+    assert_eq!(
+        rows[0],
+        Value::table([
+            ("mode", Value::from("normal")),
+            ("keys", "Q".into()),
+            ("target", ":notify mapped".into()),
+            ("owner", "config".into()),
+        ])
+    );
+}
+
+#[test]
+fn dialogs_fail_when_not_interactive() {
+    let mut ed = editor();
+    ed.set_interactive(false);
+    let e = ed.execute("settings vox").unwrap_err();
+    assert!(e.contains(":settings vox needs the editor UI"), "{e}");
+    assert!(ed.execute("settings key new").is_err());
+    assert_eq!(ed.modal_title(), None);
+    assert_eq!(ed.execute("settings set ui.side_width 40"), Ok(None));
+}

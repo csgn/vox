@@ -21,6 +21,7 @@ none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
 | `:notify [info\|warn\|error] TEXT` | show a notification |
 | `:messages`, `:mes` | message history in the bottom panel |
 | `:commands` | list all commands in a modal; `Enter` runs one |
+| `:commands list` | all commands as data (name, description, owner, aliases) |
 | `:keymaps` | your key mappings in the side panel |
 | `:close` | close the modal or the focused panel |
 | `:focus editor\|side\|bottom` | move focus |
@@ -35,16 +36,35 @@ none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
 | `:plugins help` | plugin manager keys |
 | `:plugin remove NAME` | uninstall from the active scope (asks; `:plugin remove! NAME` does not) |
 | `:plugin enable NAME`, `:plugin disable NAME` | turn a plugin on/off (saved in `config.toml`) |
+| `:plugin list` | plugins of the active scope as data (name, status, path, version) |
+| `:plugin info NAME` | one plugin as data (description, authors, settings, health) |
 | `:plugin files NAME` | open the plugin's `plugin.toml` |
 | `:plugins sync` | install exactly what `vox.lock` lists |
 | `:plugin new NAME [DIR]` | create a plugin project ([Writing plugins](../dev/plugins.md)) |
 | `:settings [NAME]` | settings dialog ([Settings dialog](settings.md)); `NAME` opens a plugin's settings |
 | `:settings vox`, `:settings keys`, `:settings plugin NAME` | open one part directly |
 | `:settings key add MODE KEYS TARGET`, `:settings key delete MODE KEYS` | change a mapping in your config |
+| `:settings key list` | all key mappings as data (mode, keys, target, owner) |
+| `:settings list` | every setting as data (key, value, default, type, description) |
+| `:settings get KEY` | a setting's value, e.g. `:settings get ui.side_width`, `:settings get plugins.NAME.KEY` |
+| `:settings set KEY VALUE` | change a setting and save it to the scope's `config.toml` (checked against its type and limits) |
+| `:settings unset KEY` | remove a setting from `config.toml` (back to its default) |
 | `:scope` | show the active scope (global / local / vanilla) and its paths |
+| `:scope show` | the active scope and its paths as data |
 | `:scope setup` | open the project set-up dialog (local mode) |
 | `:scope pick` | checklist of global config and plugins to copy into the project |
 | `:scope init empty\|all\|[config] [PLUGIN...]` | create `.vox/` and copy from the global setup |
+
+## Commands that return data
+
+Commands like `:plugin list` and `:settings get KEY` return data. A one-line result is shown
+in the message line; a longer one in a modal, as `key: value` lines. The same commands will
+be runnable from a shell with `vox run` (M13), which prints the data as text or JSON.
+
+Every action has a command that needs no dialog, so it can run without a person at the
+keyboard: `:plugin add SOURCE` (not `:plugin add`), `:plugin remove! NAME` (no question),
+`:settings set KEY VALUE` (not the form). Without a person, a command that would open a
+dialog or ask fails with an error that names the command to use instead.
 
 ## Messages
 | Message | Meaning |

@@ -1,0 +1,18 @@
+---
+source: crates/vox-editor/tests/render.rs
+expression: screen
+---
+"  1 x                                                       "
+"~                                                           "
+"~                                                           "
+"~        ┌─ :scope show ──────────────────────────┐         "
+"~        │config: /cfg/config.toml                │         "
+"~        │exists: false                           │         "
+"~        │kind: global                            │         "
+"~        │lockfile: /cfg/vox.lock                 │         "
+"~        │plugins: /cfg/plugins                   │         "
+"~        │                                        │         "
+"~        └────────────────────────────────────────┘         "
+"~                                                           "
+" NORMAL  [No Name]                                      1:1 "
+"                                                            "

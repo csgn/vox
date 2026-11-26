@@ -11,8 +11,14 @@ use crate::keymap::MapMode;
 use crate::plugin::{SettingKind, SettingSpec, SettingValue};
 use crate::ui::{ManagerPlace, NotifyPosition, SidePosition};
 
+mod commands;
 mod dialog;
-pub(crate) use dialog::register;
+
+/// Register the settings commands (dialog and data).
+pub(crate) fn register(c: &mut crate::command::Commands) {
+    dialog::register(c);
+    commands::register(c);
+}
 
 /// One change to the config file. Paths are keys from the top, e.g.
 /// `["ui", "side_width"]` or `["keymap", "normal", "<leader>w"]`.

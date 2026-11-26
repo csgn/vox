@@ -42,7 +42,16 @@ mappings from plugins or developer mode are shown dimmed and are read-only.
 | `d` | delete (asks first) |
 | `Esc` | back |
 
-The same as commands: `:settings key add n <leader>w :w`, `:settings key delete n <leader>w`.
+The same as commands: `:settings key add n <leader>w :w`, `:settings key delete n <leader>w`,
+`:settings key list`.
+
+## Without the dialog
+
+`:settings set KEY VALUE` changes one setting and saves it like the dialog does; `:settings
+unset KEY` removes it from `config.toml`. Keys are dotted paths as in `config.toml`:
+`ui.side_width`, `developer_mode`, `plugins.NAME.KEY`. Values are checked against the
+setting's type and limits (`true`/`false`, whole numbers, one of the choices).
+`:settings get KEY` and `:settings list` return the values in use (yours, else the defaults).
 
 ## Example
 

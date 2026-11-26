@@ -106,3 +106,12 @@ fn search_prompt_render() {
     insta::assert_snapshot!(screen);
     assert_eq!(cursor, (2, 3));
 }
+
+#[test]
+fn command_reply_render() {
+    let mut app = Editor::new(Document::from_text("x\n"));
+    app.set_scope(vox_editor::Scope::global("/cfg".into()), None);
+    feed(&mut app, ":scope show<CR>");
+    let (screen, _) = draw(&mut app, 60, 14);
+    insta::assert_snapshot!(screen);
+}

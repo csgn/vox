@@ -30,6 +30,18 @@ Run it with `:upper`, `:up! all`, a mapping (`"<leader>u" = ":upper"`), or from 
 `editor.run_command("upper all")`. Registering an existing name replaces it, so built-in
 commands (`crates/vox-editor/src/builtin.rs`) can be overridden.
 
+**Returning data:** a command calls `ed.reply(value)` with a `Value` (build tables with
+`Value::table([("name", "x".into()), ...])`). `editor.execute(line)` runs a command line and
+returns `Ok(Some(value))`, `Ok(None)`, or `Err(message)` without showing anything; this is
+what `vox run` and tests use. `run_command` shows the reply instead: one line in the message
+line, more in a modal (`Value::to_text`).
+
+**Without a person:** `editor.set_interactive(false)` (for `vox run`). Then `open_modal` and
+`open_panel` open nothing and the command fails with "needs the editor UI". A command that
+would ask for a missing argument or a confirmation checks `ed.interactive()` and returns an
+error naming the form that does not ask (`:plugin remove! NAME`). Give every action such a
+form, so it can be scripted.
+
 ## Key mappings
 
 ```rust
@@ -53,7 +65,10 @@ into a `Value`. A new setting means: a field in `Config`, a case in `from_value`
 | Function | Purpose |
 |---|---|
 | `commands()` / `commands_mut()` | look up / register commands |
-| `run_command(line)` | run a command line |
+| `run_command(line)` | run a command line; errors and replies are shown |
+| `execute(line)` | run a command line; returns the reply or the error |
+| `reply(value)` | return data from the running command |
+| `interactive()`, `set_interactive(on)` | whether a person is at the keyboard |
 | `keymap_mut()` | add or remove key mappings |
 | `apply_config(&Config)` | install leader, timeout, mappings |
 | `set_message(text)` | show text on the bottom line |

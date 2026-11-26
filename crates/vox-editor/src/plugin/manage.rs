@@ -8,7 +8,7 @@ use super::install::{self, InstallEnv, LockState, SourceSpec};
 use super::lock::{self, LockEntry};
 use crate::Editor;
 use crate::command::{Args, CommandResult, Commands};
-use crate::config::{ValueFormatter, ValueParser};
+use crate::config::{Value, ValueFormatter, ValueParser};
 use crate::ui::Level;
 
 /// Register the commands.
@@ -61,6 +61,16 @@ pub(crate) fn register(c: &mut Commands) {
             ed.run_command(&format!("e {}", path.display()));
             Ok(())
         },
+    );
+    c.register(
+        "plugin list",
+        "Return the active scope's plugins as data: name, version, status, path.",
+        list,
+    );
+    c.register(
+        "plugin info",
+        "Return one plugin as data: `:plugin info NAME` (manifest, settings, health).",
+        info,
     );
     c.register(
         "plugin add",
@@ -122,6 +132,63 @@ fn ctx(ed: &Editor) -> Result<Ctx, String> {
     })
 }
 
+/// `:plugin list`.
+fn list(ed: &mut Editor, _: Args<'_>) -> CommandResult {
+    let list = ed.plugin_infos().iter().map(summary).collect();
+    ed.reply(Value::Array(list));
+    Ok(())
+}
+
+/// `:plugin info NAME`.
+fn info(ed: &mut Editor, a: Args<'_>) -> CommandResult {
+    let name = a.arg.ok_or("E471: Use :plugin info NAME")?;
+    let info = ed
+        .plugin_infos()
+        .iter()
+        .find(|i| i.name == name)
+        .ok_or_else(|| format!("E900: no plugin named {name}"))?;
+    let Value::Table(mut t) = summary(info) else {
+        unreachable!("summary is a table")
+    };
+    if let Some(m) = &info.manifest {
+        t.insert("description".into(), m.description.as_str().into());
+        let authors = m.authors.iter().map(|a| a.as_str().into()).collect();
+        t.insert("authors".into(), Value::Array(authors));
+    }
+    let settings = info
+        .settings
+        .iter()
+        .map(|(k, v)| (k.as_str(), crate::settings::to_config_value(v)));
+    t.insert("settings".into(), Value::table(settings));
+    let health = info
+        .items
+        .iter()
+        .map(|i| {
+            Value::table([
+                ("ok", Value::from(i.ok)),
+                ("level", i.level.name().into()),
+                ("message", i.message.as_str().into()),
+            ])
+        })
+        .collect();
+    t.insert("health".into(), Value::Array(health));
+    ed.reply(Value::Table(t));
+    Ok(())
+}
+
+/// Name, status, path, and version (if it has a manifest) of a plugin.
+fn summary(i: &super::PluginInfo) -> Value {
+    let mut pairs = vec![
+        ("name", Value::from(i.name.as_str())),
+        ("status", i.status.name().into()),
+        ("path", i.path.display().to_string().into()),
+    ];
+    if let Some(v) = i.version() {
+        pairs.push(("version", v.to_string().into()));
+    }
+    Value::table(pairs)
+}
+
 /// Load (or reload) plugin `name` if the plugin host is present.
 fn load(ed: &mut Editor, name: Option<&str>) {
     if ed.commands().get("reload plugins").is_some() {
@@ -136,6 +203,9 @@ fn load(ed: &mut Editor, name: Option<&str>) {
 fn add(ed: &mut Editor, a: Args<'_>) -> CommandResult {
     let ctx = ctx(ed)?;
     let Some(source) = a.arg else {
+        if !ed.interactive() {
+            return Err("E471: Use :plugin add PATH|GIT_URL[@REF]".into());
+        }
         let input =
             crate::ui::Input::new("Add plugin", "folder or git URL[@REF]: ", "plugin add {}")
                 .returning();
@@ -199,6 +269,11 @@ fn remove(ed: &mut Editor, a: Args<'_>) -> CommandResult {
     let installed =
         ctx.plugin_dir.join(name).exists() || ctx.plugin_dir.join(format!("{name}.wasm")).exists();
     if !a.force && installed {
+        if !ed.interactive() {
+            return Err(format!(
+                "E900: :plugin remove asks first; use :plugin remove! {name}"
+            ));
+        }
         let ask = crate::ui::Confirm::new(
             "Delete plugin",
             format!("Delete {name} from {}?", ctx.plugin_dir.display()),

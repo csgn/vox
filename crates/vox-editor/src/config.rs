@@ -41,6 +41,97 @@ impl Value {
             Value::Table(_) => "a table",
         }
     }
+
+    /// A table from `(key, value)` pairs, e.g. for a command's reply.
+    pub fn table<K: Into<String>>(pairs: impl IntoIterator<Item = (K, Value)>) -> Value {
+        Value::Table(pairs.into_iter().map(|(k, v)| (k.into(), v)).collect())
+    }
+
+    /// The value as readable text: a scalar as itself, tables as `key: value` lines, lists
+    /// as `- item` lines, nested values indented by two spaces.
+    pub fn to_text(&self) -> String {
+        let mut out = String::new();
+        match self.scalar_text() {
+            Some(s) => out.push_str(&s),
+            None => write_text(self, 0, &mut out),
+        }
+        out.truncate(out.trim_end().len());
+        out
+    }
+
+    /// Text of a value that fits on one line (scalars, empty tables and lists).
+    fn scalar_text(&self) -> Option<String> {
+        match self {
+            Value::String(s) if s.is_empty() => Some("\"\"".into()),
+            Value::String(s) => Some(s.clone()),
+            Value::Integer(n) => Some(n.to_string()),
+            Value::Float(f) => Some(f.to_string()),
+            Value::Bool(b) => Some(b.to_string()),
+            Value::Array(a) if a.is_empty() => Some("[]".into()),
+            Value::Table(t) if t.is_empty() => Some("{}".into()),
+            Value::Array(_) | Value::Table(_) => None,
+        }
+    }
+}
+
+/// Write a table or list as lines indented by `indent` (see [`Value::to_text`]).
+fn write_text(v: &Value, indent: usize, out: &mut String) {
+    let pad = " ".repeat(indent);
+    match v {
+        Value::Table(t) => {
+            for (k, v) in t {
+                match v.scalar_text() {
+                    Some(s) => out.push_str(&format!("{pad}{k}: {s}\n")),
+                    None => {
+                        out.push_str(&format!("{pad}{k}:\n"));
+                        write_text(v, indent + 2, out);
+                    }
+                }
+            }
+        }
+        Value::Array(a) => {
+            for item in a {
+                match item.scalar_text() {
+                    Some(s) => out.push_str(&format!("{pad}- {s}\n")),
+                    None => {
+                        // The item's first line goes after the `- `.
+                        let mut inner = String::new();
+                        write_text(item, indent + 2, &mut inner);
+                        out.push_str(&format!("{pad}- {}", &inner[indent + 2..]));
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+impl From<&str> for Value {
+    /// A string value.
+    fn from(s: &str) -> Self {
+        Value::String(s.into())
+    }
+}
+
+impl From<String> for Value {
+    /// A string value.
+    fn from(s: String) -> Self {
+        Value::String(s)
+    }
+}
+
+impl From<i64> for Value {
+    /// An integer value.
+    fn from(n: i64) -> Self {
+        Value::Integer(n)
+    }
+}
+
+impl From<bool> for Value {
+    /// A bool value.
+    fn from(b: bool) -> Self {
+        Value::Bool(b)
+    }
 }
 
 /// Validated settings.
@@ -217,6 +308,33 @@ fn parse_ui(t: &BTreeMap<String, Value>, ui: &mut UiConfig, errors: &mut Vec<Str
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn value_as_text() {
+        assert_eq!(Value::from("hi").to_text(), "hi");
+        assert_eq!(Value::from("").to_text(), "\"\"");
+        assert_eq!(Value::Array(vec![]).to_text(), "[]");
+        let v = Value::table([
+            ("n", Value::from(1)),
+            (
+                "list",
+                Value::Array(vec![
+                    1.into(),
+                    Value::table([("a", true.into()), ("b", Value::Float(0.5))]),
+                ]),
+            ),
+            (
+                "t",
+                Value::table([("x", Value::table(Vec::<(&str, Value)>::new()))]),
+            ),
+        ]);
+        assert_eq!(
+            v.to_text(),
+            "list:\n  - 1\n  - a: true\n    b: 0.5\nn: 1\nt:\n  x: {}"
+        );
+        let nested = Value::Array(vec![Value::Array(vec!["a".into(), "b".into()])]);
+        assert_eq!(nested.to_text(), "- - a\n  - b");
+    }
 
     fn table(entries: &[(&str, Value)]) -> Value {
         Value::Table(

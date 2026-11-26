@@ -168,6 +168,15 @@ impl Document {
         Position::new(line, idx - self.text.line_to_char(line))
     }
 
+    /// Text in `[from, to)` (clamped).
+    pub fn slice(&self, from: Position, to: Position) -> String {
+        let (a, b) = (self.char_idx(from), self.char_idx(to));
+        if a >= b {
+            return String::new();
+        }
+        self.text.slice(a..b).to_string()
+    }
+
     /// Insert `text` at `at`. Returns the position just after the inserted text.
     pub fn insert(&mut self, at: Position, text: &str) -> Position {
         let idx = self.char_idx(at);

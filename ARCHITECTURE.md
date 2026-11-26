@@ -9,9 +9,9 @@ vox (bin) ──> vox-tui ──> vox-view
 
 | Crate | Responsibility | Depends on |
 |---|---|---|
-| `vox-core` | Text model: `Document` (rope, file load/save, edits, linear undo/redo), `Position`, `motion` fns. No UI. | ropey |
+| `vox-core` | Text model: `Document` (rope, file load/save, edits, linear undo/redo), `Position`, `motion` fns, literal `search`. No UI. | ropey |
 | `vox-view` | `Viewport` (scroll, follow cursor), char-column → screen-cell mapping (tabs, wide chars). No rendering. | unicode-width |
-| `vox-tui` | `App` (modes, cursor, `:` commands, key handling), key notation parser, rendering (`ratatui`), event loop. | vox-core, vox-view, ratatui |
+| `vox-tui` | `App` (modes, cursor, registers, `:` commands), Vim grammar parser, key notation parser, rendering (`ratatui`), event loop. | vox-core, vox-view, ratatui, arboard |
 | `vox` | Binary: argument parsing, terminal init/restore. | vox-core, vox-tui, ratatui |
 
 ## Rules

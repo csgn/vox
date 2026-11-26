@@ -81,3 +81,42 @@ fn error_message_render() {
     let (screen, _) = draw(&mut app, 40, 4);
     insta::assert_snapshot!(screen);
 }
+
+#[test]
+fn visual_selection_render() {
+    let mut app = App::new(Document::from_text("foo bar\nbaz qux\n\nend"));
+    feed(&mut app, "wvjj");
+    let (screen, _) = draw(&mut app, 30, 6);
+    insta::assert_snapshot!(screen);
+    let buf = screen.buffer();
+    let reversed = |x: u16, y: u16| {
+        buf[(x, y)]
+            .modifier
+            .contains(ratatui::style::Modifier::REVERSED)
+    };
+    // Line 1: from "bar" to end of line (incl. line break cell).
+    assert!(!reversed(7, 0) && reversed(8, 0) && reversed(11, 0));
+    // Line 2: whole line selected.
+    assert!(reversed(4, 1) && reversed(11, 1));
+    // Empty line 3: one cell.
+    assert!(reversed(4, 2) && !reversed(5, 2));
+    // Line 4 untouched.
+    assert!(!reversed(4, 3));
+}
+
+#[test]
+fn visual_line_render() {
+    let mut app = App::new(Document::from_text("ab\ncd"));
+    feed(&mut app, "V");
+    let (screen, _) = draw(&mut app, 20, 4);
+    insta::assert_snapshot!(screen);
+}
+
+#[test]
+fn search_prompt_render() {
+    let mut app = App::new(Document::from_text("abc"));
+    feed(&mut app, "/b");
+    let (screen, cursor) = draw(&mut app, 20, 4);
+    insta::assert_snapshot!(screen);
+    assert_eq!(cursor, (2, 3));
+}

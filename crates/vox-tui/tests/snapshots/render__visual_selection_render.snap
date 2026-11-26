@@ -1,0 +1,10 @@
+---
+source: crates/vox-tui/tests/render.rs
+expression: screen
+---
+"  1 foo bar                   "
+"  2 baz qux                   "
+"  3                           "
+"  4 end                       "
+" VISUAL  [No Name]        3:1 "
+"                              "

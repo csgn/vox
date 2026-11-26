@@ -21,5 +21,9 @@
 | `E212: Can't open file for writing` | write failed |
 | `E484: Can't open file` | `:e` failed |
 | `E492: Not an editor command` | unknown command |
+| `E35: No previous regular expression` | `n`/`N` before any search |
+| `E486: Pattern not found` | search found nothing |
+| `E353: Nothing in register` | paste with empty register |
+| `E354: Invalid register name` | register other than `"+`, `"*` |
 
 Note: unlike Vim, `:w FILE` renames the buffer to `FILE` (like `:saveas`).

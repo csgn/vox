@@ -37,11 +37,20 @@ fn is_empty_line(doc: &Document, i: usize) -> bool {
 
 /// `w`: start of the next word. Empty lines count as words. Stops at the last char.
 pub fn word_forward(doc: &Document, pos: Position) -> Position {
+    let n = doc.text().len_chars();
+    if doc.char_idx(pos) >= n {
+        return pos;
+    }
+    next_word_start(doc, pos).unwrap_or_else(|| doc.pos_at(n - 1))
+}
+
+/// Start of the next word, or `None` if there is no further word (end of document).
+pub fn next_word_start(doc: &Document, pos: Position) -> Option<Position> {
     let text = doc.text();
     let n = text.len_chars();
     let mut i = doc.char_idx(pos);
     if i >= n {
-        return pos;
+        return None;
     }
     let start = class(text.char(i));
     if start != Class::Space {
@@ -57,9 +66,9 @@ pub fn word_forward(doc: &Document, pos: Position) -> Position {
         i += 1;
     }
     if i >= n && !is_empty_line(doc, i) {
-        return doc.pos_at(n - 1);
+        return None;
     }
-    doc.pos_at(i)
+    Some(doc.pos_at(i))
 }
 
 /// `b`: start of the current or previous word. Empty lines count as words.
@@ -79,6 +88,39 @@ pub fn word_backward(doc: &Document, pos: Position) -> Position {
     let cls = class(text.char(i));
     while i > 0 && class(text.char(i - 1)) == cls {
         i -= 1;
+    }
+    doc.pos_at(i)
+}
+
+/// `e`: end of the current or next word. Stops at the last char.
+pub fn word_end(doc: &Document, pos: Position) -> Position {
+    let text = doc.text();
+    let n = text.len_chars();
+    let mut i = doc.char_idx(pos) + 1;
+    while i < n && class(text.char(i)) == Class::Space {
+        i += 1;
+    }
+    if i >= n {
+        return doc.pos_at(n.saturating_sub(1));
+    }
+    let cls = class(text.char(i));
+    while i + 1 < n && class(text.char(i + 1)) == cls {
+        i += 1;
+    }
+    doc.pos_at(i)
+}
+
+/// End of the word (or punctuation/whitespace run) under the cursor. Used by `cw`.
+pub fn current_word_end(doc: &Document, pos: Position) -> Position {
+    let text = doc.text();
+    let n = text.len_chars();
+    let mut i = doc.char_idx(pos);
+    if i >= n {
+        return pos;
+    }
+    let cls = class(text.char(i));
+    while i + 1 < n && class(text.char(i + 1)) == cls && text.char(i + 1) != '\n' {
+        i += 1;
     }
     doc.pos_at(i)
 }
@@ -184,6 +226,14 @@ mod tests {
         assert_eq!(
             stops("a\n\n  b\nc", word_backward, p(3, 0)),
             vec![p(2, 2), p(1, 0), p(0, 0)]
+        );
+    }
+
+    #[test]
+    fn e_words_and_lines() {
+        assert_eq!(
+            stops("foo bar.baz\n  qux", word_end, p(0, 0)),
+            vec![p(0, 2), p(0, 6), p(0, 7), p(0, 10), p(1, 4)]
         );
     }
 

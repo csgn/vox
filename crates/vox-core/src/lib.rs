@@ -4,6 +4,7 @@
 mod document;
 pub mod motion;
 mod position;
+pub mod search;
 
 pub use document::Document;
 pub use position::Position;

@@ -5,6 +5,26 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-26 — M2 Vim grammar
+
+### Added
+- Vim grammar parser: `["x][count] operator [count] motion`, counts multiply.
+- Operators `d`, `c`, `y` with any motion; `dd`, `cc`, `yy`; `x` with count.
+- Motions `e`, `^`, `n`, `N`; counts on all motions; `NG` / `Ngg` go to line N.
+- `p` / `P` (charwise and linewise, with count).
+- `I`, `A` insert entry.
+- Visual mode: `v` (charwise), `V` (linewise), selection highlight, `d`/`x`/`c`/`y`.
+- Search: `/text`, `/` repeats, `n`/`N`, wraparound with messages, `E486`.
+- Registers: unnamed + system clipboard (`"+`, `"*`) via `arboard` (X11 and Wayland).
+- `Clipboard` trait and `App::set_clipboard` for tests/embedding.
+- Vim rules: `dw` on last word stops at line end; `cw` acts like `ce`; `yw` on last word of the file includes it.
+- Tests: Vim golden tests (`tests/vim.rs`), parser tests, search/motion tests, selection render tests.
+- Docs: grammar, motions, operators, registers, visual mode, search.
+
+### Changed
+- `u` and `Ctrl-r` accept a count.
+- `Esc` in normal mode cancels a pending command.
+
 ## [0.2.0] - 2026-11-26 — M1 core editing
 
 ### Added

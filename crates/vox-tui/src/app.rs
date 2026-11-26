@@ -1,11 +1,16 @@
 //! Editor state and key handling.
 
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use vox_core::{Document, Position, motion};
+use vox_core::{Document, Position, motion, search};
 use vox_view::{Viewport, display_col};
+
+use crate::normal::{self, Action, Cmd, InsertAt, Motion, Operator, Parse, Scroll, Target};
+use crate::register::{self, Clipboard, Reg, Registers};
 
 /// Rows reserved below the text area: statusline + command line.
 pub(crate) const CHROME_ROWS: u16 = 2;
+
+const E37: &str = "E37: No write since last change (add ! to override)";
 
 /// Editor input mode.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -14,8 +19,32 @@ pub enum Mode {
     Normal,
     /// Text entry.
     Insert,
+    /// Selection from the anchor to the cursor; `line` selects whole lines.
+    Visual {
+        /// Linewise (`V`) instead of charwise (`v`).
+        line: bool,
+    },
     /// `:` command line; holds the text typed so far.
     Command(String),
+    /// `/` search prompt; holds the text typed so far.
+    Search(String),
+}
+
+/// How a motion's range is interpreted by an operator.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Kind {
+    Exclusive,
+    Inclusive,
+    Linewise,
+}
+
+/// Text an operator acts on. For linewise ranges only the lines of `start`/`end` matter.
+#[derive(Debug, Clone, Copy)]
+struct Range {
+    start: Position,
+    /// Exclusive end (charwise) or last line (linewise).
+    end: Position,
+    linewise: bool,
 }
 
 /// Top-level editor state.
@@ -27,10 +56,14 @@ pub struct App {
     /// Column `j`/`k` try to keep.
     want_col: usize,
     pub(crate) mode: Mode,
+    /// Visual mode anchor.
+    anchor: Position,
     /// Terminal size (width, height), updated each frame.
     size: (u16, u16),
-    /// Pending `g` prefix for `gg`.
-    pending_g: bool,
+    /// Keys of an incomplete normal/visual command.
+    pending: Vec<KeyEvent>,
+    registers: Registers,
+    last_search: Option<String>,
     pub(crate) message: Option<String>,
     quit: bool,
 }
@@ -44,11 +77,19 @@ impl App {
             cursor: Position::default(),
             want_col: 0,
             mode: Mode::Normal,
+            anchor: Position::default(),
             size: (80, 24),
-            pending_g: false,
+            pending: Vec::new(),
+            registers: Registers::default(),
+            last_search: None,
             message: None,
             quit: false,
         }
+    }
+
+    /// Replace the clipboard used by the `"+` and `"*` registers.
+    pub fn set_clipboard(&mut self, clipboard: Box<dyn Clipboard>) {
+        self.registers.clipboard = clipboard;
     }
 
     /// Whether the app has been asked to quit.
@@ -79,6 +120,15 @@ impl App {
     /// Last message shown on the command line, if any.
     pub fn message(&self) -> Option<&str> {
         self.message.as_deref()
+    }
+
+    /// Visual selection as (start, end inclusive, linewise), if in visual mode.
+    pub fn selection(&self) -> Option<(Position, Position, bool)> {
+        let Mode::Visual { line } = self.mode else {
+            return None;
+        };
+        let (a, b) = order(self.anchor, self.cursor);
+        Some((a, b, line))
     }
 
     /// Update the terminal size and keep the cursor visible.
@@ -120,11 +170,15 @@ impl App {
             return;
         }
         match self.mode {
-            Mode::Normal => self.handle_normal(key),
+            Mode::Normal | Mode::Visual { .. } => self.handle_normal(key),
             Mode::Insert => self.handle_insert(key),
-            Mode::Command(_) => self.handle_command(key),
+            Mode::Command(_) | Mode::Search(_) => self.handle_prompt(key),
         }
         self.follow_cursor();
+    }
+
+    fn last_line(&self) -> usize {
+        self.doc.line_count() - 1
     }
 
     /// Highest column the cursor may occupy on `line` in the current mode.
@@ -138,7 +192,7 @@ impl App {
 
     /// Move to `pos` (clamped) and remember its column for vertical moves.
     fn set_cursor(&mut self, pos: Position) {
-        let line = pos.line.min(self.doc.line_count() - 1);
+        let line = pos.line.min(self.last_line());
         self.cursor = Position::new(line, pos.col.min(self.max_col(line)));
         self.want_col = self.cursor.col;
     }
@@ -149,7 +203,7 @@ impl App {
             .cursor
             .line
             .saturating_add_signed(delta)
-            .min(self.doc.line_count() - 1);
+            .min(self.last_line());
         self.cursor = Position::new(line, self.want_col.min(self.max_col(line)));
     }
 
@@ -159,86 +213,384 @@ impl App {
     }
 
     fn handle_normal(&mut self, key: KeyEvent) {
-        let (_, height) = self.text_area();
-        let half = (height / 2).max(1) as isize;
-        let page = height as isize;
-        let lines = self.doc.line_count();
-        let pending_g = std::mem::take(&mut self.pending_g);
-        let c = self.cursor;
-
-        if key.modifiers.contains(KeyModifiers::CONTROL) {
-            let delta = match key.code {
-                KeyCode::Char('d') => half,
-                KeyCode::Char('u') => -half,
-                KeyCode::Char('f') => page,
-                KeyCode::Char('b') => -page,
-                KeyCode::Char('r') => {
-                    self.redo();
-                    return;
-                }
-                _ => return,
-            };
-            self.view.scroll_by(delta, lines);
-            self.move_lines(delta);
+        if key.code == KeyCode::Esc {
+            self.pending.clear();
+            if matches!(self.mode, Mode::Visual { .. }) {
+                self.mode = Mode::Normal;
+            }
             return;
         }
+        self.pending.push(key);
+        let visual = matches!(self.mode, Mode::Visual { .. });
+        match normal::parse(&self.pending, visual) {
+            Parse::Incomplete => {}
+            Parse::Invalid => self.pending.clear(),
+            Parse::Done(cmd) => {
+                self.pending.clear();
+                self.exec(cmd);
+            }
+        }
+    }
 
-        match key.code {
-            KeyCode::Char('h') | KeyCode::Left => {
-                self.set_cursor(Position::new(c.line, c.col.saturating_sub(1)))
-            }
-            KeyCode::Char('l') | KeyCode::Right => {
-                self.set_cursor(Position::new(c.line, c.col + 1))
-            }
-            KeyCode::Char('j') | KeyCode::Down => self.move_lines(1),
-            KeyCode::Char('k') | KeyCode::Up => self.move_lines(-1),
-            KeyCode::PageDown => {
-                self.view.scroll_by(page, lines);
-                self.move_lines(page);
-            }
-            KeyCode::PageUp => {
-                self.view.scroll_by(-page, lines);
-                self.move_lines(-page);
-            }
-            KeyCode::Char('w') => self.set_cursor(motion::word_forward(&self.doc, c)),
-            KeyCode::Char('b') => self.set_cursor(motion::word_backward(&self.doc, c)),
-            KeyCode::Char('0') | KeyCode::Home => self.set_cursor(motion::line_start(c)),
-            KeyCode::Char('$') | KeyCode::End => {
-                self.set_cursor(motion::line_end(&self.doc, c));
-                self.want_col = usize::MAX;
-            }
-            KeyCode::Char('g') if pending_g => self.set_cursor(motion::doc_start(&self.doc)),
-            KeyCode::Char('g') => self.pending_g = true,
-            KeyCode::Char('G') => self.set_cursor(motion::doc_end(&self.doc)),
-            KeyCode::Char('i') => self.enter_insert(c),
-            KeyCode::Char('a') => {
-                let col = (c.col + 1).min(self.doc.line_len(c.line));
-                self.enter_insert(Position::new(c.line, col));
-            }
-            KeyCode::Char('o') => {
-                let eol = Position::new(c.line, self.doc.line_len(c.line));
-                let end = self.doc.insert(eol, self.doc.line_ending());
-                self.enter_insert(end);
-            }
-            KeyCode::Char('O') => {
-                self.doc
-                    .insert(Position::new(c.line, 0), self.doc.line_ending());
-                self.enter_insert(Position::new(c.line, 0));
-            }
-            KeyCode::Char('x') => {
-                if self.doc.line_len(c.line) > 0 {
-                    self.doc.delete(c, Position::new(c.line, c.col + 1));
-                    self.doc.commit();
-                    self.set_cursor(c);
+    fn exec(&mut self, cmd: Cmd) {
+        if let Some(r) = cmd.register
+            && !register::is_valid(r)
+        {
+            self.message = Some(format!("E354: Invalid register name: '{r}'"));
+            return;
+        }
+        let n = cmd.count.unwrap_or(1);
+        let c = self.cursor;
+        match cmd.action {
+            Action::Move(Motion::Up) => self.move_lines(-(n as isize)),
+            Action::Move(Motion::Down) => self.move_lines(n as isize),
+            Action::Move(m) => {
+                if let Some((pos, _)) = self.motion_target(m, cmd.count, false) {
+                    self.set_cursor(pos);
+                    if m == Motion::LineEnd {
+                        self.want_col = usize::MAX;
+                    }
                 }
             }
-            KeyCode::Char('u') => self.undo(),
-            KeyCode::Char(':') => {
+            Action::Operate(op, target) => self.operate(op, target, cmd.count, cmd.register),
+            Action::Insert(at) => {
+                let pos = match at {
+                    InsertAt::Before => c,
+                    InsertAt::After => {
+                        Position::new(c.line, (c.col + 1).min(self.doc.line_len(c.line)))
+                    }
+                    InsertAt::LineStart => motion::first_non_blank(&self.doc, c.line),
+                    InsertAt::LineEnd => Position::new(c.line, self.doc.line_len(c.line)),
+                    InsertAt::Below => {
+                        let eol = Position::new(c.line, self.doc.line_len(c.line));
+                        self.doc.insert(eol, self.doc.line_ending())
+                    }
+                    InsertAt::Above => {
+                        self.doc
+                            .insert(Position::new(c.line, 0), self.doc.line_ending());
+                        Position::new(c.line, 0)
+                    }
+                };
+                self.enter_insert(pos);
+            }
+            Action::Paste { before } => self.paste(before, n, cmd.register),
+            Action::Undo => (0..n).for_each(|_| self.undo()),
+            Action::Redo => (0..n).for_each(|_| self.redo()),
+            Action::Scroll(s) => {
+                let (_, height) = self.text_area();
+                let half = (height / 2).max(1) as isize;
+                let delta = match s {
+                    Scroll::HalfDown => half,
+                    Scroll::HalfUp => -half,
+                    Scroll::PageDown => height as isize,
+                    Scroll::PageUp => -(height as isize),
+                };
+                self.view.scroll_by(delta, self.doc.line_count());
+                self.move_lines(delta);
+            }
+            Action::Visual { line } => match self.mode {
+                Mode::Visual { line: cur } if cur == line => self.mode = Mode::Normal,
+                Mode::Visual { .. } => self.mode = Mode::Visual { line },
+                _ => {
+                    self.anchor = c;
+                    self.mode = Mode::Visual { line };
+                }
+            },
+            Action::CommandLine => {
                 self.message = None;
                 self.mode = Mode::Command(String::new());
             }
-            _ => {}
+            Action::Search => {
+                self.message = None;
+                self.mode = Mode::Search(String::new());
+            }
         }
+    }
+
+    /// Where motion `m` (repeated `count` times) leads from the cursor, and its kind.
+    /// `for_op` enables operator-only rules (`dw` stops at end of line).
+    fn motion_target(
+        &mut self,
+        m: Motion,
+        count: Option<usize>,
+        for_op: bool,
+    ) -> Option<(Position, Kind)> {
+        let c = self.cursor;
+        let n = count.unwrap_or(1);
+        let doc = &self.doc;
+        let repeat = |f: fn(&Document, Position) -> Position| (0..n).fold(c, |p, _| f(doc, p));
+        let line_at = |l: usize| l.min(doc.line_count() - 1);
+        Some(match m {
+            Motion::Left => (
+                Position::new(c.line, c.col.saturating_sub(n)),
+                Kind::Exclusive,
+            ),
+            Motion::Right => (
+                Position::new(c.line, (c.col + n).min(doc.line_len(c.line))),
+                Kind::Exclusive,
+            ),
+            Motion::Up => (
+                Position::new(c.line.saturating_sub(n), self.want_col),
+                Kind::Linewise,
+            ),
+            Motion::Down => (
+                Position::new(line_at(c.line + n), self.want_col),
+                Kind::Linewise,
+            ),
+            Motion::WordForward => {
+                let mut p = c;
+                for step in 0..n {
+                    let next = match motion::next_word_start(doc, p) {
+                        Some(next) => next,
+                        // No further word: an operator reaches the end of the document.
+                        None if for_op => {
+                            let last = doc.line_count() - 1;
+                            p = Position::new(last, doc.line_len(last));
+                            break;
+                        }
+                        None => motion::word_forward(doc, p),
+                    };
+                    if for_op && step == n - 1 && next.line > p.line {
+                        // `dw` on the last word of a line stops at the line end.
+                        p = Position::new(p.line, doc.line_len(p.line));
+                        break;
+                    }
+                    p = next;
+                }
+                (p, Kind::Exclusive)
+            }
+            Motion::WordBackward => (repeat(motion::word_backward), Kind::Exclusive),
+            Motion::WordEnd => (repeat(motion::word_end), Kind::Inclusive),
+            Motion::LineStart => (motion::line_start(c), Kind::Exclusive),
+            Motion::FirstNonBlank => (motion::first_non_blank(doc, c.line), Kind::Exclusive),
+            Motion::LineEnd => {
+                let line = line_at(c.line + n - 1);
+                (
+                    motion::line_end(doc, Position::new(line, 0)),
+                    Kind::Inclusive,
+                )
+            }
+            Motion::FileStart => (
+                motion::first_non_blank(doc, count.map_or(0, |l| line_at(l.saturating_sub(1)))),
+                Kind::Linewise,
+            ),
+            Motion::FileEnd => (
+                motion::first_non_blank(
+                    doc,
+                    count.map_or(doc.line_count() - 1, |l| line_at(l.saturating_sub(1))),
+                ),
+                Kind::Linewise,
+            ),
+            Motion::SearchNext | Motion::SearchPrev => {
+                let pos = self.search_target(m == Motion::SearchNext, n)?;
+                (pos, Kind::Exclusive)
+            }
+        })
+    }
+
+    /// Repeat the last search `n` times. Sets messages for wrap / not found.
+    fn search_target(&mut self, forward: bool, n: usize) -> Option<Position> {
+        let Some(pattern) = self.last_search.clone() else {
+            self.message = Some("E35: No previous regular expression".into());
+            return None;
+        };
+        let mut pos = self.cursor;
+        let mut wrapped = false;
+        for _ in 0..n {
+            match search::find(&self.doc, pos, &pattern, forward) {
+                Some(m) => {
+                    pos = m.pos;
+                    wrapped |= m.wrapped;
+                }
+                None => {
+                    self.message = Some(format!("E486: Pattern not found: {pattern}"));
+                    return None;
+                }
+            }
+        }
+        self.message = if wrapped {
+            Some(
+                if forward {
+                    "search hit BOTTOM, continuing at TOP"
+                } else {
+                    "search hit TOP, continuing at BOTTOM"
+                }
+                .into(),
+            )
+        } else {
+            Some(format!("/{pattern}"))
+        };
+        Some(pos)
+    }
+
+    fn operate(&mut self, op: Operator, target: Target, count: Option<usize>, reg: Option<char>) {
+        let c = self.cursor;
+        let n = count.unwrap_or(1);
+        let range = match target {
+            Target::Lines => Range {
+                start: Position::new(c.line, 0),
+                end: Position::new((c.line + n - 1).min(self.last_line()), 0),
+                linewise: true,
+            },
+            Target::Selection => {
+                let Some((a, b, line)) = self.selection() else {
+                    return;
+                };
+                self.mode = Mode::Normal;
+                Range {
+                    start: a,
+                    end: Position::new(b.line, b.col + 1),
+                    linewise: line,
+                }
+            }
+            Target::Motion(Motion::WordForward)
+                if op == Operator::Change
+                    && self
+                        .doc
+                        .line(c.line)
+                        .and_then(|l| l.chars().nth(c.col))
+                        .is_some_and(|ch| !ch.is_whitespace()) =>
+            {
+                // `cw` on a word changes to the end of the word, like `ce`.
+                let first = motion::current_word_end(&self.doc, c);
+                let end = (1..n).fold(first, |p, _| motion::word_end(&self.doc, p));
+                Range {
+                    start: c,
+                    end: Position::new(end.line, end.col + 1),
+                    linewise: false,
+                }
+            }
+            Target::Motion(m) => {
+                let Some((t, kind)) = self.motion_target(m, count, true) else {
+                    return;
+                };
+                let (a, b) = order(c, t);
+                match kind {
+                    Kind::Linewise => Range {
+                        start: Position::new(a.line, 0),
+                        end: Position::new(b.line, 0),
+                        linewise: true,
+                    },
+                    Kind::Inclusive => Range {
+                        start: a,
+                        end: Position::new(b.line, b.col + 1),
+                        linewise: false,
+                    },
+                    Kind::Exclusive => Range {
+                        start: a,
+                        end: b,
+                        linewise: false,
+                    },
+                }
+            }
+        };
+        self.apply(op, range, reg);
+    }
+
+    fn apply(&mut self, op: Operator, r: Range, reg: Option<char>) {
+        let (a, b) = (r.start.line, r.end.line);
+        let text = if r.linewise {
+            let body = self
+                .doc
+                .slice(Position::new(a, 0), Position::new(b, self.doc.line_len(b)));
+            format!("{body}\n")
+        } else {
+            self.doc.slice(r.start, r.end)
+        };
+        let reg_value = Reg {
+            text: text.replace("\r\n", "\n"),
+            linewise: r.linewise,
+        };
+        if let Err(e) = self.registers.set(reg, reg_value) {
+            self.message = Some(format!("Clipboard error: {e}"));
+        }
+        match op {
+            Operator::Yank => {
+                if r.linewise {
+                    self.set_cursor(Position::new(a, self.cursor.col));
+                } else {
+                    self.set_cursor(r.start);
+                }
+            }
+            Operator::Delete => {
+                if r.linewise {
+                    self.delete_lines(a, b);
+                    self.set_cursor(motion::first_non_blank(&self.doc, a.min(self.last_line())));
+                } else {
+                    self.doc.delete(r.start, r.end);
+                    self.set_cursor(r.start);
+                }
+                self.doc.commit();
+            }
+            Operator::Change => {
+                if r.linewise {
+                    let end = Position::new(b, self.doc.line_len(b));
+                    self.doc.delete(Position::new(a, 0), end);
+                    self.enter_insert(Position::new(a, 0));
+                } else {
+                    self.doc.delete(r.start, r.end);
+                    self.enter_insert(r.start);
+                }
+            }
+        }
+    }
+
+    /// Delete lines `a..=b` including their line breaks.
+    fn delete_lines(&mut self, a: usize, b: usize) {
+        let len = |l| self.doc.line_len(l);
+        if b < self.last_line() {
+            self.doc
+                .delete(Position::new(a, 0), Position::new(b + 1, 0));
+        } else if a > 0 {
+            let (from, to) = (Position::new(a - 1, len(a - 1)), Position::new(b, len(b)));
+            self.doc.delete(from, to);
+        } else {
+            let to = Position::new(b, len(b));
+            self.doc.delete(Position::new(0, 0), to);
+        }
+    }
+
+    fn paste(&mut self, before: bool, n: usize, reg: Option<char>) {
+        let reg = match self.registers.get(reg) {
+            Ok(r) => r,
+            Err(e) => {
+                self.message = Some(e);
+                return;
+            }
+        };
+        let le = self.doc.line_ending();
+        let content = reg.text.repeat(n);
+        let c = self.cursor;
+        if reg.linewise {
+            let body = content
+                .strip_suffix('\n')
+                .unwrap_or(&content)
+                .replace('\n', le);
+            let line = if before {
+                self.doc
+                    .insert(Position::new(c.line, 0), &format!("{body}{le}"));
+                c.line
+            } else {
+                let eol = Position::new(c.line, self.doc.line_len(c.line));
+                self.doc.insert(eol, &format!("{le}{body}"));
+                c.line + 1
+            };
+            self.set_cursor(motion::first_non_blank(&self.doc, line));
+        } else {
+            let body = content.replace('\n', le);
+            let at = if before || self.doc.line_len(c.line) == 0 {
+                c
+            } else {
+                Position::new(c.line, c.col + 1)
+            };
+            let end = self.doc.insert(at, &body);
+            if body.contains('\n') {
+                self.set_cursor(at);
+            } else {
+                self.set_cursor(Position::new(end.line, end.col.saturating_sub(1)));
+            }
+        }
+        self.doc.commit();
     }
 
     fn handle_insert(&mut self, key: KeyEvent) {
@@ -294,8 +646,9 @@ impl App {
         }
     }
 
-    fn handle_command(&mut self, key: KeyEvent) {
-        let Mode::Command(input) = &mut self.mode else {
+    /// Key handling for the `:` and `/` prompts.
+    fn handle_prompt(&mut self, key: KeyEvent) {
+        let (Mode::Command(input) | Mode::Search(input)) = &mut self.mode else {
             return;
         };
         match key.code {
@@ -306,12 +659,25 @@ impl App {
                 }
             }
             KeyCode::Enter => {
-                let cmd = std::mem::take(input);
-                self.mode = Mode::Normal;
-                self.execute(cmd.trim());
+                let input = std::mem::take(input);
+                let mode = std::mem::replace(&mut self.mode, Mode::Normal);
+                match mode {
+                    Mode::Search(_) => self.search(input),
+                    _ => self.execute(input.trim()),
+                }
             }
             KeyCode::Char(c) => input.push(c),
             _ => {}
+        }
+    }
+
+    /// Run a `/` search for `pattern` (empty = repeat the last pattern).
+    fn search(&mut self, pattern: String) {
+        if !pattern.is_empty() {
+            self.last_search = Some(pattern);
+        }
+        if let Some(pos) = self.search_target(true, 1) {
+            self.set_cursor(pos);
         }
     }
 
@@ -404,4 +770,6 @@ impl App {
     }
 }
 
-const E37: &str = "E37: No write since last change (add ! to override)";
+fn order(a: Position, b: Position) -> (Position, Position) {
+    if b < a { (b, a) } else { (a, b) }
+}

@@ -16,7 +16,8 @@ terminal.draw ─> impl Widget for &App (pure) ─> screen  <────┘
   the pending edits into one undo step. `undo()`/`redo()` return where the change happened.
 - `is_modified()` compares the current undo step id with the one saved on disk.
 - `motion`: pure `fn(&Document, Position) -> Position` (`word_forward`, `word_backward`,
-  `line_start`, `line_end`, `doc_start`, `doc_end`, `first_non_blank`).
+  `word_end`, `line_start`, `line_end`, `doc_start`, `doc_end`, `first_non_blank`, ...).
+- `search::find`: literal search with wraparound.
 - `Position { line, col }`: `col` counts chars, not bytes or cells.
 
 ## vox-view
@@ -24,7 +25,14 @@ terminal.draw ─> impl Widget for &App (pure) ─> screen  <────┘
 - `display_col` / `visible_slice`: char columns to screen cells (tabs, wide chars).
 
 ## vox-tui
-- `App`: mode, cursor, wanted column, viewport, messages; `handle_key`.
+- `App`: mode, cursor, wanted column, viewport, registers, messages; `handle_key`.
+- `normal::parse(keys, visual) -> Parse<Cmd>`: the Vim grammar
+  `["x][count](operator[count](motion|operator) | motion | action)`. Pending keys are
+  re-parsed after every key; `Incomplete` waits, `Invalid` discards.
+- `App::exec(Cmd)`: runs a command. Operators turn a motion into a `Range`
+  (exclusive / inclusive / linewise), write the register, then delete/change/yank.
+- `register`: unnamed register + `Clipboard` trait (`SystemClipboard` via `arboard`;
+  tests inject an in-memory one with `App::set_clipboard`).
 - `parse_keys("ihi<Esc>")`: Vim key notation → key events (tests now, keymap config later).
 - Rendering is a pure `impl Widget for &App`; `cursor_screen_position` gives the terminal cursor.
 - `run`: draw → set cursor shape (bar in insert) → read key.

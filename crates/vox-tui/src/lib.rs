@@ -2,6 +2,8 @@
 
 mod app;
 mod keys;
+mod normal;
+mod register;
 
 use std::io;
 
@@ -15,15 +17,16 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Paragraph, Widget};
 use unicode_width::UnicodeWidthStr;
-use vox_view::visible_slice;
+use vox_view::{display_col, visible_slice};
 
 pub use app::{App, Mode};
 pub use keys::parse_keys;
+pub use register::{Clipboard, SystemClipboard};
 
 impl App {
     /// Screen position (column, row) of the cursor inside `area`.
     pub fn cursor_screen_position(&self, area: Rect) -> (u16, u16) {
-        if let Mode::Command(input) = &self.mode {
+        if let Mode::Command(input) | Mode::Search(input) = &self.mode {
             let row = area.bottom().saturating_sub(1);
             return (area.x + 1 + input.width() as u16, row);
         }
@@ -33,15 +36,15 @@ impl App {
     }
 
     fn render_text(&self, area: Rect, buf: &mut Buffer) {
-        let num_width = self.gutter_width() - 1;
-        let text_width = (area.width as usize).saturating_sub(num_width + 1);
+        let gutter = self.gutter_width();
+        let text_width = (area.width as usize).saturating_sub(gutter);
         let dim = Style::default().add_modifier(Modifier::DIM);
         let rows: Vec<Line> = (0..area.height as usize)
             .map(|row| {
                 let idx = self.view.top + row;
                 match self.doc.line(idx) {
                     Some(text) => Line::from(vec![
-                        Span::styled(format!("{:>num_width$} ", idx + 1), dim),
+                        Span::styled(format!("{:>w$} ", idx + 1, w = gutter - 1), dim),
                         Span::raw(visible_slice(&text, self.view.left, text_width)),
                     ]),
                     None => Line::styled("~", dim),
@@ -49,12 +52,52 @@ impl App {
             })
             .collect();
         Paragraph::new(rows).render(area, buf);
+        self.render_selection(area, buf, gutter, text_width);
+    }
+
+    /// Reverse-video the visual selection.
+    fn render_selection(&self, area: Rect, buf: &mut Buffer, gutter: usize, text_width: usize) {
+        let Some((a, b, linewise)) = self.selection() else {
+            return;
+        };
+        let style = Style::default().add_modifier(Modifier::REVERSED);
+        for row in 0..area.height as usize {
+            let idx = self.view.top + row;
+            if idx < a.line || idx > b.line {
+                continue;
+            }
+            let text = self.doc.line(idx).unwrap_or_default();
+            let len = text.chars().count();
+            let (from, to) = if linewise {
+                (0, len.max(1))
+            } else {
+                let from = if idx == a.line { a.col } else { 0 };
+                let to = if idx == b.line { b.col + 1 } else { len + 1 };
+                (from, to)
+            };
+            // Columns past the text (empty line, line break) show as one cell.
+            let x0 = display_col(&text, from.min(len)) + from.saturating_sub(len);
+            let x1 = display_col(&text, to.min(len)) + to.saturating_sub(len);
+            let x0 = x0.max(self.view.left) - self.view.left;
+            let x1 = x1.saturating_sub(self.view.left).min(text_width);
+            if x1 > x0 {
+                let rect = Rect::new(
+                    area.x + (gutter + x0) as u16,
+                    area.y + row as u16,
+                    (x1 - x0) as u16,
+                    1,
+                );
+                buf.set_style(rect, style);
+            }
+        }
     }
 
     fn render_status(&self, area: Rect, buf: &mut Buffer) {
         let mode = match self.mode {
-            Mode::Normal => "NORMAL",
+            Mode::Normal | Mode::Search(_) => "NORMAL",
             Mode::Insert => "INSERT",
+            Mode::Visual { line: false } => "VISUAL",
+            Mode::Visual { line: true } => "V-LINE",
             Mode::Command(_) => "COMMAND",
         };
         let name = self
@@ -75,6 +118,7 @@ impl App {
     fn render_cmdline(&self, area: Rect, buf: &mut Buffer) {
         let text = match (&self.mode, &self.message) {
             (Mode::Command(input), _) => format!(":{input}"),
+            (Mode::Search(input), _) => format!("/{input}"),
             (_, Some(msg)) => msg.clone(),
             _ => String::new(),
         };

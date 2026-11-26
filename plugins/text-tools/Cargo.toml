@@ -1,0 +1,11 @@
+[package]
+name = "text-tools"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+vox-plugin-sdk = { path = "../../crates/vox-plugin-sdk" }

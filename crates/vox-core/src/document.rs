@@ -19,6 +19,8 @@ pub struct Document {
     /// Whether the file ends with a line terminator.
     eol: bool,
     history: History,
+    /// Incremented on every change to the text (edit, undo, redo).
+    revision: u64,
 }
 
 impl Document {
@@ -31,6 +33,7 @@ impl Document {
             line_ending,
             eol,
             history: History::default(),
+            revision: 0,
         }
     }
 
@@ -162,6 +165,7 @@ impl Document {
     pub fn insert(&mut self, at: Position, text: &str) -> Position {
         let idx = self.char_idx(at);
         self.text.insert(idx, text);
+        self.revision += 1;
         self.history.record(Edit {
             at: idx,
             removed: String::new(),
@@ -178,11 +182,17 @@ impl Document {
         }
         let removed = self.text.slice(a..b);
         self.text.remove(a..b);
+        self.revision += 1;
         self.history.record(Edit {
             at: a,
             removed,
             inserted: String::new(),
         });
+    }
+
+    /// Change counter: different values mean the text changed in between.
+    pub fn revision(&self) -> u64 {
+        self.revision
     }
 
     /// Close the current group of edits into one undo step.
@@ -200,6 +210,7 @@ impl Document {
         }
         let at = group.edits[0].at;
         self.history.redo.push(group);
+        self.revision += 1;
         Some(self.pos_at(at))
     }
 
@@ -213,6 +224,7 @@ impl Document {
         }
         let at = group.edits[0].at;
         self.history.undo.push(group);
+        self.revision += 1;
         Some(self.pos_at(at))
     }
 }
@@ -417,6 +429,23 @@ mod tests {
         doc.undo();
         assert!(doc.is_modified(), "undo past saved state");
         fs::remove_file(&path).unwrap();
+    }
+
+    #[test]
+    fn revision_counts_changes() {
+        let mut doc = Document::from_text("a");
+        assert_eq!(doc.revision(), 0);
+        doc.insert(Position::new(0, 1), "b");
+        doc.delete(Position::new(0, 0), Position::new(0, 1));
+        doc.commit();
+        assert_eq!(doc.revision(), 2);
+        doc.undo();
+        doc.redo();
+        assert_eq!(doc.revision(), 4);
+        doc.undo();
+        doc.undo();
+        doc.undo(); // nothing left: no change
+        assert_eq!(doc.revision(), 5);
     }
 
     #[test]

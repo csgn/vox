@@ -32,6 +32,8 @@ fn main() -> ExitCode {
     };
     let mut editor = Editor::with_services(doc, services);
     load_config(&mut editor);
+    load_plugins(&mut editor);
+    editor.start();
     if let Err(e) = vox_term::run(&mut editor) {
         eprintln!("vox: terminal error: {e}");
         return ExitCode::FAILURE;
@@ -61,5 +63,35 @@ fn load_config(editor: &mut Editor) {
             n => format!(" ({} more)", n - 1),
         };
         editor.set_message(format!("config {}: {first}{more}", path.display()));
+    }
+}
+
+/// Load every plugin in the plugin directory. Failures are shown as the message; the
+/// editor runs without the failed plugins.
+fn load_plugins(editor: &mut Editor) {
+    let Some(dir) = vox_config_file::plugin_dir() else {
+        return;
+    };
+    if !dir.is_dir() {
+        return;
+    }
+    let host = match vox_plugin_host::PluginHost::new() {
+        Ok(host) => host,
+        Err(e) => {
+            editor.set_message(format!("plugins: {e}"));
+            return;
+        }
+    };
+    let errors: Vec<String> = host
+        .load_dir(editor, &dir)
+        .into_iter()
+        .filter_map(Result::err)
+        .collect();
+    if let Some(first) = errors.first() {
+        let more = match errors.len() {
+            1 => String::new(),
+            n => format!(" ({} more)", n - 1),
+        };
+        editor.set_message(format!("{first}{more}"));
     }
 }

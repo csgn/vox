@@ -55,5 +55,24 @@ into a `Value`. A new setting means: a field in `Config`, a case in `from_value`
 | `quit()` | ask the run loop to exit |
 | `document()`, `cursor()`, `mode()`, `selection()` | read editor state |
 | `handle_key(key)`, `timeout()`, `has_pending_keys()` | input (used by the run loop and tests) |
+| `subscribe(kind, handler)` | react to `BufOpen`, `BufWrite`, `TextChanged`, `ModeChanged` |
+| `insert_text`, `delete_text`, `set_cursor` | edit; edits made inside one command undo together |
+| `map_key(mode, lhs, rhs)` | add a mapping with the user's leader key |
+| `start()` | send the first `BufOpen` (called once by the binary) |
+
+## Events
+
+```rust
+use vox_editor::{Event, EventKind};
+
+editor.subscribe(EventKind::BufWrite, |ed, event| {
+    if let Event::BufWrite { path } = event {
+        ed.set_message(format!("saved {path}"));
+    }
+});
+```
+
+`TextChanged` and `ModeChanged` are sent once per key press or command, after it finishes.
+Edits made by an event handler do not trigger another `TextChanged`, so handlers cannot loop.
 
 See the code tour walkthrough **"Adding your own command"** for the call path.

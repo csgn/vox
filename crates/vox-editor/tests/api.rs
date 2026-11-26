@@ -201,3 +201,110 @@ fn timeout_value_from_config() {
     });
     assert_eq!(ed.key_timeout().as_millis(), 250);
 }
+
+mod events {
+    use super::*;
+    use std::cell::RefCell;
+    use vox_editor::{Event, EventKind, ModeKind};
+
+    fn record(ed: &mut Editor, kinds: &[EventKind]) -> Rc<RefCell<Vec<Event>>> {
+        let log = Rc::new(RefCell::new(Vec::new()));
+        for &k in kinds {
+            let l = log.clone();
+            ed.subscribe(k, move |_, e| l.borrow_mut().push(e.clone()));
+        }
+        log
+    }
+
+    #[test]
+    fn text_changed_once_per_key_or_command() {
+        let mut ed = editor("abc");
+        let log = record(&mut ed, &[EventKind::TextChanged]);
+        feed(&mut ed, "l"); // motion: no change
+        assert!(log.borrow().is_empty());
+        feed(&mut ed, "3x"); // one key that changes text
+        assert_eq!(log.borrow().len(), 1);
+        ed.commands_mut().register("two", "", |ed, _| {
+            ed.insert_text(vox_core::Position::new(0, 0), "a");
+            ed.insert_text(vox_core::Position::new(0, 0), "b");
+            Ok(())
+        });
+        feed(&mut ed, ":two<CR>"); // two edits in one command: one event
+        assert_eq!(log.borrow().len(), 2);
+        assert_eq!(ed.document().to_string(), "baa"); // `l3x` left "a"
+        feed(&mut ed, "u"); // the command's edits undo together
+        assert_eq!(ed.document().to_string(), "a");
+    }
+
+    #[test]
+    fn mode_changed() {
+        let mut ed = editor("abc");
+        let log = record(&mut ed, &[EventKind::ModeChanged]);
+        feed(&mut ed, "ix<Esc>v<Esc>");
+        let modes: Vec<_> = log
+            .borrow()
+            .iter()
+            .map(|e| match e {
+                Event::ModeChanged { mode } => *mode,
+                _ => unreachable!(),
+            })
+            .collect();
+        assert_eq!(
+            modes,
+            [
+                ModeKind::Insert,
+                ModeKind::Normal,
+                ModeKind::Visual,
+                ModeKind::Normal
+            ]
+        );
+    }
+
+    #[test]
+    fn buf_open_and_write() {
+        let path = std::env::temp_dir().join(format!("vox-events-{}.txt", std::process::id()));
+        std::fs::write(&path, "x\n").unwrap();
+        let mut ed =
+            Editor::new(Document::open(&path, vox_core::storage::SimpleStorage::boxed).unwrap());
+        let log = record(&mut ed, &[EventKind::BufOpen, EventKind::BufWrite]);
+        ed.start();
+        feed(&mut ed, ":w<CR>:e<CR>");
+        std::fs::remove_file(&path).unwrap();
+        let p = Some(path.display().to_string());
+        assert_eq!(
+            *log.borrow(),
+            vec![
+                Event::BufOpen { path: p.clone() },
+                Event::BufWrite {
+                    path: path.display().to_string()
+                },
+                Event::BufOpen { path: p },
+            ]
+        );
+    }
+
+    #[test]
+    fn handler_can_edit_without_event_loop() {
+        let mut ed = editor("");
+        ed.subscribe(EventKind::TextChanged, |ed, _| {
+            if !ed.document().to_string().ends_with('!') {
+                let end = vox_core::Position::new(0, usize::MAX);
+                ed.insert_text(end, "!");
+            }
+        });
+        feed(&mut ed, "ia<Esc>");
+        assert_eq!(ed.document().to_string(), "a!");
+    }
+
+    #[test]
+    fn plugin_style_map_key_uses_leader() {
+        let mut ed = editor("abc");
+        ed.apply_config(&Config {
+            leader: ",".into(),
+            ..Config::default()
+        });
+        ed.map_key(vox_editor::MapMode::Normal, "<leader>e", "$");
+        feed(&mut ed, ",e");
+        assert_eq!(ed.cursor().col, 2);
+    }
+}

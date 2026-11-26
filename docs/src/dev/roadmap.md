@@ -13,7 +13,7 @@ Built one milestone at a time; each ships with tests, docs, and a changelog entr
 | M2 | 0.3.0 | `d c y` × motions, `dd cc yy p P`, counts, visual (char/line), `/ n N`, clipboard | done |
 | M2.5 | 0.4.0 | Dependency isolation: std-only core, adapter crates | done |
 | M3 | 0.5.0 | Developer API (commands, keymaps), config file (TOML via adapter), configurable keys | done |
-| M4 | 0.6.0 | WASM plugins: WIT contract, host adapter (wasmtime), Rust SDK, example plugin, editor events | |
+| M4 | 0.6.0 | WASM plugins: WIT contract, host adapter (wasmtime), Rust SDK, example plugin, editor events | done |
 | M5 | 0.7.0 | Claude via `claude` CLI: chat pane, selection/buffer context, confirmed edits | |
 
 ## Later (only if needed)

@@ -9,6 +9,7 @@ use std::time::Duration;
 use crate::builtin;
 use crate::command::{self, Commands};
 use crate::config::Config;
+use crate::event::{Event, EventHandler, EventKind, ModeKind};
 use crate::keymap::{self, Binding, Keymap, Lookup, MapMode};
 use crate::keys::{Key, KeyCode};
 
@@ -99,6 +100,11 @@ pub struct Editor {
     /// Typed keys that may still become a mapping.
     map_pending: Vec<Key>,
     key_timeout: Duration,
+    /// What `<leader>` means in mappings.
+    leader: String,
+    subscribers: Vec<(EventKind, EventHandler)>,
+    /// Nesting depth of public entry points; only the outermost sends change events.
+    event_depth: u32,
 }
 
 impl std::fmt::Debug for Editor {
@@ -142,6 +148,9 @@ impl Editor {
             keymap: Keymap::default(),
             map_pending: Vec::new(),
             key_timeout: Duration::from_millis(1000),
+            leader: "\\".into(),
+            subscribers: Vec::new(),
+            event_depth: 0,
         }
     }
 
@@ -226,9 +235,76 @@ impl Editor {
 
     /// Handle one key press.
     pub fn handle_key(&mut self, key: Key) {
-        self.map_pending.push(key);
-        self.resolve_mappings(false);
+        self.with_change_events(|ed| {
+            ed.map_pending.push(key);
+            ed.resolve_mappings(false);
+        });
         self.follow_cursor();
+    }
+
+    /// Call once when the editor starts: sends [`Event::BufOpen`] for the first buffer.
+    pub fn start(&mut self) {
+        let path = self.doc.path().map(|p| p.display().to_string());
+        self.emit(&Event::BufOpen { path });
+    }
+
+    /// Call `handler` for every event of `kind`.
+    pub fn subscribe(&mut self, kind: EventKind, handler: impl Fn(&mut Editor, &Event) + 'static) {
+        self.subscribers.push((kind, std::rc::Rc::new(handler)));
+    }
+
+    /// Send `event` to its subscribers, in subscription order.
+    fn emit(&mut self, event: &Event) {
+        let handlers: Vec<EventHandler> = self
+            .subscribers
+            .iter()
+            .filter(|(k, _)| *k == event.kind())
+            .map(|(_, h)| h.clone())
+            .collect();
+        for h in handlers {
+            h(self, event);
+        }
+    }
+
+    /// Run `f`, then (if this is the outermost call) send `ModeChanged` / `TextChanged`
+    /// for what `f` changed.
+    fn with_change_events(&mut self, f: impl FnOnce(&mut Self)) {
+        let (mode, rev) = (self.mode_kind(), self.doc.revision());
+        self.event_depth += 1;
+        f(self);
+        self.event_depth -= 1;
+        if self.event_depth > 0 {
+            return;
+        }
+        if self.doc.revision() != rev {
+            self.emit(&Event::TextChanged);
+        }
+        let now = self.mode_kind();
+        if now != mode {
+            self.emit(&Event::ModeChanged { mode: now });
+        }
+    }
+
+    /// The current mode without its data.
+    pub fn mode_kind(&self) -> ModeKind {
+        match self.mode {
+            Mode::Normal => ModeKind::Normal,
+            Mode::Insert => ModeKind::Insert,
+            Mode::Visual { .. } => ModeKind::Visual,
+            Mode::Command(_) => ModeKind::Command,
+            Mode::Search(_) => ModeKind::Search,
+        }
+    }
+
+    /// Insert `text` at `at` (clamped). Returns the position after the inserted text.
+    /// Edits made by one command are undone together.
+    pub fn insert_text(&mut self, at: Position, text: &str) -> Position {
+        self.doc.insert(at, text)
+    }
+
+    /// Delete the text in `[from, to)` (clamped).
+    pub fn delete_text(&mut self, from: Position, to: Position) {
+        self.doc.delete(from, to);
     }
 
     /// Whether typed keys are waiting to see if they complete a mapping. The run loop
@@ -244,7 +320,7 @@ impl Editor {
 
     /// No key arrived in time: use the mapping typed so far, or treat the keys as unmapped.
     pub fn timeout(&mut self) {
-        self.resolve_mappings(true);
+        self.with_change_events(|ed| ed.resolve_mappings(true));
         self.follow_cursor();
     }
 
@@ -314,8 +390,8 @@ impl Editor {
         }
     }
 
-    /// Move to `pos` (clamped) and remember its column for vertical moves.
-    fn set_cursor(&mut self, pos: Position) {
+    /// Move the cursor to `pos` (clamped) and remember its column for vertical moves.
+    pub fn set_cursor(&mut self, pos: Position) {
         let line = pos.line.min(self.last_line());
         self.cursor = Position::new(line, pos.col.min(self.max_col(line)));
         self.want_col = self.cursor.col;
@@ -826,9 +902,16 @@ impl Editor {
             return;
         };
         let handler = cmd.handler.clone();
-        if let Err(e) = handler(self, args) {
-            self.message = Some(e);
-        }
+        self.with_change_events(|ed| {
+            if let Err(e) = handler(ed, args) {
+                ed.message = Some(e);
+            }
+            // A command's edits are one undo step; keep the cursor valid after them.
+            if ed.mode != Mode::Insert {
+                ed.doc.commit();
+            }
+            ed.set_cursor(ed.cursor);
+        });
     }
 
     /// The command registry, to look up or list commands.
@@ -849,11 +932,18 @@ impl Editor {
     /// Apply settings: leader, mapping timeout, and key mappings.
     pub fn apply_config(&mut self, cfg: &Config) {
         self.key_timeout = Duration::from_millis(cfg.timeout_ms);
+        self.leader = cfg.leader.clone();
         for (mode, lhs, rhs) in &cfg.keymaps {
-            let lhs = keymap::parse_lhs(lhs, &cfg.leader);
-            let binding = keymap::parse_binding(rhs, &cfg.leader);
-            self.keymap.set(*mode, lhs, binding);
+            self.map_key(*mode, lhs, rhs);
         }
+    }
+
+    /// Map `lhs` to `rhs` in `mode`, both in Vim notation with `<leader>` allowed. `rhs`
+    /// starting with `:` runs a command; an empty `rhs` disables the key.
+    pub fn map_key(&mut self, mode: MapMode, lhs: &str, rhs: &str) {
+        let keys = keymap::parse_lhs(lhs, &self.leader);
+        let binding = keymap::parse_binding(rhs, &self.leader);
+        self.keymap.set(mode, keys, binding);
     }
 
     /// Show `msg` on the bottom line.
@@ -886,6 +976,7 @@ impl Editor {
                     "\"{name}\" {}L, {bytes}B written",
                     self.doc.line_count()
                 ));
+                self.emit(&Event::BufWrite { path: name });
                 Ok(bytes)
             }
             Err(e) => Err(format!("E212: Can't open file for writing: {name}: {e}")),
@@ -908,6 +999,9 @@ impl Editor {
         self.doc = doc;
         self.view = Viewport::default();
         self.set_cursor(Position::default());
+        self.emit(&Event::BufOpen {
+            path: Some(path.display().to_string()),
+        });
         Ok(())
     }
 }

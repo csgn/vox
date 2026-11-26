@@ -6,6 +6,7 @@ cargo fmt --all
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ./scripts/check-deps.sh   # core crates must stay std-only
+# plugin tests build plugins/ for WebAssembly: rustup target add wasm32-wasip2
 python3 scripts/gen-code-tour.py   # refresh the docs code tour after code changes
 ```
 

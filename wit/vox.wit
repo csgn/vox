@@ -1,0 +1,100 @@
+/// The contract between vox and its plugins.
+///
+/// A plugin is a WebAssembly component (Rust compiled to `wasm32-wasip2`). It can only use
+/// what the `editor` interface below offers; it has no file system, network, or environment
+/// access. Each call into a plugin is limited in time and memory.
+package vox:plugin@0.1.0;
+
+/// Shared data types.
+interface types {
+    /// A line/column position. `col` counts characters, not bytes.
+    record position {
+        line: u32,
+        col: u32,
+    }
+
+    /// The editor's current mode.
+    enum mode {
+        normal,
+        insert,
+        visual,
+        command,
+        search,
+    }
+
+    /// Mode a key mapping applies in.
+    enum map-mode {
+        normal,
+        insert,
+        visual,
+    }
+
+    /// Event categories a plugin can subscribe to.
+    enum event-kind {
+        buf-open,
+        buf-write,
+        text-changed,
+        mode-changed,
+    }
+
+    /// Something that happened in the editor.
+    variant event {
+        /// A file was opened; `none` for an unnamed buffer.
+        buf-open(option<string>),
+        /// The buffer was saved to this path.
+        buf-write(string),
+        /// The text changed (once per key press or command).
+        text-changed,
+        /// The mode changed to this one.
+        mode-changed(mode),
+    }
+}
+
+/// What a plugin can ask the editor to do.
+interface editor {
+    use types.{position, mode, map-mode, event-kind};
+
+    /// Add a `:` command. When the user runs it, vox calls the plugin's `run-command`.
+    register-command: func(name: string, description: string);
+    /// Map keys (Vim notation, `<leader>` allowed). `binding` starting with `:` runs a
+    /// command; anything else is keys.
+    map-key: func(mode: map-mode, keys: string, binding: string);
+    /// Receive events of this kind in the plugin's `on-event`.
+    subscribe: func(kind: event-kind);
+
+    /// Show text on the bottom line.
+    message: func(text: string);
+    /// Run a command line, e.g. `w` or `e notes.txt`.
+    run-command: func(line: string);
+
+    /// Path of the current file, if it has one.
+    file-path: func() -> option<string>;
+    /// Number of lines (at least 1).
+    line-count: func() -> u32;
+    /// Text of line `index` without its line ending, or `none` past the end.
+    line: func(index: u32) -> option<string>;
+    /// Insert text; returns the position just after it. A command's edits are one undo step.
+    insert-text: func(at: position, text: string) -> position;
+    /// Delete the text from `start` up to (not including) `end`.
+    delete-text: func(start: position, end: position);
+    /// Cursor position.
+    cursor: func() -> position;
+    /// Move the cursor (clamped to the text).
+    set-cursor: func(pos: position);
+    /// Current mode.
+    current-mode: func() -> mode;
+}
+
+/// A vox plugin.
+world plugin {
+    use types.{event};
+    import editor;
+
+    /// Called once when the plugin is loaded. Register commands, mappings, and events here.
+    export init: func() -> result<_, string>;
+    /// Run a command this plugin registered. `arg` is the text after the name; `force` is
+    /// true for `:name!`. An error is shown to the user.
+    export run-command: func(name: string, arg: option<string>, force: bool) -> result<_, string>;
+    /// Handle an event this plugin subscribed to.
+    export on-event: func(event: event);
+}

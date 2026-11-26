@@ -18,6 +18,11 @@ pub fn default_path() -> Option<PathBuf> {
     Some(base.join("vox").join("config.toml"))
 }
 
+/// Directory plugins are loaded from: `plugins/` next to the config file.
+pub fn plugin_dir() -> Option<PathBuf> {
+    Some(default_path()?.parent()?.join("plugins"))
+}
+
 /// Load and parse the config file at `path`. `Ok(None)` if the file does not exist.
 pub fn load(path: &Path) -> Result<Option<Value>, String> {
     match std::fs::read_to_string(path) {

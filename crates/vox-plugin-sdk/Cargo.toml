@@ -1,0 +1,10 @@
+[package]
+name = "vox-plugin-sdk"
+version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+wit-bindgen = "0.63.0"

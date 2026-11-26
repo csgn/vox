@@ -4,6 +4,7 @@
   --vt-core: #2e9d5b;
   --vt-adapter: #c7811a;
   --vt-binary: #3b7dd8;
+  --vt-sdk: #9b59b6;
   --vt-line: var(--table-border-color, #8884);
   --vt-soft: var(--quote-bg, #8881);
   font-size: 0.95em;
@@ -25,6 +26,7 @@
 .vt-core { color: var(--vt-core); }
 .vt-adapter { color: var(--vt-adapter); }
 .vt-binary { color: var(--vt-binary); }
+.vt-sdk { color: var(--vt-sdk); }
 
 .vt-legend { display: flex; gap: 1.2em; flex-wrap: wrap; margin: 0.5em 0 0.8em; font-size: 0.9em; }
 .vt-legend span::before {
@@ -41,6 +43,7 @@
 .vt-map .node.core rect { stroke: var(--vt-core); }
 .vt-map .node.adapter rect { stroke: var(--vt-adapter); }
 .vt-map .node.binary rect { stroke: var(--vt-binary); }
+.vt-map .node.sdk rect { stroke: var(--vt-sdk); stroke-dasharray: 5 3; }
 .vt-map .node.sel rect { stroke-width: 4; fill: var(--vt-soft); }
 .vt-map .edge { stroke: var(--fg); opacity: 0.25; fill: none; stroke-width: 1.5; }
 .vt-map .edge.hot { opacity: 0.9; stroke-width: 2.5; }

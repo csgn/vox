@@ -1,0 +1,15 @@
+# Plugins are built separately for the WebAssembly target:
+#   scripts/build-plugins.sh
+# Output: plugins/target/wasm32-wasip2/release/*.wasm
+[workspace]
+resolver = "3"
+members = ["text-tools", "misbehave"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true

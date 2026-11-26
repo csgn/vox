@@ -10,7 +10,7 @@
 
   const FN = new Map(D.functions.map((f) => [f.id, f]));
   const CRATES = D.crates;
-  const ORDER = { binary: ["vox"], core: [], adapter: [] };
+  const ORDER = { binary: ["vox"], core: [], adapter: [], sdk: [] };
   for (const [name, c] of Object.entries(CRATES)) {
     if (c.layer !== "binary") ORDER[c.layer].push(name);
   }
@@ -23,11 +23,15 @@
     arboard: "reads and writes the operating system clipboard (X11, Wayland, macOS, Windows)",
     crossterm: "controls the terminal: raw mode, key events, cursor movement and shape, text attributes",
     toml: "reads TOML, the simple settings-file format used by config.toml",
+    wasmtime: "runs WebAssembly programs (the plugins) safely inside vox, with time and memory limits",
+    "wasmtime-wasi": "gives plugins the minimal system interface Rust's standard library expects, with no files, network, or environment",
+    "wit-bindgen": "generates the glue code between a Rust plugin and the vox plugin contract (wit/vox.wit)",
   };
   const LAYER_TEXT = {
     core: "core: std only, no third-party libraries",
     adapter: "adapter: wraps one third-party library behind a core trait",
     binary: "binary: wires adapters into the editor",
+    sdk: "plugin SDK: used by plugin authors; compiled into plugins, not into vox",
   };
 
   // ---------- helpers ----------
@@ -95,17 +99,20 @@
 
   // ---------- crate map ----------
   function crateMap(root) {
-    const W = 820, NH = 58;
+    const W = 900, NH = 58;
     const widest = Math.max(...Object.values(ORDER).map((l) => l.length));
     const NW = Math.min(170, W / widest - 14);
     const rows = { binary: 30, adapter: 165, core: 310 };
     const pos = {};
     for (const [layer, names] of Object.entries(ORDER)) {
+      if (layer === "sdk") continue;
       const n = names.length;
       names.forEach((name, i) => {
         pos[name] = { x: (W / n) * (i + 0.5) - NW / 2, y: rows[layer] };
       });
     }
+    // SDK crates sit top right: they are not part of the editor program.
+    ORDER.sdk.forEach((name, i) => { pos[name] = { x: W - (NW + 10) * (i + 1), y: rows.binary }; });
     const edges = [];
     for (const [name, c] of Object.entries(CRATES)) {
       for (const d of c.deps) if (pos[d]) edges.push([name, d]);
@@ -129,19 +136,22 @@
       <text class="band-label" x="10" y="306">core — std only (the foundation everything else builds on)</text>
       <text class="band-label" x="10" y="155">adapters — one third-party library each</text>
       <text class="band-label" x="10" y="20">binary</text>
+      ${ORDER.sdk.length ? `<text class="band-label" x="${W - NW - 10}" y="20">for plugin authors</text>` : ""}
       ${edges.map(([a, b]) => `<path class="edge" data-a="${a}" data-b="${b}" d="${edgePath(a, b)}" marker-end="url(#vt-arrow)" style="color:var(--fg)"/>`).join("")}
       ${Object.keys(pos).map((name) => {
         const c = CRATES[name], p = pos[name];
-        const sub = c.third_party.length ? `uses ${c.third_party.join(", ")}` : c.layer === "binary" ? "main()" : "std only";
+        const tp = c.third_party;
+        const sub = tp.length ? `uses ${tp[0]}${tp.length > 1 ? ` +${tp.length - 1}` : ""}` : c.layer === "binary" ? "main()" : "std only";
+        const fs = name.length > 13 ? 12 : 14;
         return `<g class="node ${c.layer}" data-crate="${name}" tabindex="0" transform="translate(${p.x},${p.y})">
           <rect width="${NW}" height="${NH}"/>
-          <text x="${NW / 2}" y="25" text-anchor="middle">${esc(name)}</text>
+          <text x="${NW / 2}" y="25" text-anchor="middle" style="font-size:${fs}px">${esc(name)}</text>
           <text class="sub" x="${NW / 2}" y="44" text-anchor="middle">${esc(sub)}</text>
         </g>`;
       }).join("")}
     </svg>`;
     root.classList.add("vt", "vt-map");
-    root.innerHTML = `<div class="vt-legend"><span class="vt-core">core (std only)</span><span class="vt-adapter">adapter (wraps a library)</span><span class="vt-binary">binary</span><span class="vt-muted" style="color:inherit">arrow = “depends on”. Click a crate.</span></div>${svg}<div class="vt-panel" id="vt-crate-panel"></div>`;
+    root.innerHTML = `<div class="vt-legend"><span class="vt-core">core (std only)</span><span class="vt-adapter">adapter (wraps a library)</span><span class="vt-binary">binary</span><span class="vt-sdk">plugin SDK</span><span class="vt-muted" style="color:inherit">arrow = “depends on”. Click a crate.</span></div>${svg}<div class="vt-panel" id="vt-crate-panel"></div>`;
     const panel = root.querySelector("#vt-crate-panel");
 
     function select(name) {

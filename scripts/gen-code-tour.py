@@ -285,11 +285,6 @@ def main():
             types += t
             files.append({"path": rel, "lines": n})
         info["files"] = files
-        info["layer"] = (
-            "binary" if info["binary"]
-            else "adapter" if info["third_party"]
-            else "core"
-        )
         crates[name] = info
     for c in crates.values():
         c["used_by"] = []
@@ -297,6 +292,14 @@ def main():
         for d in c["deps"]:
             if d in crates:
                 crates[d]["used_by"].append(name)
+    for c in crates.values():
+        # sdk: a library no vox crate uses (compiled into plugins, not into vox).
+        c["layer"] = (
+            "binary" if c["binary"]
+            else "sdk" if not c["used_by"]
+            else "adapter" if c["third_party"]
+            else "core"
+        )
 
     # std `Debug` formatting impls are noise in the tour.
     fns = [f for f in fns if f["trait"] != "Debug"]

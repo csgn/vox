@@ -33,6 +33,14 @@
         "text": "Reads `~/.config/vox/config.toml` (if it exists) and applies leader key, mapping timeout, and key mappings. Problems become the first message on screen. See the walkthrough “Loading the config file”."
       },
       {
+        "fn": "vox::load_plugins",
+        "text": "Loads every `*.wasm` file from `~/.config/vox/plugins/`. A broken plugin only produces a message. See the walkthrough “Loading a plugin”."
+      },
+      {
+        "fn": "vox-editor::Editor::start",
+        "text": "Sends the first `BufOpen` event, so plugins learn which file is open."
+      },
+      {
         "fn": "vox-term::run",
         "text": "The main loop. It repeats: measure the terminal, draw the editor, wait for a key, give the key to the editor. It stops when the editor says it should quit."
       },
@@ -465,6 +473,88 @@
       {
         "fn": "vox-editor::Editor::run_command",
         "text": "Runs it from `:up! arg`, from a key mapping like `\"<leader>u\" = \":upper\"`, or directly from code. The handler gets `Args { arg, force }` and may return `Err(message)`."
+      }
+    ]
+  },
+  {
+    "id": "plugin-load",
+    "title": "Loading a plugin",
+    "summary": "How `text_tools.wasm` in the plugin folder becomes new commands, a key mapping, and an event handler.",
+    "steps": [
+      {
+        "fn": "vox::load_plugins",
+        "text": "Finds the plugin folder next to the config file and creates the plugin host."
+      },
+      {
+        "fn": "vox-plugin-host::PluginHost::new",
+        "text": "Sets up the `wasmtime` engine with time limits, a clock thread that ticks every 10 ms, and the functions plugins may call (`wit/vox.wit`)."
+      },
+      {
+        "fn": "vox-plugin-host::PluginHost::load_dir",
+        "text": "Loads each `*.wasm` file, sorted by name."
+      },
+      {
+        "fn": "vox-plugin-host::PluginHost::load",
+        "text": "Compiles the WebAssembly component, gives it its own memory-limited store with no file or network access, and calls its `init`."
+      },
+      {
+        "fn": "vox-plugin-host::call",
+        "text": "Every call into a plugin goes through here: it lends the editor to the plugin for the duration of the call, sets the time budget (about 1 s), and disables the plugin if it crashes or breaks a limit."
+      },
+      {
+        "fn": "vox-plugin-host::HostState::register_command",
+        "text": "During `init` the plugin calls `register-command(\"wordcount\", ...)`. The request is queued..."
+      },
+      {
+        "fn": "vox-plugin-host::HostState::map_key",
+        "text": "`map-key(normal, \"<leader>c\", \":wordcount\")` is applied right away with the user's leader key."
+      },
+      {
+        "fn": "vox-plugin-host::install",
+        "text": "...and installed after `init` returns: a normal editor command whose handler calls back into the plugin, and an event subscription that forwards events to the plugin."
+      },
+      {
+        "fn": "vox-editor::Commands::register",
+        "text": "The plugin's command is registered exactly like a built-in one."
+      }
+    ]
+  },
+  {
+    "id": "plugin-command",
+    "title": "Running a plugin command",
+    "summary": "Typing `:upper` with the text-tools plugin loaded.",
+    "steps": [
+      {
+        "fn": "vox-editor::Editor::run_command",
+        "text": "`:upper` is looked up in the registry like any command. The handler was created by the plugin host."
+      },
+      {
+        "fn": "vox-plugin-host::call",
+        "text": "Lends the editor to the plugin and calls its exported `run-command(\"upper\", none, false)` inside the time limit."
+      },
+      {
+        "fn": "vox-plugin-host::HostState::line",
+        "text": "The plugin asks for the cursor line's text. Every request from the plugin arrives as a call like this one."
+      },
+      {
+        "fn": "vox-plugin-host::HostState::delete_text",
+        "text": "The plugin deletes the old line text..."
+      },
+      {
+        "fn": "vox-plugin-host::HostState::insert_text",
+        "text": "...and inserts the uppercase text. These go to the same `Editor` functions any code uses."
+      },
+      {
+        "fn": "vox-editor::Editor::insert_text",
+        "text": "Core edit API: the change is recorded in the undo history."
+      },
+      {
+        "fn": "vox-editor::Editor::run_command",
+        "text": "Back in core: all edits of the command become one undo step, the cursor is kept valid, and a `TextChanged` event is sent to subscribers."
+      },
+      {
+        "fn": "vox-editor::Editor::subscribe",
+        "text": "Plugins that subscribed (for example to `buf-write`) get events through handlers registered here."
       }
     ]
   }

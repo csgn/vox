@@ -5,6 +5,30 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-26 — M4 plugins
+
+### Added
+- WebAssembly plugins written in Rust. Contract: `wit/vox.wit` (commands, key mappings,
+  events, read/edit text, cursor, mode, messages).
+- `vox-plugin-host` adapter (wasmtime): loads `~/.config/vox/plugins/*.wasm`; per call ~1 s
+  time limit, 64 MiB memory limit, no file/network/environment access. A crashing or
+  misbehaving plugin is disabled; re-entrant calls return an error instead of deadlocking.
+- `vox-plugin-sdk` for plugin authors: `Plugin` trait, `editor::*` functions,
+  `export_plugin!` (wit-bindgen).
+- Example plugin `plugins/text-tools` (`:wordcount`, `:upper`, `<leader>c`, message after save);
+  test plugin `plugins/misbehave`; `scripts/build-plugins.sh`.
+- Editor events: `Event` (`BufOpen`, `BufWrite`, `TextChanged`, `ModeChanged`),
+  `Editor::subscribe`, `Editor::start`.
+- Edit API: `Editor::insert_text`, `delete_text`, public `set_cursor`, `map_key`, `mode_kind`.
+- `Document::revision`.
+- Docs: Plugins (users), Writing plugins (authors), events in Developer API; code-tour
+  walkthroughs "Loading a plugin" and "Running a plugin command"; SDK shown separately on the
+  crate map.
+
+### Changed
+- A command's edits are one undo step and the cursor is kept valid after a command.
+- CI installs the `wasm32-wasip2` target for plugin tests.
+
 ## [0.5.0] - 2026-11-26 — M3 developer API and configuration
 
 ### Added

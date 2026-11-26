@@ -8,20 +8,24 @@ vox (bin) ──────>│ vox-editor ──> vox-view                  �
    │             │      └──────> vox-core                   │
    │             └──────────────────────▲───────────────────┘
    │                                    │ implement core traits
-   └──> adapters: vox-storage ─ vox-width ─ vox-clipboard ─ vox-term ─ vox-config-file
+   └──> adapters: vox-storage ─ vox-width ─ vox-clipboard ─ vox-term ─ vox-config-file ─ vox-plugin-host
+
+   plugins (.wasm) ──> vox-plugin-sdk (for plugin authors) ── contract: wit/vox.wit
 ```
 
 | Crate | Layer | Responsibility | Third-party library used |
 |---|---|---|---|
 | `vox-core` | core | `Document` over `TextStorage` trait, `Position`, undo/redo, `motion`, literal `search`, `SimpleStorage` | none |
 | `vox-view` | core | `Viewport`, `CharWidth` trait (+ `Monospace`), char-column → screen-cell mapping | none |
-| `vox-editor` | core | `Editor`: modes, Vim grammar, registers; developer API (command registry, key mappings, `Config` from a format-neutral `Value`); own `Key` types; renders to own `Surface`; `Clipboard` trait; `Services` injection | none |
+| `vox-editor` | core | `Editor`: modes, Vim grammar, registers; developer API (command registry, key mappings, events, edit functions, `Config` from a format-neutral `Value`); own `Key` types; renders to own `Surface`; `Clipboard` trait; `Services` injection | none |
 | `vox-storage` | adapter | `Storage: TextStorage` — fast text storage for large files (tree of text chunks) | ropey |
 | `vox-width` | adapter | `UnicodeWidth: CharWidth` — terminal cell width of each char | unicode-width |
 | `vox-clipboard` | adapter | `SystemClipboard: Clipboard` — system copy/paste | arboard |
 | `vox-term` | adapter | terminal: raw mode, key input → `Key`, draws `Surface` (row diff), run loop with mapping timeout | crossterm |
 | `vox-config-file` | adapter | finds and reads `config.toml`, converts it to `Value` | toml |
-| `vox` | binary | builds `Services` from adapters, loads the config, opens the file, runs `vox-term` | none directly |
+| `vox-plugin-host` | adapter | runs WebAssembly plugins (time/memory limits, no system access); maps plugin requests to the `Editor` API | wasmtime, wasmtime-wasi |
+| `vox-plugin-sdk` | plugin SDK | Rust glue for plugin authors, from `wit/vox.wit` (not linked into vox) | wit-bindgen |
+| `vox` | binary | builds `Services` from adapters, loads the config and plugins, opens the file, runs `vox-term` | none directly |
 
 ## Rules
 - **Core crates are `std`-only.** A third-party crate may only appear in an adapter crate or
@@ -36,4 +40,4 @@ vox (bin) ──────>│ vox-editor ──> vox-view                  �
 See `docs/src/dev/dependencies.md` for how to add a new dependency.
 
 ## Planned crates
-`vox-plugin-host` (wasmtime adapter), `vox-plugin-sdk`, `vox-claude`. Added only when a milestone needs them.
+`vox-claude`. Added only when a milestone needs them.

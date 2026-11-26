@@ -28,6 +28,10 @@ live in **adapter** crates. `scripts/check-deps.sh` enforces this in CI.
 | `vox-clipboard` | system copy/paste | `vox_editor::Clipboard` | arboard |
 | `vox-term` | terminal input and drawing | terminal I/O for `Key` / `Surface` | crossterm |
 | `vox-config-file` | find and read `config.toml` | produces `vox_editor::Value` | toml |
+| `vox-plugin-host` | run plugins in a sandbox | uses the `Editor` API for each plugin request | wasmtime, wasmtime-wasi (one project: the runtime and its system-interface part) |
+
+`vox-plugin-sdk` is not part of vox: plugin authors compile it into their plugins. It uses
+`wit-bindgen` to generate glue code from `wit/vox.wit`.
 
 `ropey` stores text as a *rope*: a balanced tree of small text chunks, so inserting or
 deleting in a large file does not copy the whole file.

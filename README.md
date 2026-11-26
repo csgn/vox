@@ -11,6 +11,17 @@ key mappings, events), a config file
 (`~/.config/vox/plugins/*.wasm`, see `plugins/text-tools`). Editor logic is `std`-only; third-party libraries live in small
 adapter crates (see [ARCHITECTURE.md](ARCHITECTURE.md)).
 
+## About this project
+
+vox is a personal, non-commercial project for learning and experimenting, developed with the
+help of AI tools (Claude Code).
+
+- It is not affiliated with or endorsed by Vim, Neovim, Anthropic, or any other project or
+  company.
+- vox borrows familiar ideas from modal editors (Vim-style keys, commands, plugins). It does
+  not aim to copy any project, and no code from other editors was knowingly copied.
+- Names and trademarks belong to their owners.
+
 ## Build
 
 ```sh

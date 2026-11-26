@@ -7,8 +7,8 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-vox-core = { version = "0.16.1", path = "../vox-core" }
-vox-view = { version = "0.16.1", path = "../vox-view" }
+vox-core = { version = "0.16.2", path = "../vox-core" }
+vox-view = { version = "0.16.2", path = "../vox-view" }
 
 [dev-dependencies]
 insta = "1.49.0"

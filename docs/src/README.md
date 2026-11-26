@@ -3,4 +3,4 @@
 Vim-like modal terminal editor in Rust. Not a Neovim clone: a small editor focused on
 Vim-style editing, a simple developer API, Rust/WASM plugins, and built-in Claude.
 
-Current version: 0.16.1 (M14 — vox run; job progress).
+Current version: 0.16.2 (M14 — vox run; job progress).

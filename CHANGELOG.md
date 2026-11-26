@@ -5,6 +5,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.16.2] - 2026-11-27 — test release
+
+No changes. Released to test the updater (`:update install`, progress box).
+
 ## [0.16.1] - 2026-11-27 — job progress
 
 ### Added

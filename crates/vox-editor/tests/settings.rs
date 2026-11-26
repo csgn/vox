@@ -165,7 +165,8 @@ fn other_owners_mappings_are_read_only() {
     ed.with_owner("plugin:x", |ed| {
         ed.map_key(vox_editor::MapMode::Normal, "X", ":q")
     });
-    feed(&mut ed, ":settings keys<CR>d");
+    // Rows: the default <leader>p mapping, then plugin:x's X.
+    feed(&mut ed, ":settings keys<CR>jd");
     assert_eq!(
         ed.modal_title().as_deref(),
         Some("Key mappings"),

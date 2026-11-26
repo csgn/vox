@@ -136,11 +136,11 @@ fn add_packaged_folder_then_remove() {
         "loaded right away"
     );
 
-    feed(&mut ed, ":plugin remove text-tools<CR>");
+    feed(&mut ed, ":plugin remove! text-tools<CR>");
     assert!(!project.join(".vox/plugins/text-tools").exists());
     assert!(lockfile(&project).get("text-tools").is_none());
     assert!(ed.commands().get("wordcount").is_none());
-    feed(&mut ed, ":plugin remove text-tools<CR>");
+    feed(&mut ed, ":plugin remove! text-tools<CR>");
     assert!(ed.message().unwrap().contains("not installed"));
     std::fs::remove_dir_all(&base).unwrap();
 }

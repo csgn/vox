@@ -82,7 +82,9 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
 - `install.rs`: `install` (path or git; package or project built with `cargo`),
   `install_locked`, `uninstall`, `check_lock`; uses `git` / `cargo` through std `process`.
 - `sha256.rs`: checksums, std only.
-- `manage.rs`: `:plugin add`, `:plugin remove`, `:plugins sync`; installs run as editor jobs
+- `manager.rs`: `ManagerView`, the plugin manager list; refreshes from `Editor::plugin_infos`
+  and `vox.lock` through `View::refresh` after every command and finished job.
+- `manage.rs`: `:plugins`, `:plugin add|remove|enable|disable|files`, `:plugins sync`; installs run as editor jobs
   (`Editor::spawn_job`: a thread plus a channel drained in `tick`).
 - The host takes a `ValueParser` (TOML from `vox-config-file`) so core never parses TOML.
 

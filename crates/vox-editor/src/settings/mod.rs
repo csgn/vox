@@ -9,7 +9,7 @@ use std::path::Path;
 use crate::config::{Config, Value};
 use crate::keymap::MapMode;
 use crate::plugin::{SettingKind, SettingSpec, SettingValue};
-use crate::ui::{NotifyPosition, SidePosition};
+use crate::ui::{ManagerPlace, NotifyPosition, SidePosition};
 
 mod dialog;
 pub(crate) use dialog::register;
@@ -151,6 +151,12 @@ pub fn vox_settings() -> Vec<SettingSpec> {
             Text("top-right".into()),
             "Notification corner",
         ),
+        spec(
+            "ui.plugin_manager",
+            choice(&["modal", "side"]),
+            Text("modal".into()),
+            "Where :plugins opens",
+        ),
     ]
 }
 
@@ -208,6 +214,11 @@ impl Config {
             Value::Integer(self.ui.notify_timeout_ms as i64),
         );
         ui.insert("notify_position".into(), s(notify));
+        let manager = match self.ui.plugin_manager {
+            ManagerPlace::Modal => "modal",
+            ManagerPlace::Side => "side",
+        };
+        ui.insert("plugin_manager".into(), s(manager));
         let mut keymap: BTreeMap<String, Value> = BTreeMap::new();
         for (mode, lhs, rhs) in &self.keymaps {
             let table = keymap

@@ -3,6 +3,53 @@
 Plugins add commands, key mappings, and reactions to events. A plugin is a single `.wasm`
 file (a WebAssembly component).
 
+## Plugin manager
+
+`:plugins` (or `<leader>p`) lists every plugin of the active [scope](scopes.md): status,
+version, and where it came from (from `vox.lock`). The selected plugin's description, first
+problem, and what it adds (commands, keys) are shown below the list.
+
+```
+┌─ Plugins — local: /home/me/app/.vox/plugins ─────────────────────────┐
+│ ✓ text-tools  0.2.0    ok        path ../pkgs/text-tools             │
+│ ! formatter   1.1.0    missing   git https://example.com/fmt.git@v1  │
+│ – notes       0.3.0    disabled  not in vox.lock                     │
+│                                                                      │
+│ text-tools: Word count and case commands                             │
+│ healthy                                                              │
+│ adds :wordcount :upper · \c · 0 setting(s)                           │
+│ a add · e settings · E files · Space on/off · D delete · r reload ·… │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+| Key | Action |
+|---|---|
+| `j` / `k`, `g` / `G` | move |
+| `a` | add a plugin: a folder, or a git URL (optionally `@tag`) |
+| `e`, `Enter` | edit the plugin's settings (the [settings form](settings.md)) |
+| `E` | open the plugin's `plugin.toml` |
+| `Space` | turn on / off (saved as `enabled = false` in `config.toml`) |
+| `D` | delete (asks first) |
+| `r` | reload |
+| `h` | health report |
+| `s` | install what `vox.lock` lists (sync) |
+| `c` | project mode: copy plugins from your global setup |
+| `?` | key help |
+| `q`, `Esc` | close |
+
+Dialogs opened from the manager go back to it (`Esc`). Every action is also a command
+(`:plugin add`, `:plugin enable NAME`, `:plugin disable NAME`, `:plugin remove NAME`,
+`:plugin files NAME`, `:plugins sync`, ...), so it can be typed or mapped.
+
+The manager opens as a centered dialog, or in the side panel:
+
+```toml
+[ui]
+plugin_manager = "side"   # default "modal"
+```
+
+With `--vanilla` the manager only explains that plugins are off.
+
 ## Installing
 
 Install into the active [scope](scopes.md) (your global setup, or the project with

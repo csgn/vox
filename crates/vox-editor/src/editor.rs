@@ -126,6 +126,8 @@ pub struct Editor {
     config: Config,
     /// Writes edits into the scope's config file (from an adapter).
     config_writer: Option<crate::settings::ConfigWriter>,
+    /// Plugins known to the plugin host, for the plugin manager.
+    plugin_infos: Vec<crate::plugin::PluginInfo>,
     /// Settings each plugin declares in its manifest.
     plugin_settings: std::collections::BTreeMap<String, Vec<crate::plugin::SettingSpec>>,
     /// `[plugins.NAME]` values from the config.
@@ -155,6 +157,8 @@ pub struct Editor {
     pending_since: Option<Instant>,
     /// Nesting depth of public entry points; only the outermost sends change events.
     event_depth: u32,
+    /// A command ran since open views were last refreshed.
+    views_stale: bool,
 }
 
 impl std::fmt::Debug for Editor {
@@ -182,7 +186,7 @@ impl Editor {
         commands.owner = owner::BUILTIN.into();
         builtin::register(&mut commands);
         commands.owner = owner::USER.into();
-        Self {
+        let mut ed = Self {
             doc,
             view: Viewport::default(),
             cursor: Position::default(),
@@ -214,6 +218,7 @@ impl Editor {
             jobs_running: 0,
             file_format: None,
             plugin_settings: Default::default(),
+            plugin_infos: Vec::new(),
             // Until the binary sets one: global without a folder (no badge, nothing loaded).
             scope: Scope {
                 kind: crate::scope::ScopeKind::Global,
@@ -233,7 +238,10 @@ impl Editor {
             clock: services.clock,
             pending_since: None,
             event_depth: 0,
-        }
+            views_stale: false,
+        };
+        ed.default_mappings();
+        ed
     }
 
     /// Replace the clipboard used by the `"+` and `"*` registers.
@@ -339,6 +347,9 @@ impl Editor {
             ed.map_pending.push(key);
             ed.resolve_mappings(false);
         });
+        if self.views_stale {
+            self.refresh_views();
+        }
         self.pending_since = match (self.map_pending.is_empty(), self.pending_since) {
             (true, _) => None,
             (false, None) => Some((self.clock)()),
@@ -651,6 +662,7 @@ impl Editor {
                 JobMsg::Done(done) => {
                     self.jobs_running = self.jobs_running.saturating_sub(1);
                     done(self);
+                    self.refresh_views();
                 }
             }
         }
@@ -1518,15 +1530,23 @@ impl Editor {
                 Some((w, r)) => (w, Some(r.trim()).filter(|r| !r.is_empty())),
                 None => (a, None),
             };
+            // `:plugin remove! x`: the `!` may follow the subcommand.
+            let (word, bang) = match word.strip_suffix('!') {
+                Some(w) => (w, true),
+                None => (word, false),
+            };
             let name = format!("{root} {word}");
-            self.commands.get(&name).is_some().then_some((name, rest))
+            self.commands
+                .get(&name)
+                .is_some()
+                .then_some((name, rest, bang))
         });
         let (name, args) = match sub {
-            Some((name, rest)) => (
+            Some((name, rest, bang)) => (
                 name,
                 command::Args {
                     arg: rest,
-                    force: args.force,
+                    force: args.force || bang,
                 },
             ),
             None => (root.to_string(), args),
@@ -1562,6 +1582,37 @@ impl Editor {
             }
             ed.set_cursor(ed.cursor);
         });
+        // Refreshed once the outermost key or command is done.
+        self.views_stale = true;
+        if self.event_depth == 0 {
+            self.refresh_views();
+        }
+    }
+
+    /// Let open views (panels, modal) update from editor state.
+    pub fn refresh_views(&mut self) {
+        self.views_stale = false;
+        for slot in [Some(PanelSlot::Side), Some(PanelSlot::Bottom), None] {
+            let taken = match slot {
+                None => self.modal.take(),
+                Some(PanelSlot::Side) => self.side.take(),
+                Some(PanelSlot::Bottom) => self.bottom.take(),
+            };
+            if let Some(mut view) = taken {
+                view.refresh(self);
+                self.put_view(slot, view);
+            }
+        }
+    }
+
+    /// What the plugin host knows about each plugin (status, findings, settings).
+    pub fn plugin_infos(&self) -> &[crate::plugin::PluginInfo] {
+        &self.plugin_infos
+    }
+
+    /// Set by the plugin host after loading or reloading plugins.
+    pub fn set_plugin_infos(&mut self, infos: Vec<crate::plugin::PluginInfo>) {
+        self.plugin_infos = infos;
     }
 
     /// The command registry, to look up or list commands.
@@ -1592,6 +1643,7 @@ impl Editor {
         self.leader = cfg.leader.clone();
         self.config = cfg.clone();
         self.plugin_config = cfg.plugins.clone();
+        self.default_mappings();
         self.remove_owned(owner::CONFIG);
         self.with_owner(owner::CONFIG, |ed| {
             for (mode, lhs, rhs) in &cfg.keymaps {
@@ -1601,6 +1653,15 @@ impl Editor {
         if cfg.developer_mode != self.developer_mode {
             self.set_developer_mode(cfg.developer_mode);
         }
+    }
+
+    /// vox's default mappings (owner `defaults`), made again with the current leader. Config
+    /// mappings of the same keys win.
+    pub(crate) fn default_mappings(&mut self) {
+        self.remove_owned(owner::DEFAULTS);
+        self.with_owner(owner::DEFAULTS, |ed| {
+            ed.map_key(MapMode::Normal, "<leader>p", ":plugins");
+        });
     }
 
     /// Map `lhs` to `rhs` in `mode`, both in Vim notation with `<leader>` allowed. `rhs`

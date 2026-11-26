@@ -924,5 +924,36 @@
         "text": "The lockfile is read through the injected TOML parser; core never parses TOML itself."
       }
     ]
+  },
+  {
+    "id": "manager",
+    "title": "Turning a plugin off in the plugin manager",
+    "summary": "`<leader>p`, select a plugin, `Space`.",
+    "steps": [
+      {
+        "fn": "vox-editor::Editor::default_mappings",
+        "text": "`<leader>p` is a default mapping to `:plugins`, made again whenever the leader changes."
+      },
+      {
+        "fn": "vox-editor::manage::open_manager",
+        "text": "Opens the manager as a modal or in the side panel, per `[ui] plugin_manager`."
+      },
+      {
+        "fn": "vox-editor::ManagerView::refresh",
+        "text": "Builds the rows from the plugin host's infos (`Editor::plugin_infos`), the commands and keys each plugin owns, and `vox.lock` (sources, missing plugins)."
+      },
+      {
+        "fn": "vox-editor::ManagerView::handle_key",
+        "text": "`Space` returns `Outcome::Run(\"plugin disable NAME\")`: every action is a command."
+      },
+      {
+        "fn": "vox-editor::manage::set_enabled",
+        "text": "Saves `[plugins.NAME] enabled = false` with the M9 config writer (comments kept) and reloads the plugin, which the host now skips as disabled."
+      },
+      {
+        "fn": "vox-editor::Editor::refresh_views",
+        "text": "After the key is handled, open views refresh, so the row now reads `disabled`."
+      }
+    ]
   }
 ]

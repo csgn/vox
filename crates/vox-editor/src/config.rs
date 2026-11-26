@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 
 use crate::keymap::MapMode;
-use crate::ui::{NotifyPosition, SidePosition, UiConfig};
+use crate::ui::{ManagerPlace, NotifyPosition, SidePosition, UiConfig};
 
 /// Parses a file's text (e.g. TOML) into a [`Value`]; provided by an adapter.
 pub type ValueParser = fn(&str) -> Result<Value, String>;
@@ -194,6 +194,13 @@ fn parse_ui(t: &BTreeMap<String, Value>, ui: &mut UiConfig, errors: &mut Vec<Str
             .ok_or_else(|| {
                 "`ui.notify_position` must be \"top-right\" or \"bottom-right\"".to_string()
             }),
+            "plugin_manager" => match v {
+                Value::String(s) if s == "modal" => Some(ManagerPlace::Modal),
+                Value::String(s) if s == "side" => Some(ManagerPlace::Side),
+                _ => None,
+            }
+            .map(|p| ui.plugin_manager = p)
+            .ok_or_else(|| "`ui.plugin_manager` must be \"modal\" or \"side\"".to_string()),
             "side_width" => int(10, 500).map(|n| ui.side_width = n as u16),
             "bottom_height" => int(3, 200).map(|n| ui.bottom_height = n as u16),
             "modal_width" => int(10, 100).map(|n| ui.modal_width = n as u16),

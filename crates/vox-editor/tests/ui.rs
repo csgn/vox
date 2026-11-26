@@ -268,7 +268,8 @@ mod devmode {
         assert!(ed.has_panel(PanelSlot::Bottom));
         feed(&mut ed, "q:devmode off<CR>");
         assert!(!ed.developer_mode());
-        assert_eq!(ed.keymap().iter().count(), 0);
+        let dev = ed.keymap().iter().filter(|m| m.3 == owner::DEVMODE).count();
+        assert_eq!(dev, 0);
     }
 
     #[test]
@@ -342,7 +343,7 @@ mod devmode {
             Some("E32: No file name"),
             "built-in write is back"
         );
-        assert_eq!(ed.keymap().iter().count(), 0);
+        assert_eq!(ed.keymap().iter().filter(|m| m.3 == "plugin:t").count(), 0);
     }
 }
 

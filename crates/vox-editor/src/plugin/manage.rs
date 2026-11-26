@@ -14,13 +14,62 @@ use crate::ui::Level;
 /// Register the commands.
 pub(crate) fn register(c: &mut Commands) {
     c.register(
+        "plugins",
+        "Open the plugin manager (modal or side panel, see [ui] plugin_manager).",
+        |ed, _| {
+            open_manager(ed);
+            Ok(())
+        },
+    );
+    c.register("plugins help", "Keys of the plugin manager.", |ed, _| {
+        let lines = super::manager::HELP
+            .iter()
+            .map(|(k, v)| (crate::surface::Style::default(), format!("{k:<10} {v}")))
+            .collect();
+        ed.open_modal(Box::new(crate::ui::TextView::new(
+            "Plugin manager keys",
+            lines,
+        )));
+        Ok(())
+    });
+    c.register(
+        "plugin enable",
+        "Turn a plugin on (removes `enabled = false` from config.toml) and load it.",
+        |ed, a| set_enabled(ed, a, true),
+    );
+    c.register(
+        "plugin disable",
+        "Turn a plugin off (`enabled = false` in config.toml) and unload it.",
+        |ed, a| set_enabled(ed, a, false),
+    );
+    c.register(
+        "plugin files",
+        "Open a plugin's plugin.toml: `:plugin files NAME`.",
+        |ed, a| {
+            let name = a.arg.ok_or("E471: Use :plugin files NAME")?;
+            let info = ed
+                .plugin_infos()
+                .iter()
+                .find(|i| i.name == name)
+                .ok_or_else(|| format!("E900: no plugin named {name}"))?;
+            let path = if info.path.is_dir() {
+                info.path.join("plugin.toml")
+            } else {
+                info.path.clone()
+            };
+            ed.close_modal();
+            ed.run_command(&format!("e {}", path.display()));
+            Ok(())
+        },
+    );
+    c.register(
         "plugin add",
         "Install a plugin into the active scope: `:plugin add PATH` or `:plugin add GIT_URL[@REF]`.",
         add,
     );
     c.register(
         "plugin remove",
-        "Uninstall a plugin from the active scope: `:plugin remove NAME`.",
+        "Uninstall a plugin from the active scope: asks first; `:plugin remove! NAME` does not.",
         remove,
     );
     c.register(
@@ -85,10 +134,14 @@ fn load(ed: &mut Editor, name: Option<&str>) {
 
 /// `:plugin add SOURCE`.
 fn add(ed: &mut Editor, a: Args<'_>) -> CommandResult {
-    let source = a
-        .arg
-        .ok_or("E471: Use :plugin add PATH or :plugin add GIT_URL[@REF]")?;
     let ctx = ctx(ed)?;
+    let Some(source) = a.arg else {
+        let input =
+            crate::ui::Input::new("Add plugin", "folder or git URL[@REF]: ", "plugin add {}")
+                .returning();
+        ed.open_modal(Box::new(input));
+        return Ok(());
+    };
     let cwd = std::env::current_dir().unwrap_or_default();
     let spec = install::parse_source(source, &cwd);
     let label = match &spec {
@@ -143,6 +196,18 @@ fn record(ctx: &Ctx, entries: &[LockEntry]) -> Result<(), String> {
 fn remove(ed: &mut Editor, a: Args<'_>) -> CommandResult {
     let name = a.arg.ok_or("E471: Use :plugin remove NAME")?;
     let ctx = ctx(ed)?;
+    let installed =
+        ctx.plugin_dir.join(name).exists() || ctx.plugin_dir.join(format!("{name}.wasm")).exists();
+    if !a.force && installed {
+        let ask = crate::ui::Confirm::new(
+            "Delete plugin",
+            format!("Delete {name} from {}?", ctx.plugin_dir.display()),
+            format!("plugin remove! {name}"),
+        )
+        .returning();
+        ed.open_modal(Box::new(ask));
+        return Ok(());
+    }
     install::uninstall(name, &ctx.plugin_dir).map_err(|e| format!("E900: {e}"))?;
     let mut l = lock::read(&ctx.lock_path, ctx.parse)?;
     if l.remove(name) {
@@ -247,4 +312,47 @@ pub fn lock_status_notice(ed: &mut Editor) {
             format!("{off} plugin(s) missing or changed — run :plugins sync"),
         );
     }
+}
+
+/// Open the plugin manager where `[ui] plugin_manager` says.
+fn open_manager(ed: &mut Editor) {
+    use crate::ui::{ManagerPlace, PanelSlot};
+    match ed.ui_config().plugin_manager {
+        ManagerPlace::Modal => {
+            let view = super::manager::ManagerView::new(ed, true);
+            ed.open_modal(Box::new(view));
+        }
+        ManagerPlace::Side => {
+            let view = super::manager::ManagerView::new(ed, false);
+            ed.open_panel(PanelSlot::Side, Box::new(view));
+        }
+    }
+}
+
+/// `:plugin enable|disable NAME`: change `[plugins.NAME] enabled` and reload the plugin.
+fn set_enabled(ed: &mut Editor, a: Args<'_>, on: bool) -> CommandResult {
+    use crate::config::Value;
+    use crate::settings::ConfigEdit;
+    let name = a
+        .arg
+        .ok_or("E471: Use :plugin enable NAME / :plugin disable NAME")?;
+    if !ed.plugin_infos().iter().any(|i| i.name == name) {
+        return Err(format!("E900: no plugin named {name}"));
+    }
+    let path = vec![
+        "plugins".to_string(),
+        name.to_string(),
+        "enabled".to_string(),
+    ];
+    let edit = if on {
+        ConfigEdit::Remove(path)
+    } else {
+        ConfigEdit::Set(path, Value::Bool(false))
+    };
+    let saved = ed.save_config_edits(&[edit])?;
+    load(ed, Some(name));
+    let state = if on { "on" } else { "off" };
+    let note = if saved { "" } else { " (this session only)" };
+    ed.notify(Level::Info, format!("{name} is {state}{note}"));
+    Ok(())
 }

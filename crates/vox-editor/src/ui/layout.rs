@@ -22,6 +22,16 @@ pub enum NotifyPosition {
     BottomRight,
 }
 
+/// Where the plugin manager opens.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ManagerPlace {
+    /// Centered modal.
+    #[default]
+    Modal,
+    /// Side panel.
+    Side,
+}
+
 /// UI settings (`[ui]` in the config file).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UiConfig {
@@ -39,6 +49,8 @@ pub struct UiConfig {
     pub notify_timeout_ms: u64,
     /// Notification corner.
     pub notify_position: NotifyPosition,
+    /// Where `:plugins` opens.
+    pub plugin_manager: ManagerPlace,
 }
 
 impl Default for UiConfig {
@@ -51,6 +63,7 @@ impl Default for UiConfig {
             modal_height: 60,
             notify_timeout_ms: 4000,
             notify_position: NotifyPosition::TopRight,
+            plugin_manager: ManagerPlace::Modal,
         }
     }
 }

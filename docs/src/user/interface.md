@@ -61,6 +61,7 @@ modal_width = 70              # percent of the screen
 modal_height = 60             # percent of the screen
 notify_timeout_ms = 4000
 notify_position = "top-right" # or "bottom-right"
+plugin_manager = "modal"      # or "side": where :plugins opens
 ```
 
 Panels shrink on small screens so the text stays usable.

@@ -368,3 +368,34 @@ fn builtin_subcommands() {
         "cleared"
     );
 }
+
+#[test]
+fn bang_after_a_subcommand_forces_it() {
+    let mut ed = editor("x");
+    let forced = Rc::new(Cell::new(None));
+    let f = forced.clone();
+    ed.commands_mut().register("thing drop", "", move |_, a| {
+        f.set(Some((a.force, a.arg.map(String::from))));
+        Ok(())
+    });
+    ed.run_command("thing drop! a");
+    assert_eq!(forced.take(), Some((true, Some("a".into()))));
+    ed.run_command("thing! drop a");
+    assert_eq!(forced.take(), Some((true, Some("a".into()))));
+    ed.run_command("thing drop a");
+    assert_eq!(forced.take(), Some((false, Some("a".into()))));
+}
+
+#[test]
+fn leader_p_opens_the_plugin_manager() {
+    let mut ed = editor("x");
+    feed(&mut ed, "\\p");
+    assert!(ed.modal_title().unwrap().starts_with("Plugins — "));
+    let cfg = Config {
+        leader: " ".into(),
+        ..Default::default()
+    };
+    ed.apply_config(&cfg);
+    feed(&mut ed, "<Esc><Space>p");
+    assert!(ed.has_modal(), "follows the leader");
+}

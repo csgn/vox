@@ -20,7 +20,7 @@ Built one milestone at a time; each ships with tests, docs, and a changelog entr
 | M8 | 0.10.0 | Plugin packages: standard project structure, `plugin.toml` manifest (with typed settings), health checks (error / warning / info) for plugins, vox version, programs, custom checks | done |
 | M9 | 0.11.0 | Settings editor: `:settings` dialog to edit vox settings, key mappings, and each plugin's settings; saves to the active scope's `config.toml`, keeping comments | done |
 | M10 | 0.12.0 | Lockfile and installer: `vox.lock` per scope (version, path or git URL + commit, checksum), install from path or git, `:plugins sync` | done |
-| M11 | 0.13.0 | Plugin manager (modal or side panel), scope-aware: list, add (installs into the active scope only), edit settings / open files, enable/disable, delete, reload, health, sync | next |
+| M11 | 0.13.0 | Plugin manager (modal or side panel), scope-aware: list, add (installs into the active scope only), edit settings / open files, enable/disable, delete, reload, health, sync | done |
 
 ## Scopes
 

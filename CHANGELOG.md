@@ -5,6 +5,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-27 — M11 plugin manager
+
+### Added
+- `:plugins` / `<leader>p`: plugin manager for the active scope. Lists status, version,
+  source (from `vox.lock`), locked-but-missing plugins; details show description, first
+  problem, and what the plugin adds. Keys: `a` add, `e` settings, `E` files, `Space` on/off,
+  `D` delete, `r` reload, `h` health, `s` sync, `c` copy from global (project mode), `?` help.
+  Dialogs go back to it. Vanilla mode explains that plugins are off.
+- `[ui] plugin_manager = "modal" | "side"` (also in `:settings`).
+- Commands: `:plugin enable NAME`, `:plugin disable NAME` (write `[plugins.NAME] enabled`),
+  `:plugin files NAME`, `:plugins help`; `:plugin add` without an argument asks for the
+  source.
+- `View::refresh`, `Editor::refresh_views`: open views update after commands and jobs.
+- `Editor::plugin_infos` / `set_plugin_infos` (kept up to date by the plugin host).
+- Default mappings owned by `defaults`, re-made when the leader changes.
+
+### Changed
+- `:plugin remove NAME` asks first; `:plugin remove! NAME` does not.
+- A `!` after a subcommand forces it (`:plugin remove! x`, same as `:plugin! remove x`).
+- Saving settings drops a table the edit left empty (e.g. `[plugins.NAME]` after turning the
+  plugin back on).
+
 ## [0.12.0] - 2026-11-27 — M10 lockfile and installer
 
 ### Added

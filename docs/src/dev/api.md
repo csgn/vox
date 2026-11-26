@@ -72,6 +72,8 @@ into a `Value`. A new setting means: a field in `Config`, a case in `from_value`
 | `set_developer_mode(on)`, `developer_mode()` | developer mode |
 | `config()`, `save_config_edits(edits)`, `set_config_writer(w)` | read and change the config |
 | `set_plugin_settings(name, specs)`, `plugin_settings()` | plugin settings schemas (from the plugin host) |
+| `plugin_infos()`, `set_plugin_infos(infos)` | status of every plugin (set by the plugin host) |
+| `refresh_views()` | let open panels and the modal update (`View::refresh`); runs after commands and jobs |
 | `spawn_job(title, work)`, `jobs_running()` | background work; `work` reports progress and returns a `JobDone` run on the editor's thread |
 | `set_file_format(parse, format)` | TOML reader/writer for plugin and lock files (from an adapter) |
 

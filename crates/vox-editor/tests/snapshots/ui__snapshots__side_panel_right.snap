@@ -3,8 +3,8 @@ source: crates/vox-editor/tests/ui.rs
 expression: "screen(&mut ed, 50, 8)"
 ---
 "  1 hello                 ┌─ Key mappings ───────┐"
-"  2 world                 │ n H → ^  (config)    │"
-"~                         │                      │"
+"  2 world                 │ n \p → :plugins  (def│"
+"~                         │ n H → ^  (config)    │"
 "~                         │                      │"
 "~                         │                      │"
 "~                         └──────────────────────┘"

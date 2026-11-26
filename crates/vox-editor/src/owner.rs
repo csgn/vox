@@ -5,6 +5,8 @@
 pub const BUILTIN: &str = "builtin";
 /// From the user's config file.
 pub const CONFIG: &str = "config";
+/// vox's default key mappings (e.g. `<leader>p`), re-made when the leader changes.
+pub const DEFAULTS: &str = "defaults";
 /// Developer mode's default mappings.
 pub const DEVMODE: &str = "devmode";
 /// Added through the API without a more specific owner (the default).

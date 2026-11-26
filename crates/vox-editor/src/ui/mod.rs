@@ -11,7 +11,7 @@ mod views;
 
 pub use form::Form;
 pub(crate) use layout::{Layout, compute};
-pub use layout::{NotifyPosition, SidePosition, UiConfig};
+pub use layout::{ManagerPlace, NotifyPosition, SidePosition, UiConfig};
 pub use notify::{Level, Notification};
 pub use views::{CheckList, Confirm, Input, ListItem, ListView, TextView};
 
@@ -59,6 +59,8 @@ pub trait View {
     fn as_log_view(&mut self) -> Option<&mut crate::log::LogView> {
         None
     }
+    /// Update from editor state; called after every command and finished background job.
+    fn refresh(&mut self, _ed: &crate::Editor) {}
 }
 
 /// Where a panel is shown.

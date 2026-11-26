@@ -156,19 +156,25 @@ fn set(root: &mut toml_edit::Item, keys: &[String], value: toml_edit::Item) -> R
 }
 
 /// Remove `keys` (a path) if present.
-fn remove(root: &mut toml_edit::Item, keys: &[String]) {
-    let Some((last, parents)) = keys.split_last() else {
-        return;
-    };
-    let mut item = root;
-    for k in parents {
-        match item.get_mut(k) {
-            Some(next) => item = next,
-            None => return,
+fn remove(item: &mut toml_edit::Item, keys: &[String]) {
+    match keys {
+        [] => {}
+        [last] => {
+            if let Some(t) = item.as_table_like_mut() {
+                t.remove(last);
+            }
         }
-    }
-    if let Some(t) = item.as_table_like_mut() {
-        t.remove(last);
+        [first, rest @ ..] => {
+            let Some(child) = item.get_mut(first) else {
+                return;
+            };
+            remove(child, rest);
+            // Drop a table the removal left empty (e.g. `[plugins.x]` after `enabled`).
+            let empty = child.as_table_like().is_some_and(|t| t.is_empty());
+            if let (true, Some(t)) = (empty, item.as_table_like_mut()) {
+                t.remove(first);
+            }
+        }
     }
 }
 
@@ -304,7 +310,10 @@ mod tests {
         let mut ed = Editor::new(Document::from_text("x"));
         register_commands(&mut ed, p.clone());
         assert!(load_and_apply(&mut ed, &p));
-        assert_eq!(ed.keymap().len(), 2);
+        assert_eq!(
+            ed.keymap().iter().filter(|m| m.3 == owner::CONFIG).count(),
+            2
+        );
         std::fs::write(
             &p,
             "developer_mode = true\nbogus = 1\n[keymap.normal]\nH = \"0\"\n",
@@ -370,6 +379,10 @@ mod tests {
         assert!(out.contains("\"<leader>w\" = \":w\""), "{out}");
         assert!(!out.contains("H = "), "{out}");
         assert!(
+            out.contains("[keymap.normal]"),
+            "still has other keys: {out}"
+        );
+        assert!(
             out.contains("[plugins.text-tools]") && !out.contains("[plugins]\n"),
             "{out}"
         );
@@ -397,6 +410,21 @@ mod tests {
         assert!(write_edits(&p, &[ConfigEdit::Set(k("a"), Value::Bool(true))]).is_err());
         assert_eq!(std::fs::read_to_string(&p).unwrap(), "x = [");
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn removing_the_last_key_drops_the_table() {
+        let p = std::env::temp_dir().join(format!("vox-cfg-empty-{}.toml", std::process::id()));
+        std::fs::write(&p, "leader = \" \"\n\n[plugins.x]\nenabled = false\n").unwrap();
+        let path = vec![
+            "plugins".to_string(),
+            "x".to_string(),
+            "enabled".to_string(),
+        ];
+        write_edits(&p, &[ConfigEdit::Remove(path)]).unwrap();
+        let out = std::fs::read_to_string(&p).unwrap();
+        assert_eq!(out.trim(), "leader = \" \"", "{out}");
+        std::fs::remove_file(&p).unwrap();
     }
 
     #[test]

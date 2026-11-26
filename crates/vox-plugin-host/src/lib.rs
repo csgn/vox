@@ -213,12 +213,15 @@ impl PluginHost {
                 );
             }
         }
-        let mut registry = self.registry.borrow_mut();
-        registry.retain(|e| e.info.name != info.name);
-        registry.push(Entry {
-            info: info.clone(),
-            instance,
-        });
+        {
+            let mut registry = self.registry.borrow_mut();
+            registry.retain(|e| e.info.name != info.name);
+            registry.push(Entry {
+                info: info.clone(),
+                instance,
+            });
+        }
+        editor.set_plugin_infos(self.plugins());
         info
     }
 
@@ -249,6 +252,7 @@ impl PluginHost {
             editor.remove_owned(&owner::plugin(&n));
             editor.set_plugin_settings(&n, Vec::new());
         }
+        editor.set_plugin_infos(Vec::new());
         self.load_dir(editor, dir)
     }
 

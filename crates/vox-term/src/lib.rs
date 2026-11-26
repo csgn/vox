@@ -174,7 +174,9 @@ pub fn convert(k: event::KeyEvent) -> Option<Key> {
         mods: Modifiers {
             ctrl: k.modifiers.contains(M::CONTROL),
             alt: k.modifiers.contains(M::ALT),
-            shift: k.modifiers.contains(M::SHIFT),
+            // For chars the shift is already in the char (`Q`, `?`); keep it only for
+            // other keys, so a mapping written as `Q` matches what the terminal sends.
+            shift: k.modifiers.contains(M::SHIFT) && !matches!(code, KeyCode::Char(_)),
         },
     })
 }
@@ -218,9 +220,18 @@ mod tests {
             convert(KeyEvent::new(C::Esc, M::NONE)),
             Some(Key::new(KeyCode::Esc))
         );
+        // Terminals send Shift with uppercase letters and symbols; the char already says it,
+        // so it must equal the key parsed from "A" in a mapping.
         let shifted = convert(KeyEvent::new(C::Char('A'), M::SHIFT)).unwrap();
-        assert_eq!(shifted.code, KeyCode::Char('A'));
-        assert!(shifted.mods.shift && !shifted.mods.ctrl);
+        assert_eq!(shifted, vox_editor::parse_keys("A")[0]);
+        assert_eq!(
+            convert(KeyEvent::new(C::Char('?'), M::SHIFT)).unwrap(),
+            vox_editor::parse_keys("?")[0]
+        );
+        assert!(
+            convert(KeyEvent::new(C::Up, M::SHIFT)).unwrap().mods.shift,
+            "kept for other keys"
+        );
         assert_eq!(convert(KeyEvent::new(C::F(1), M::NONE)), None);
     }
 }

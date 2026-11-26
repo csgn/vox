@@ -70,6 +70,8 @@ into a `Value`. A new setting means: a field in `Config`, a case in `from_value`
 | `with_owner(owner, f)`, `remove_owned(owner)` | ownership, unloading |
 | `log(level, source, text)`, `log_entries()` | developer log |
 | `set_developer_mode(on)`, `developer_mode()` | developer mode |
+| `config()`, `save_config_edits(edits)`, `set_config_writer(w)` | read and change the config |
+| `set_plugin_settings(name, specs)`, `plugin_settings()` | plugin settings schemas (from the plugin host) |
 
 ## UI: panels, modal, notifications
 
@@ -121,6 +123,21 @@ brings the older one back.
 
 `editor.log(Level::Warn, "plugin:demo", "something odd")` adds an entry (`Level::Debug` is
 log-only). `log_entries()` reads it; open `LogView`s update automatically.
+
+## Settings
+
+- `vox_editor::settings::vox_settings()`: the schema of vox's own settings (same
+  `SettingSpec` type plugins use). A test checks it covers every `Config` field.
+- `Config::to_value()` and `ConfigEdit::{Set, Remove}` with dotted paths;
+  `settings::apply_edits` changes a value tree.
+- `Editor::save_config_edits(&edits)`: validates, writes through the injected
+  `ConfigWriter` (`vox-config-file::write_edits`, comment-preserving), applies. Returns
+  whether a file was written (not in vanilla mode).
+- `ui::Form`: a form over `SettingSpec`s; saving returns `Outcome::Submit { command,
+  values }`, the editor goes back to the previous dialog and runs `command`, which reads the
+  values with `Editor::take_submitted()`.
+- `Input::returning()` / `Confirm::returning()`: on confirm, go back to the dialog they came
+  from before running the command (used by the key-mapping list to refresh itself).
 
 ## Events
 

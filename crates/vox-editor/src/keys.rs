@@ -41,7 +41,8 @@ pub struct Modifiers {
     pub ctrl: bool,
     /// Alt / Meta.
     pub alt: bool,
-    /// Shift. For `Char` keys the char is already shifted (`'A'`), so this is informational.
+    /// Shift, for non-char keys (e.g. Shift+Up). For `Char` keys the char is already shifted
+    /// (`'A'`) and this is false, so keys from the terminal equal keys parsed from mappings.
     pub shift: bool,
 }
 

@@ -18,8 +18,8 @@ Built one milestone at a time; each ships with tests, docs, and a changelog entr
 | M6 | 0.8.0 | Logging and developer mode: log panel, reload config/plugins shortcuts | done |
 | M7 | 0.9.0 | Scopes and start-up modes: global (default), `--local-config [DIR]` (project's `.vox/` only), `--vanilla` (no config, no plugins); set-up dialog to copy global config / chosen plugins into a project | done |
 | M8 | 0.10.0 | Plugin packages: standard project structure, `plugin.toml` manifest (with typed settings), health checks (error / warning / info) for plugins, vox version, programs, custom checks | done |
-| M9 | 0.11.0 | Settings editor: `:settings` dialog to edit vox settings, key mappings, and each plugin's settings; saves to the active scope's `config.toml`, keeping comments | next |
-| M10 | 0.12.0 | Lockfile and installer: `vox.lock` per scope (version, path or git URL + commit, checksum), install from path or git, `:plugins sync` | |
+| M9 | 0.11.0 | Settings editor: `:settings` dialog to edit vox settings, key mappings, and each plugin's settings; saves to the active scope's `config.toml`, keeping comments | done |
+| M10 | 0.12.0 | Lockfile and installer: `vox.lock` per scope (version, path or git URL + commit, checksum), install from path or git, `:plugins sync` | next |
 | M11 | 0.13.0 | Plugin manager (modal or side panel), scope-aware: list, add (installs into the active scope only), edit settings / open files, enable/disable, delete, reload, health, sync | |
 
 ## Scopes

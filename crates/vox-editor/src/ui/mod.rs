@@ -4,10 +4,12 @@
 //! wants the editor to do something it returns an [`Outcome`] that names a command line, so
 //! views stay independent of the editor and can later come from plugins.
 
+mod form;
 mod layout;
 mod notify;
 mod views;
 
+pub use form::Form;
 pub(crate) use layout::{Layout, compute};
 pub use layout::{NotifyPosition, SidePosition, UiConfig};
 pub use notify::{Level, Notification};
@@ -19,7 +21,7 @@ use crate::keys::Key;
 use crate::surface::{Rect, Surface};
 
 /// What a view wants after handling a key.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Outcome {
     /// The key was used; nothing else to do.
     Handled,
@@ -31,6 +33,14 @@ pub enum Outcome {
     Run(String),
     /// Close the view, then run a command line.
     RunAndClose(String),
+    /// Close the view and run `command`, which reads `values` (e.g. a saved form's
+    /// changes) with `Editor::take_submitted`.
+    Submit {
+        /// Command line to run.
+        command: String,
+        /// Submitted (key, value) pairs.
+        values: Vec<(String, crate::config::Value)>,
+    },
 }
 
 /// Something shown in a panel or the modal.

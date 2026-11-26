@@ -27,7 +27,7 @@ live in **adapter** crates. `scripts/check-deps.sh` enforces this in CI.
 | `vox-width` | terminal cell width of each char | `vox_view::CharWidth` | unicode-width |
 | `vox-clipboard` | system copy/paste | `vox_editor::Clipboard` | arboard |
 | `vox-term` | terminal input and drawing | terminal I/O for `Key` / `Surface` | crossterm |
-| `vox-config-file` | find and read `config.toml` | produces `vox_editor::Value` | toml |
+| `vox-config-file` | read `config.toml`; write settings changes keeping comments | produces `vox_editor::Value`; implements `ConfigWriter` | toml, toml_edit |
 | `vox-plugin-host` | run plugins in a sandbox | uses the `Editor` API for each plugin request | wasmtime, wasmtime-wasi (one project: the runtime and its system-interface part) |
 
 `vox-plugin-sdk` is not part of vox: plugin authors compile it into their plugins. It uses

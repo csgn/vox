@@ -7,6 +7,9 @@ vox reads one `config.toml` at start-up, from the active [scope](scopes.md):
 - local (`--local-config`): `<project>/.vox/config.toml`;
 - vanilla (`--vanilla`): none.
 
+You can also change settings inside vox with `:settings` (see [Settings dialog](settings.md));
+it edits this file and keeps your comments.
+
 No file means default settings. The file uses [TOML](https://toml.io), a simple
 `key = value` format. Problems (syntax errors, unknown settings, wrong types) are shown on the
 bottom line when vox starts; the valid parts of the file are still used.

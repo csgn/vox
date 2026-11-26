@@ -8,7 +8,8 @@ workspace = true
 
 [dependencies]
 toml = "1.2.3"
-vox-editor = { version = "0.10.0", path = "../vox-editor" }
+toml_edit = "0.25.21"
+vox-editor = { version = "0.11.0", path = "../vox-editor" }
 
 [dev-dependencies]
 vox-core = { path = "../vox-core" }

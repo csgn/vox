@@ -807,5 +807,48 @@
         "text": "...and shows every plugin: version, status, each finding (✓ ok, ! warning, ✗ error, i info), and the settings in use."
       }
     ]
+  },
+  {
+    "id": "settings",
+    "title": "Changing a setting in :settings",
+    "summary": "`:settings` → vox settings → `ui.side_width` 50 → 32 → `s`.",
+    "steps": [
+      {
+        "fn": "vox-editor::dialog::settings",
+        "text": "Opens a list: vox settings, key mappings, and one row per plugin with settings. The title says which file changes go to."
+      },
+      {
+        "fn": "vox-editor::dialog::open_vox_form",
+        "text": "Builds a form from the schema of vox's settings and the current values of the applied config."
+      },
+      {
+        "fn": "vox-editor::settings::vox_settings",
+        "text": "One list of typed settings (same type plugins use in `plugin.toml`), with limits matching the config checks. A test keeps it in sync with `Config`."
+      },
+      {
+        "fn": "vox-editor::Form::handle_key",
+        "text": "`Enter` edits the number; the typed value is checked against the limits before it is accepted. `s` returns the changed fields as `Submit`."
+      },
+      {
+        "fn": "vox-editor::Editor::modal_outcome",
+        "text": "`Submit` goes back to the settings list (the form's parent) and runs `:settings save vox` with the submitted values."
+      },
+      {
+        "fn": "vox-editor::dialog::save",
+        "text": "Turns each changed field into an edit with a path, e.g. set `ui.side_width` = 32."
+      },
+      {
+        "fn": "vox-editor::Editor::save_config_edits",
+        "text": "Applies the edits to the current config in memory and validates the result first; only then writes the file and applies the new config."
+      },
+      {
+        "fn": "vox-config-file::write_edits",
+        "text": "Adapter: edits `config.toml` with `toml_edit`: only the changed keys, comments and layout kept, written to a temp file and renamed."
+      },
+      {
+        "fn": "vox-editor::Editor::apply_config",
+        "text": "The new value takes effect immediately (the side panel is narrower on the next frame). For plugin settings, the plugin is reloaded too."
+      }
+    ]
   }
 ]

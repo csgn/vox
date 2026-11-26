@@ -16,6 +16,7 @@ pub mod plugin;
 mod register;
 mod render;
 pub mod scope;
+pub mod settings;
 mod surface;
 pub mod ui;
 

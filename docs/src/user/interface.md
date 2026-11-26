@@ -39,6 +39,7 @@ shows `Esc: back` on its bottom border. Confirming a final choice closes the who
 | Question | `y`/`Enter` yes, `n`/`q`/`Esc` no |
 | Prompt | type, `Backspace`, `Enter` confirm, `Esc` cancel |
 | Checklist | `j`/`k` move, `Space` toggle, `a` all/none, `Enter` confirm, `q`/`Esc` cancel |
+| Form | `j`/`k`, `Enter` edit, `Space` change, `r` default, `s` save, `Esc` back (see [Settings dialog](settings.md)) |
 | Log | `f` level, `s` source, `c` clear, `j`/`k`/`g`/`G`, `q` (see [Developer mode](developer-mode.md)) |
 
 ## Notifications

@@ -31,6 +31,9 @@ none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
 | `:reload plugins [NAME]` | reload all plugins or one |
 | `:checkhealth [NAME]` | plugin health report |
 | `:plugin new NAME [DIR]` | create a plugin project ([Writing plugins](../dev/plugins.md)) |
+| `:settings [NAME]` | settings dialog ([Settings dialog](settings.md)); `NAME` opens a plugin's settings |
+| `:settings vox`, `:settings keys`, `:settings plugin NAME` | open one part directly |
+| `:settings key add MODE KEYS TARGET`, `:settings key delete MODE KEYS` | change a mapping in your config |
 | `:scope` | show the active scope (global / local / vanilla) and its paths |
 | `:scope setup` | open the project set-up dialog (local mode) |
 | `:scope pick` | checklist of global config and plugins to copy into the project |

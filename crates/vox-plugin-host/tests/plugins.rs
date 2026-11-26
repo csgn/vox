@@ -341,6 +341,14 @@ fn package_with_settings_from_config() {
     assert_eq!(infos[0].version().unwrap().to_string(), "0.2.0");
     feed(&mut ed, ":upper<CR>");
     assert_eq!(ed.document().to_string(), "Mixed Case Words");
+    // Its settings are known to the settings dialog.
+    let keys: Vec<&str> = ed.plugin_settings()["text-tools"]
+        .iter()
+        .map(|s| s.key.as_str())
+        .collect();
+    assert_eq!(keys, ["case", "count_on_save"]);
+    host.reload_all(&mut ed, &dir.join("missing"));
+    assert!(ed.plugin_settings().is_empty(), "forgotten after unloading");
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

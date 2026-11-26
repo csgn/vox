@@ -92,28 +92,42 @@ pub struct HealthEnv<'a> {
     pub program_exists: &'a dyn Fn(&str) -> bool,
 }
 
-/// Check a manifest's API version and requirements.
-pub fn check(m: &PluginManifest, env: &HealthEnv<'_>) -> Vec<HealthItem> {
-    let mut items = Vec::new();
-    let api_ok = m.api.major == env.api.major
-        && (env.api.major > 0 || m.api.minor == env.api.minor)
-        && m.api <= env.api;
-    items.push(if api_ok {
+/// Whether a plugin built for API `plugin` works with a vox providing API `host`: same
+/// major version, not newer, and for 0.x the same minor version.
+pub fn api_compatible(plugin: Version, host: Version) -> bool {
+    plugin.major == host.major && (host.major > 0 || plugin.minor == host.minor) && plugin <= host
+}
+
+/// The finding about a plugin built for API `plugin` (an error if incompatible).
+pub fn api_item(plugin: Version, host: Version) -> HealthItem {
+    if api_compatible(plugin, host) {
         HealthItem::ok(format!(
             "plugin API {} (vox provides {})",
-            short(m.api),
-            short(env.api)
+            short(plugin),
+            short(host)
         ))
     } else {
         HealthItem::problem(
             Level::Error,
             format!(
-                "built for plugin API {}, vox provides {}: rebuild the plugin with the current SDK",
-                short(m.api),
-                short(env.api)
+                "built for plugin API {}, vox provides {}: rebuild the plugin with the current SDK \
+                 (scripts/build-plugin.sh DIR --install PLUGIN_FOLDER)",
+                short(plugin),
+                short(host)
             ),
         )
-    });
+    }
+}
+
+/// The plugin API version in a component import name like `vox:plugin/editor@0.1.0`.
+pub fn api_of_import(name: &str) -> Option<Version> {
+    let rest = name.strip_prefix("vox:plugin/")?;
+    Version::parse(rest.split_once('@')?.1).ok()
+}
+
+/// Check a manifest's API version and requirements.
+pub fn check(m: &PluginManifest, env: &HealthEnv<'_>) -> Vec<HealthItem> {
+    let mut items = vec![api_item(m.api, env.api)];
     for r in &m.requires {
         let why = if r.reason.is_empty() {
             String::new()
@@ -287,6 +301,30 @@ mod tests {
             let items = check(&manifest(api, vec![]), &env(&none, &no));
             assert_eq!(items[0].ok, ok, "api {api}");
         }
+    }
+
+    #[test]
+    fn api_from_import_names() {
+        assert_eq!(
+            api_of_import("vox:plugin/editor@0.1.0"),
+            Version::parse("0.1").ok()
+        );
+        assert_eq!(
+            api_of_import("vox:plugin/types@0.2.0"),
+            Version::parse("0.2").ok()
+        );
+        assert_eq!(api_of_import("wasi:cli/environment@0.2.6"), None);
+        assert_eq!(api_of_import("vox:plugin/editor"), None);
+        let old = api_item(
+            Version::parse("0.1").unwrap(),
+            Version::parse("0.2").unwrap(),
+        );
+        assert!(
+            !old.ok
+                && old
+                    .message
+                    .starts_with("built for plugin API 0.1, vox provides 0.2")
+        );
     }
 
     #[test]

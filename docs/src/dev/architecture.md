@@ -79,6 +79,11 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
 - `template.rs`: the standard project for `:plugin new`.
 - The host takes a `ValueParser` (TOML from `vox-config-file`) so core never parses TOML.
 
+## Settings (`vox-editor/src/settings/`)
+- `mod.rs`: vox settings schema, `Config::to_value`, `ConfigEdit`, `apply_edits`.
+- `dialog.rs`: `:settings` commands, forms, the key-mapping list.
+- Saving goes through `Editor::save_config_edits` → injected `ConfigWriter` → `apply_config`.
+
 ## vox-term
 - `Terminal::enter()` (raw mode, alternate screen, panic-safe restore), `draw(&Surface)` with
   per-row diffing, `read_key()`, and `run(&mut Editor)`.

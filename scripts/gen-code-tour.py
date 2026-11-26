@@ -105,7 +105,12 @@ def parse_file(crate, path, rel):
         if l.startswith("#[cfg(test)]"):
             lines = lines[:i]
             break
-    module = "" if path.name in ("lib.rs", "main.rs") else path.stem
+    if path.name in ("lib.rs", "main.rs"):
+        module = ""
+    elif path.name == "mod.rs":
+        module = path.parent.name  # settings/mod.rs is the `settings` module
+    else:
+        module = path.stem
     fns, types = [], []
     owner = None  # (type, trait) of the current impl / trait block
     owner_end = -1

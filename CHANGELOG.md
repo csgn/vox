@@ -5,6 +5,31 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-27 — M9 settings dialog
+
+### Added
+- `:settings` dialog: vox settings, key mappings, and each plugin's settings. Changes are
+  saved to the active scope's `config.toml` and applied immediately; vanilla mode applies
+  for the session only.
+- Saving keeps the file's comments, order, and formatting (`vox-config-file::write_edits`
+  with `toml_edit`), writes atomically, and never writes invalid values.
+- `Form` view: typed fields, inline editing, validation messages, reset to default, unsaved
+  changes warning, `*` on changed fields.
+- Key-mapping list: add / change / delete your config's mappings; other owners' mappings are
+  read-only. Commands `:settings key add|delete`.
+- `:settings vox`, `:settings keys`, `:settings plugin NAME`, `:settings NAME`.
+- Core: `settings::vox_settings` schema, `Config::to_value`, `ConfigEdit`, `apply_edits`;
+  `Editor::save_config_edits`, `config`, `set_config_writer`, `plugin_settings`;
+  `Outcome::Submit`; `Input::returning` / `Confirm::returning`.
+- Docs: Settings dialog page; code-tour walkthrough.
+
+### Fixed
+- A plugin built for an older plugin API (e.g. an old single `text_tools.wasm`) failed with
+  a cryptic link error; vox now reads the API version from the plugin's imports and reports
+  `built for plugin API 0.1, vox provides 0.2: rebuild ...` in `:checkhealth`.
+- Key mappings on uppercase letters and shifted symbols (e.g. `Q`, `?`) did not trigger in a
+  real terminal: the terminal adapter now drops the Shift flag for char keys.
+
 ## [0.10.0] - 2026-11-27 — M8 plugin packages and health
 
 ### Added

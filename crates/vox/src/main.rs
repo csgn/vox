@@ -66,6 +66,7 @@ fn main() -> ExitCode {
         }
     };
     editor.set_scope(active.clone(), global);
+    editor.set_config_writer(vox_config_file::write_edits);
     load_config(&mut editor, &active);
     load_plugins(&mut editor, &active);
     register_plugin_new(&mut editor);

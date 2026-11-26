@@ -304,6 +304,8 @@ pub struct Confirm {
     title: String,
     message: String,
     command: String,
+    /// On yes, go back to the dialog this one was opened from, then run the command.
+    returning: bool,
 }
 
 impl Confirm {
@@ -317,7 +319,15 @@ impl Confirm {
             title: title.into(),
             message: message.into(),
             command: command.into(),
+            returning: false,
         }
+    }
+
+    /// On yes, go back to the previous dialog before running the command (for confirmations
+    /// inside a list the command then refreshes).
+    pub fn returning(mut self) -> Self {
+        self.returning = true;
+        self
     }
 }
 
@@ -340,6 +350,10 @@ impl View for Confirm {
 
     fn handle_key(&mut self, key: Key) -> Outcome {
         match key.code {
+            KeyCode::Char('y') | KeyCode::Enter if self.returning => Outcome::Submit {
+                command: self.command.clone(),
+                values: Vec::new(),
+            },
             KeyCode::Char('y') | KeyCode::Enter => Outcome::RunAndClose(self.command.clone()),
             KeyCode::Char('n') | KeyCode::Char('q') | KeyCode::Esc => Outcome::Close,
             _ => Outcome::Handled,
@@ -354,6 +368,8 @@ pub struct Input {
     prompt: String,
     text: String,
     template: String,
+    /// On `Enter`, go back to the previous dialog before running the command.
+    returning: bool,
 }
 
 impl Input {
@@ -368,7 +384,14 @@ impl Input {
             prompt: prompt.into(),
             text: String::new(),
             template: template.into(),
+            returning: false,
         }
+    }
+
+    /// On `Enter`, go back to the previous dialog before running the command.
+    pub fn returning(mut self) -> Self {
+        self.returning = true;
+        self
     }
 
     /// Start with `text` already typed.
@@ -394,6 +417,10 @@ impl View for Input {
 
     fn handle_key(&mut self, key: Key) -> Outcome {
         match key.code {
+            KeyCode::Enter if self.returning => Outcome::Submit {
+                command: self.template.replace("{}", &self.text),
+                values: Vec::new(),
+            },
             KeyCode::Enter => Outcome::RunAndClose(self.template.replace("{}", &self.text)),
             KeyCode::Esc => Outcome::Close,
             KeyCode::Backspace => {

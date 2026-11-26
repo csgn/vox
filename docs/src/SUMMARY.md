@@ -7,6 +7,7 @@
 - [Keybindings](user/keybindings.md)
 - [Commands](user/commands.md)
 - [Configuration](user/configuration.md)
+- [Settings dialog](user/settings.md)
 - [Project setups](user/scopes.md)
 - [Panels and notifications](user/interface.md)
 - [Plugins](user/plugins.md)

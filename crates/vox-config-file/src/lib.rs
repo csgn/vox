@@ -1,8 +1,10 @@
-//! Reads the user's config file. Finds `config.toml`, parses the TOML format with the
-//! `toml` library, and converts it to the editor's format-neutral [`Value`].
+//! Reads and writes the user's config file. Parses TOML with the `toml` library into the
+//! editor's format-neutral [`Value`], and applies settings changes with the `toml_edit`
+//! library, which keeps the user's comments and layout.
 
 use std::path::{Path, PathBuf};
 
+use vox_editor::settings::ConfigEdit;
 use vox_editor::{Config, Editor, Level, Value, owner};
 
 /// The global scope's folder: `$VOX_CONFIG_DIR` if set, else
@@ -86,6 +88,109 @@ pub fn register_commands(editor: &mut Editor, path: PathBuf) {
             },
         );
     });
+}
+
+/// Apply `edits` to the TOML file at `path` (created if missing), changing only the edited
+/// keys and keeping comments, order, and formatting. Writes a temporary file next to it and
+/// renames it, so a crash never leaves a half-written config.
+pub fn write_edits(path: &Path, edits: &[ConfigEdit]) -> Result<(), String> {
+    let text = match std::fs::read_to_string(path) {
+        Ok(t) => t,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(e) => return Err(e.to_string()),
+    };
+    let mut doc: toml_edit::DocumentMut = text.parse().map_err(|e: toml_edit::TomlError| {
+        format!(
+            "cannot edit: {}",
+            e.to_string().lines().next().unwrap_or_default()
+        )
+    })?;
+    for edit in edits {
+        match edit {
+            ConfigEdit::Set(keys, v) => set(doc.as_item_mut(), keys, to_toml(v))?,
+            ConfigEdit::Remove(keys) => remove(doc.as_item_mut(), keys),
+        }
+    }
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    }
+    let tmp = path.with_extension(format!("toml.tmp-{}", std::process::id()));
+    std::fs::write(&tmp, doc.to_string()).map_err(|e| e.to_string())?;
+    std::fs::rename(&tmp, path).map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        e.to_string()
+    })
+}
+
+/// Set `keys` (a path) to `value`, creating tables (`[a.b]` headers) on the way.
+fn set(root: &mut toml_edit::Item, keys: &[String], value: toml_edit::Item) -> Result<(), String> {
+    let Some((last, parents)) = keys.split_last() else {
+        return Ok(());
+    };
+    let mut item = root;
+    for k in parents {
+        if item.get(k).is_none() {
+            let mut t = toml_edit::Table::new();
+            t.set_implicit(true);
+            item.as_table_like_mut()
+                .ok_or_else(|| format!("`{k}` is inside a value that is not a table"))?
+                .insert(k, toml_edit::Item::Table(t));
+        }
+        item = item.get_mut(k).expect("inserted above");
+    }
+    let table = item
+        .as_table_like_mut()
+        .ok_or_else(|| format!("cannot set `{last}`: its parent is not a table"))?;
+    match (table.get_mut(last), value) {
+        // Change the value in place: the key (with comments above it) and the comment
+        // after the value stay.
+        (Some(toml_edit::Item::Value(old)), toml_edit::Item::Value(mut new)) => {
+            *new.decor_mut() = old.decor().clone();
+            *old = new;
+        }
+        (_, value) => {
+            table.insert(last, value);
+        }
+    }
+    Ok(())
+}
+
+/// Remove `keys` (a path) if present.
+fn remove(root: &mut toml_edit::Item, keys: &[String]) {
+    let Some((last, parents)) = keys.split_last() else {
+        return;
+    };
+    let mut item = root;
+    for k in parents {
+        match item.get_mut(k) {
+            Some(next) => item = next,
+            None => return,
+        }
+    }
+    if let Some(t) = item.as_table_like_mut() {
+        t.remove(last);
+    }
+}
+
+/// vox value → TOML item.
+fn to_toml(v: &Value) -> toml_edit::Item {
+    fn val(v: &Value) -> toml_edit::Value {
+        match v {
+            Value::String(s) => s.as_str().into(),
+            Value::Integer(n) => (*n).into(),
+            Value::Float(f) => (*f).into(),
+            Value::Bool(b) => (*b).into(),
+            Value::Array(a) => toml_edit::Value::Array(a.iter().map(val).collect()),
+            Value::Table(t) => {
+                let mut it = toml_edit::InlineTable::new();
+                for (k, v) in t {
+                    it.insert(k, val(v));
+                }
+                toml_edit::Value::InlineTable(it)
+            }
+        }
+    }
+    toml_edit::Item::Value(val(v))
 }
 
 /// Parse TOML text into a [`Value::Table`].
@@ -204,6 +309,74 @@ mod tests {
                 .entries()
                 .any(|e| e.source == "config" && e.message.starts_with("loaded"))
         );
+    }
+
+    #[test]
+    fn write_edits_keeps_comments() {
+        let dir = std::env::temp_dir().join(format!("vox-write-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let p = dir.join("config.toml");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            &p,
+            "# my config\nleader = \" \"  # space!\n\n[ui]\n# wide panel\nside_width = 50\n\n[keymap.normal]\nH = \"^\"\n",
+        )
+        .unwrap();
+        let k = |s: &str| s.split('.').map(String::from).collect::<Vec<_>>();
+        write_edits(
+            &p,
+            &[
+                ConfigEdit::Set(k("ui.side_width"), Value::Integer(30)),
+                ConfigEdit::Set(k("timeout_ms"), Value::Integer(250)),
+                ConfigEdit::Set(
+                    vec!["keymap".into(), "normal".into(), "<leader>w".into()],
+                    Value::String(":w".into()),
+                ),
+                ConfigEdit::Remove(k("keymap.normal.H")),
+                ConfigEdit::Set(
+                    vec!["plugins".into(), "text-tools".into(), "case".into()],
+                    Value::String("title".into()),
+                ),
+                ConfigEdit::Remove(k("not.there")),
+            ],
+        )
+        .unwrap();
+        let out = std::fs::read_to_string(&p).unwrap();
+        assert!(
+            out.contains("# my config") && out.contains("# space!") && out.contains("# wide panel"),
+            "{out}"
+        );
+        assert!(out.contains("side_width = 30"), "{out}");
+        assert!(out.contains("\"<leader>w\" = \":w\""), "{out}");
+        assert!(!out.contains("H = "), "{out}");
+        assert!(
+            out.contains("[plugins.text-tools]") && !out.contains("[plugins]\n"),
+            "{out}"
+        );
+        let (cfg, errors) = Config::from_value(&parse(&out).unwrap());
+        assert!(errors.is_empty(), "{errors:?}");
+        assert_eq!(
+            (cfg.ui.side_width, cfg.timeout_ms, cfg.leader.as_str()),
+            (30, 250, " ")
+        );
+        let leftovers: Vec<_> = std::fs::read_dir(&dir).unwrap().collect();
+        assert_eq!(leftovers.len(), 1, "no temp file left");
+        // A missing file is created.
+        let new = dir.join("sub/config.toml");
+        write_edits(
+            &new,
+            &[ConfigEdit::Set(k("developer_mode"), Value::Bool(true))],
+        )
+        .unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&new).unwrap().trim(),
+            "developer_mode = true"
+        );
+        // Broken TOML is not touched.
+        std::fs::write(&p, "x = [").unwrap();
+        assert!(write_edits(&p, &[ConfigEdit::Set(k("a"), Value::Bool(true))]).is_err());
+        assert_eq!(std::fs::read_to_string(&p).unwrap(), "x = [");
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

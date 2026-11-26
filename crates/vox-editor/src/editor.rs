@@ -116,6 +116,12 @@ pub struct Editor {
     owner: String,
     log: Log,
     developer_mode: bool,
+    /// The config last applied (what the settings dialog edits).
+    config: Config,
+    /// Writes edits into the scope's config file (from an adapter).
+    config_writer: Option<crate::settings::ConfigWriter>,
+    /// Settings each plugin declares in its manifest.
+    plugin_settings: std::collections::BTreeMap<String, Vec<crate::plugin::SettingSpec>>,
     /// `[plugins.NAME]` values from the config.
     plugin_config: std::collections::BTreeMap<
         String,
@@ -130,6 +136,8 @@ pub struct Editor {
     modal: Option<Box<dyn View>>,
     /// Modals the current one was opened from, oldest first; `Esc` goes back to the last.
     modal_history: Vec<Box<dyn View>>,
+    /// Values of the last submitted form (see [`Editor::take_submitted`]).
+    submitted: Vec<(String, crate::config::Value)>,
     focus: Focus,
     /// `<C-w>` typed while a panel has focus; the next key picks the direction.
     ctrl_w_pending: bool,
@@ -192,6 +200,9 @@ impl Editor {
             log: Log::new((services.clock)()),
             developer_mode: false,
             plugin_config: Default::default(),
+            config: Config::default(),
+            config_writer: None,
+            plugin_settings: Default::default(),
             // Until the binary sets one: global without a folder (no badge, nothing loaded).
             scope: Scope {
                 kind: crate::scope::ScopeKind::Global,
@@ -203,6 +214,7 @@ impl Editor {
             bottom: None,
             modal: None,
             modal_history: Vec::new(),
+            submitted: Vec::new(),
             focus: Focus::Editor,
             ctrl_w_pending: false,
             notifications: Vec::new(),
@@ -360,15 +372,29 @@ impl Editor {
             self.modal_outcome(view, outcome);
             return;
         }
-        let keep = !matches!(outcome, Outcome::Close | Outcome::RunAndClose(_));
+        let keep = !matches!(
+            outcome,
+            Outcome::Close | Outcome::RunAndClose(_) | Outcome::Submit { .. }
+        );
         if keep {
             self.put_view(slot, view);
         } else if slot.is_some_and(|s| self.focus == focus_of(s)) {
             self.focus = Focus::Editor;
         }
-        if let Outcome::Run(cmd) | Outcome::RunAndClose(cmd) = outcome {
-            self.run_command(&cmd);
+        match outcome {
+            Outcome::Run(cmd) | Outcome::RunAndClose(cmd) => self.run_command(&cmd),
+            Outcome::Submit { command, values } => {
+                self.submitted = values;
+                self.run_command(&command);
+            }
+            _ => {}
         }
+    }
+
+    /// Values from the last [`Outcome::Submit`] (e.g. a saved form), taken once by the
+    /// command it ran.
+    pub fn take_submitted(&mut self) -> Vec<(String, crate::config::Value)> {
+        std::mem::take(&mut self.submitted)
     }
 
     /// Act on a modal's outcome. A command that opens another modal keeps this one in the
@@ -381,6 +407,12 @@ impl Editor {
                 self.run_command(&cmd);
             }
             Outcome::Close => self.modal = self.modal_history.pop(),
+            Outcome::Submit { command, values } => {
+                // Back to where the form was opened from, then save.
+                self.modal = self.modal_history.pop();
+                self.submitted = values;
+                self.run_command(&command);
+            }
             Outcome::RunAndClose(cmd) => {
                 let depth = self.modal_history.len();
                 self.run_command(&cmd);
@@ -662,6 +694,67 @@ impl Editor {
     /// The user's global scope, if known (even when another scope is active).
     pub fn global_scope(&self) -> Option<&Scope> {
         self.global_scope.as_ref()
+    }
+
+    /// The config last applied.
+    pub fn config(&self) -> &Config {
+        &self.config
+    }
+
+    /// Set the function that writes settings changes into the config file.
+    pub fn set_config_writer(&mut self, writer: crate::settings::ConfigWriter) {
+        self.config_writer = Some(writer);
+    }
+
+    /// Record the settings plugin `name` declares (empty: none); used by `:settings`.
+    pub fn set_plugin_settings(&mut self, name: &str, specs: Vec<crate::plugin::SettingSpec>) {
+        if specs.is_empty() {
+            self.plugin_settings.remove(name);
+        } else {
+            self.plugin_settings.insert(name.to_string(), specs);
+        }
+    }
+
+    /// Settings declared by each plugin, by name.
+    pub fn plugin_settings(
+        &self,
+    ) -> &std::collections::BTreeMap<String, Vec<crate::plugin::SettingSpec>> {
+        &self.plugin_settings
+    }
+
+    /// Apply `edits` to the config: check them, write them to the active scope's config file
+    /// (keeping comments), and apply the result. Returns whether it was saved to a file (not
+    /// in vanilla mode, or without a writer). Invalid edits are rejected before writing.
+    pub fn save_config_edits(
+        &mut self,
+        edits: &[crate::settings::ConfigEdit],
+    ) -> Result<bool, String> {
+        let mut value = self.config.to_value();
+        crate::settings::apply_edits(&mut value, edits);
+        let (cfg, errors) = Config::from_value(&value);
+        if let Some(e) = errors.first() {
+            return Err(format!("E900: not saved: {e}"));
+        }
+        let saved = match (self.scope.config_path(), self.config_writer) {
+            (Some(path), Some(write)) => {
+                write(&path, edits)
+                    .map_err(|e| format!("E900: could not save {}: {e}", path.display()))?;
+                self.log(
+                    Level::Info,
+                    "config",
+                    format!("saved {} change(s) to {}", edits.len(), path.display()),
+                );
+                true
+            }
+            _ => false,
+        };
+        self.apply_config(&cfg);
+        Ok(saved)
+    }
+
+    /// Title of the open modal, if any.
+    pub fn modal_title(&self) -> Option<String> {
+        self.modal.as_ref().map(|m| m.title())
     }
 
     /// The user's `[plugins.NAME]` values (settings and `enabled`), if any.
@@ -1428,6 +1521,7 @@ impl Editor {
         self.key_timeout = Duration::from_millis(cfg.timeout_ms);
         self.ui = cfg.ui;
         self.leader = cfg.leader.clone();
+        self.config = cfg.clone();
         self.plugin_config = cfg.plugins.clone();
         self.remove_owned(owner::CONFIG);
         self.with_owner(owner::CONFIG, |ed| {

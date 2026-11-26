@@ -74,6 +74,7 @@ pub(crate) fn register(c: &mut Commands) {
         "Show the active scope (global, local, vanilla) and its paths.",
         scope,
     );
+    crate::settings::register(c);
     c.register(
         "scope setup",
         "Open the project set-up dialog (local mode).",

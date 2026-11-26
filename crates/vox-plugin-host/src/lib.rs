@@ -159,6 +159,13 @@ impl PluginHost {
     /// Load one assessed plugin (if loadable), record it, and log the outcome.
     fn load_info(&self, editor: &mut Editor, mut info: PluginInfo) -> PluginInfo {
         let source = owner::plugin(&info.name);
+        // Settings can be edited (`:settings NAME`) even when the plugin failed or is off.
+        let specs = info
+            .manifest
+            .as_ref()
+            .map(|m| m.settings.clone())
+            .unwrap_or_default();
+        editor.set_plugin_settings(&info.name, specs);
         let mut instance = Weak::new();
         if info.loadable() {
             match self.instantiate(editor, &info) {
@@ -240,6 +247,7 @@ impl PluginHost {
             .collect();
         for n in names {
             editor.remove_owned(&owner::plugin(&n));
+            editor.set_plugin_settings(&n, Vec::new());
         }
         self.load_dir(editor, dir)
     }
@@ -363,6 +371,17 @@ impl PluginHost {
         let name = info.name.clone();
         let fail = |e: wasmtime::Error| format!("plugin {name}: {e}");
         let component = Component::from_file(&self.engine, &info.wasm).map_err(fail)?;
+        // Check the plugin API it was built for before linking, so an old plugin gets a clear
+        // message (also single .wasm files, which have no manifest to check).
+        let built_for = component
+            .component_type()
+            .imports(&self.engine)
+            .find_map(|(import, _)| health::api_of_import(import));
+        if let Some(v) = built_for
+            && !health::api_compatible(v, API_VERSION)
+        {
+            return Err(health::api_item(v, API_VERSION).message);
+        }
         let mut store = Store::new(
             &self.engine,
             HostState {

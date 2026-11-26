@@ -18,7 +18,7 @@ window.VOX_TOUR = {
    "files": [
     {
      "path": "crates/vox/src/main.rs",
-     "lines": 97
+     "lines": 98
     }
    ],
    "used_by": [],
@@ -114,7 +114,7 @@ window.VOX_TOUR = {
    "files": [
     {
      "path": "crates/vox-editor/src/builtin.rs",
-     "lines": 67
+     "lines": 184
     },
     {
      "path": "crates/vox-editor/src/command.rs",
@@ -122,11 +122,11 @@ window.VOX_TOUR = {
     },
     {
      "path": "crates/vox-editor/src/config.rs",
-     "lines": 199
+     "lines": 271
     },
     {
      "path": "crates/vox-editor/src/editor.rs",
-     "lines": 1012
+     "lines": 1304
     },
     {
      "path": "crates/vox-editor/src/event.rs",
@@ -134,19 +134,19 @@ window.VOX_TOUR = {
     },
     {
      "path": "crates/vox-editor/src/keymap.rs",
-     "lines": 177
+     "lines": 182
     },
     {
      "path": "crates/vox-editor/src/keys.rs",
-     "lines": 168
+     "lines": 206
     },
     {
      "path": "crates/vox-editor/src/lib.rs",
-     "lines": 24
+     "lines": 26
     },
     {
      "path": "crates/vox-editor/src/normal.rs",
-     "lines": 395
+     "lines": 406
     },
     {
      "path": "crates/vox-editor/src/register.rs",
@@ -154,11 +154,27 @@ window.VOX_TOUR = {
     },
     {
      "path": "crates/vox-editor/src/render.rs",
-     "lines": 131
+     "lines": 284
     },
     {
      "path": "crates/vox-editor/src/surface.rs",
-     "lines": 226
+     "lines": 397
+    },
+    {
+     "path": "crates/vox-editor/src/ui/layout.rs",
+     "lines": 159
+    },
+    {
+     "path": "crates/vox-editor/src/ui/mod.rs",
+     "lines": 69
+    },
+    {
+     "path": "crates/vox-editor/src/ui/notify.rs",
+     "lines": 57
+    },
+    {
+     "path": "crates/vox-editor/src/ui/views.rs",
+     "lines": 408
     }
    ],
    "used_by": [
@@ -240,7 +256,7 @@ window.VOX_TOUR = {
    "files": [
     {
      "path": "crates/vox-term/src/lib.rs",
-     "lines": 208
+     "lines": 226
     }
    ],
    "used_by": [
@@ -317,7 +333,7 @@ window.VOX_TOUR = {
    "qual": "load_config",
    "crate": "vox",
    "file": "crates/vox/src/main.rs",
-   "line": 46,
+   "line": 47,
    "public": false,
    "owner": null,
    "trait": null,
@@ -341,7 +357,7 @@ window.VOX_TOUR = {
    "qual": "load_plugins",
    "crate": "vox",
    "file": "crates/vox/src/main.rs",
-   "line": 71,
+   "line": 72,
    "public": false,
    "owner": null,
    "trait": null,
@@ -1870,7 +1886,7 @@ window.VOX_TOUR = {
    "qual": "builtin::register",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 9,
+   "line": 13,
    "public": false,
    "owner": null,
    "trait": null,
@@ -1888,7 +1904,7 @@ window.VOX_TOUR = {
    "qual": "builtin::write",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 32,
+   "line": 55,
    "public": false,
    "owner": null,
    "trait": null,
@@ -1904,7 +1920,7 @@ window.VOX_TOUR = {
    "qual": "builtin::quit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 37,
+   "line": 60,
    "public": false,
    "owner": null,
    "trait": null,
@@ -1920,7 +1936,7 @@ window.VOX_TOUR = {
    "qual": "builtin::write_quit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 46,
+   "line": 69,
    "public": false,
    "owner": null,
    "trait": null,
@@ -1936,7 +1952,7 @@ window.VOX_TOUR = {
    "qual": "builtin::xit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 53,
+   "line": 76,
    "public": false,
    "owner": null,
    "trait": null,
@@ -1952,13 +1968,120 @@ window.VOX_TOUR = {
    "qual": "builtin::edit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 62,
+   "line": 85,
    "public": false,
    "owner": null,
    "trait": null,
    "decl_only": false,
    "sig": "fn edit(ed: &mut Editor, a: Args<'_>) -> CommandResult",
    "doc": "`:edit [FILE]` / `:e`; `:e!` discards changes.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::builtin::notify",
+   "name": "notify",
+   "qual": "builtin::notify",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/builtin.rs",
+   "line": 93,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn notify(ed: &mut Editor, a: Args<'_>) -> CommandResult",
+   "doc": "`:notify [level] TEXT`.",
+   "calls": [
+    "vox-editor::Level::parse"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::builtin::messages",
+   "name": "messages",
+   "qual": "builtin::messages",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/builtin.rs",
+   "line": 104,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn messages(ed: &mut Editor, _: Args<'_>) -> CommandResult",
+   "doc": "`:messages`: history in a text view in the bottom panel, newest at the bottom.",
+   "calls": [
+    "vox-editor::TextView::new"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::builtin::commands",
+   "name": "commands",
+   "qual": "builtin::commands",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/builtin.rs",
+   "line": 124,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn commands(ed: &mut Editor, _: Args<'_>) -> CommandResult",
+   "doc": "`:commands`: every command with its aliases and description, in the modal.",
+   "calls": [
+    "vox-editor::ListItem::new",
+    "vox-editor::ListView::new"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::builtin::keymaps",
+   "name": "keymaps",
+   "qual": "builtin::keymaps",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/builtin.rs",
+   "line": 143,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn keymaps(ed: &mut Editor, _: Args<'_>) -> CommandResult",
+   "doc": "`:keymaps`: user mappings in the side panel.",
+   "calls": [
+    "vox-editor::ListItem::new",
+    "vox-editor::ListView::new",
+    "vox-editor::keys::format_keys"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::builtin::close",
+   "name": "close",
+   "qual": "builtin::close",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/builtin.rs",
+   "line": 169,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn close(ed: &mut Editor, _: Args<'_>) -> CommandResult",
+   "doc": "`:close`.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::builtin::focus",
+   "name": "focus",
+   "qual": "builtin::focus",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/builtin.rs",
+   "line": 175,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn focus(ed: &mut Editor, a: Args<'_>) -> CommandResult",
+   "doc": "`:focus editor|side|bottom`.",
    "calls": [],
    "called_by": []
   },
@@ -2066,7 +2189,7 @@ window.VOX_TOUR = {
    "qual": "Value::type_name",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 27,
+   "line": 28,
    "public": false,
    "owner": "Value",
    "trait": null,
@@ -2082,14 +2205,16 @@ window.VOX_TOUR = {
    "qual": "Config::default",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 51,
+   "line": 54,
    "public": true,
    "owner": "Config",
    "trait": "Default",
    "decl_only": false,
    "sig": "fn default() -> Self",
    "doc": "Default value (std `Default` trait).",
-   "calls": [],
+   "calls": [
+    "vox-editor::UiConfig::default"
+   ],
    "called_by": [
     "vox-editor::Config::from_value"
    ]
@@ -2100,7 +2225,7 @@ window.VOX_TOUR = {
    "qual": "Config::from_value",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 63,
+   "line": 67,
    "public": true,
    "owner": "Config",
    "trait": null,
@@ -2108,10 +2233,29 @@ window.VOX_TOUR = {
    "sig": "pub fn from_value(value: &Value) -> (Config, Vec<String>)",
    "doc": "Build a config from a parsed file. Unknown settings and wrong types are errors; all errors are collected, and valid settings are still applied.",
    "calls": [
-    "vox-editor::Config::default"
+    "vox-editor::Config::default",
+    "vox-editor::config::parse_ui"
    ],
    "called_by": [
     "vox::load_config"
+   ]
+  },
+  {
+   "id": "vox-editor::config::parse_ui",
+   "name": "parse_ui",
+   "qual": "config::parse_ui",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/config.rs",
+   "line": 129,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn parse_ui(t: &BTreeMap<String, Value>, ui: &mut UiConfig, errors: &mut Vec<String>)",
+   "doc": "Read `[ui]` settings into `ui`, collecting errors.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Config::from_value"
    ]
   },
   {
@@ -2120,7 +2264,7 @@ window.VOX_TOUR = {
    "qual": "Services::default",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 69,
+   "line": 73,
    "public": true,
    "owner": "Services",
    "trait": "Default",
@@ -2138,7 +2282,7 @@ window.VOX_TOUR = {
    "qual": "Editor::new",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 122,
+   "line": 140,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2156,7 +2300,7 @@ window.VOX_TOUR = {
    "qual": "Editor::with_services",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 127,
+   "line": 145,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2165,7 +2309,8 @@ window.VOX_TOUR = {
    "doc": "Create an editor for `doc` using `services`.",
    "calls": [
     "vox-editor::Registers::default",
-    "vox-editor::builtin::register"
+    "vox-editor::builtin::register",
+    "vox-editor::UiConfig::default"
    ],
    "called_by": [
     "vox::main"
@@ -2177,7 +2322,7 @@ window.VOX_TOUR = {
    "qual": "Editor::set_clipboard",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 158,
+   "line": 186,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2193,7 +2338,7 @@ window.VOX_TOUR = {
    "qual": "Editor::should_quit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 163,
+   "line": 191,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2211,7 +2356,7 @@ window.VOX_TOUR = {
    "qual": "Editor::mode",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 168,
+   "line": 196,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2227,7 +2372,7 @@ window.VOX_TOUR = {
    "qual": "Editor::document",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 173,
+   "line": 201,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2243,7 +2388,7 @@ window.VOX_TOUR = {
    "qual": "Editor::cursor",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 178,
+   "line": 206,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2259,7 +2404,7 @@ window.VOX_TOUR = {
    "qual": "Editor::viewport",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 183,
+   "line": 211,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2275,7 +2420,7 @@ window.VOX_TOUR = {
    "qual": "Editor::message",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 188,
+   "line": 216,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2291,7 +2436,7 @@ window.VOX_TOUR = {
    "qual": "Editor::selection",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 193,
+   "line": 221,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2312,7 +2457,7 @@ window.VOX_TOUR = {
    "qual": "Editor::resize",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 202,
+   "line": 230,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2332,7 +2477,7 @@ window.VOX_TOUR = {
    "qual": "Editor::gutter_width",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 208,
+   "line": 236,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2344,7 +2489,7 @@ window.VOX_TOUR = {
    ],
    "called_by": [
     "vox-editor::Editor::text_area",
-    "vox-editor::Editor::cursor_screen_position",
+    "vox-editor::Editor::place_cursor",
     "vox-editor::Editor::render_text"
    ]
   },
@@ -2354,14 +2499,15 @@ window.VOX_TOUR = {
    "qual": "Editor::text_area",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 213,
+   "line": 241,
    "public": false,
    "owner": "Editor",
    "trait": null,
    "decl_only": false,
    "sig": "pub(crate) fn text_area(&self) -> (usize, usize)",
-   "doc": "Text area size (width, height) in cells.",
+   "doc": "Text area size (width, height) in cells, excluding the gutter.",
    "calls": [
+    "vox-editor::Editor::layout",
     "vox-editor::Editor::gutter_width"
    ],
    "called_by": [
@@ -2370,12 +2516,31 @@ window.VOX_TOUR = {
    ]
   },
   {
+   "id": "vox-editor::Editor::layout",
+   "name": "layout",
+   "qual": "Editor::layout",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 248,
+   "public": false,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub(crate) fn layout(&self) -> Layout",
+   "doc": "Where everything goes on screen right now.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Editor::text_area",
+    "vox-editor::Editor::render"
+   ]
+  },
+  {
    "id": "vox-editor::Editor::cursor_dcol",
    "name": "cursor_dcol",
    "qual": "Editor::cursor_dcol",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 222,
+   "line": 259,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2388,7 +2553,7 @@ window.VOX_TOUR = {
    ],
    "called_by": [
     "vox-editor::Editor::follow_cursor",
-    "vox-editor::Editor::cursor_screen_position"
+    "vox-editor::Editor::place_cursor"
    ]
   },
   {
@@ -2397,7 +2562,7 @@ window.VOX_TOUR = {
    "qual": "Editor::follow_cursor",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 231,
+   "line": 268,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2421,7 +2586,7 @@ window.VOX_TOUR = {
    "qual": "Editor::handle_key",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 237,
+   "line": 274,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2437,12 +2602,401 @@ window.VOX_TOUR = {
    ]
   },
   {
+   "id": "vox-editor::Editor::panel_key",
+   "name": "panel_key",
+   "qual": "Editor::panel_key",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 298,
+   "public": false,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn panel_key(&mut self, slot: PanelSlot, key: Key)",
+   "doc": "Key for a focused panel: `<C-w>` window keys and `:` work as usual; the rest goes to the panel's view.",
+   "calls": [
+    "vox-editor::Editor::window_cmd",
+    "vox-editor::Editor::view_key",
+    "vox-editor::Key::ctrl"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Editor::view_key",
+   "name": "view_key",
+   "qual": "Editor::view_key",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 318,
+   "public": false,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn view_key(&mut self, slot: Option<PanelSlot>, key: Key)",
+   "doc": "Give `key` to the modal (`None`) or a panel, then act on the view's [`Outcome`].",
+   "calls": [
+    "vox-editor::Editor::put_view",
+    "vox-editor::Editor::run_command",
+    "vox-editor::editor::focus_of"
+   ],
+   "called_by": [
+    "vox-editor::Editor::panel_key"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::put_view",
+   "name": "put_view",
+   "qual": "Editor::put_view",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 340,
+   "public": false,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn put_view(&mut self, slot: Option<PanelSlot>, view: Box<dyn View>)",
+   "doc": "Store `view` in the modal (`None`) or a panel slot.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Editor::view_key",
+    "vox-editor::Editor::open_panel"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::focused_panel",
+   "name": "focused_panel",
+   "qual": "Editor::focused_panel",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 349,
+   "public": false,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn focused_panel(&self) -> Option<PanelSlot>",
+   "doc": "The panel that has focus, if it is open.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Editor::close_focused"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::window_cmd",
+   "name": "window_cmd",
+   "qual": "Editor::window_cmd",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 358,
+   "public": false,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub(crate) fn window_cmd(&mut self, c: char)",
+   "doc": "`<C-w>` + `c`: `h`/`l` left/right, `j`/`k` down/up, `w` next, `c`/`q` close panel.",
+   "calls": [
+    "vox-editor::Editor::close_focused",
+    "vox-editor::Editor::focus"
+   ],
+   "called_by": [
+    "vox-editor::Editor::panel_key",
+    "vox-editor::Editor::exec"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::focus",
+   "name": "focus",
+   "qual": "Editor::focus",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 380,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn focus(&mut self, target: Focus)",
+   "doc": "Move focus to `target` if it is open (the editor is always open).",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Editor::window_cmd"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::focused",
+   "name": "focused",
+   "qual": "Editor::focused",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 392,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn focused(&self) -> Focus",
+   "doc": "Which part has focus (ignoring the modal, which always has focus while open).",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Editor::render",
+    "vox-editor::Editor::render_status"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::open_modal",
+   "name": "open_modal",
+   "qual": "Editor::open_modal",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 397,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn open_modal(&mut self, view: Box<dyn View>)",
+   "doc": "Show `view` in the modal (replacing any open one). The modal takes all keys.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Editor::open_panel",
+   "name": "open_panel",
+   "qual": "Editor::open_panel",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 402,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn open_panel(&mut self, slot: PanelSlot, view: Box<dyn View>)",
+   "doc": "Show `view` in a panel (replacing what was there) and focus it.",
+   "calls": [
+    "vox-editor::Editor::put_view",
+    "vox-editor::editor::focus_of"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Editor::close_modal",
+   "name": "close_modal",
+   "qual": "Editor::close_modal",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 408,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn close_modal(&mut self)",
+   "doc": "Close the modal.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Editor::close_focused"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::close_panel",
+   "name": "close_panel",
+   "qual": "Editor::close_panel",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 413,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn close_panel(&mut self, slot: PanelSlot)",
+   "doc": "Close a panel; focus returns to the editor if it was there.",
+   "calls": [
+    "vox-editor::editor::focus_of"
+   ],
+   "called_by": [
+    "vox-editor::Editor::close_focused"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::close_focused",
+   "name": "close_focused",
+   "qual": "Editor::close_focused",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 424,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn close_focused(&mut self)",
+   "doc": "Close the modal, else the focused panel, else the bottom panel, else the side panel.",
+   "calls": [
+    "vox-editor::Editor::close_modal",
+    "vox-editor::Editor::focused_panel",
+    "vox-editor::Editor::close_panel"
+   ],
+   "called_by": [
+    "vox-editor::Editor::window_cmd"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::has_modal",
+   "name": "has_modal",
+   "qual": "Editor::has_modal",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 437,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn has_modal(&self) -> bool",
+   "doc": "Whether the modal is open.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Editor::has_panel",
+   "name": "has_panel",
+   "qual": "Editor::has_panel",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 442,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn has_panel(&self, slot: PanelSlot) -> bool",
+   "doc": "Whether a panel is open.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Editor::views",
+   "name": "views",
+   "qual": "Editor::views",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 450,
+   "public": false,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub(crate) fn views(&self) -> OpenViews<'_>",
+   "doc": "The open views: (side panel, bottom panel, modal).",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Editor::render"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::notify",
+   "name": "notify",
+   "qual": "Editor::notify",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 459,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn notify(&mut self, level: Level, text: impl Into<String>)",
+   "doc": "Show a notification for a few seconds (`[ui] notify_timeout_ms`).",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Editor::notifications",
+   "name": "notifications",
+   "qual": "Editor::notifications",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 471,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn notifications(&self) -> &[Notification]",
+   "doc": "Notifications currently on screen, oldest first.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Editor::render_notifications"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::history",
+   "name": "history",
+   "qual": "Editor::history",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 476,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn history(&self) -> &[(Level, String)]",
+   "doc": "Messages and notifications so far, oldest first.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Editor::next_deadline",
+   "name": "next_deadline",
+   "qual": "Editor::next_deadline",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 482,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn next_deadline(&self) -> Option<Instant>",
+   "doc": "When something time-based happens next (a notification expires or a pending mapping times out). The run loop should call [`Editor::tick`] then.",
+   "calls": [],
+   "called_by": [
+    "vox-term::run"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::tick",
+   "name": "tick",
+   "qual": "Editor::tick",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 489,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn tick(&mut self)",
+   "doc": "Handle time passing: remove expired notifications, time out pending mappings.",
+   "calls": [
+    "vox-editor::Editor::timeout"
+   ],
+   "called_by": [
+    "vox-term::run"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::ui_config",
+   "name": "ui_config",
+   "qual": "Editor::ui_config",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 502,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn ui_config(&self) -> &UiConfig",
+   "doc": "The UI settings in use.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Editor::render_notifications"
+   ]
+  },
+  {
    "id": "vox-editor::Editor::start",
    "name": "start",
    "qual": "Editor::start",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 246,
+   "line": 507,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2463,7 +3017,7 @@ window.VOX_TOUR = {
    "qual": "Editor::subscribe",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 252,
+   "line": 513,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2481,7 +3035,7 @@ window.VOX_TOUR = {
    "qual": "Editor::emit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 257,
+   "line": 518,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2502,7 +3056,7 @@ window.VOX_TOUR = {
    "qual": "Editor::with_change_events",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 271,
+   "line": 532,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2526,7 +3080,7 @@ window.VOX_TOUR = {
    "qual": "Editor::mode_kind",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 289,
+   "line": 559,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2544,7 +3098,7 @@ window.VOX_TOUR = {
    "qual": "Editor::insert_text",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 301,
+   "line": 571,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2562,7 +3116,7 @@ window.VOX_TOUR = {
    "qual": "Editor::delete_text",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 306,
+   "line": 576,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2580,7 +3134,7 @@ window.VOX_TOUR = {
    "qual": "Editor::has_pending_keys",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 312,
+   "line": 582,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2588,9 +3142,7 @@ window.VOX_TOUR = {
    "sig": "pub fn has_pending_keys(&self) -> bool",
    "doc": "Whether typed keys are waiting to see if they complete a mapping. The run loop should call [`Editor::timeout`] if no key arrives within [`Editor::key_timeout`].",
    "calls": [],
-   "called_by": [
-    "vox-term::run"
-   ]
+   "called_by": []
   },
   {
    "id": "vox-editor::Editor::key_timeout",
@@ -2598,7 +3150,7 @@ window.VOX_TOUR = {
    "qual": "Editor::key_timeout",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 317,
+   "line": 587,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2606,9 +3158,7 @@ window.VOX_TOUR = {
    "sig": "pub fn key_timeout(&self) -> Duration",
    "doc": "How long to wait for the rest of a mapping.",
    "calls": [],
-   "called_by": [
-    "vox-term::run"
-   ]
+   "called_by": []
   },
   {
    "id": "vox-editor::Editor::timeout",
@@ -2616,7 +3166,7 @@ window.VOX_TOUR = {
    "qual": "Editor::timeout",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 322,
+   "line": 592,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2628,7 +3178,7 @@ window.VOX_TOUR = {
     "vox-editor::Editor::follow_cursor"
    ],
    "called_by": [
-    "vox-term::run"
+    "vox-editor::Editor::tick"
    ]
   },
   {
@@ -2637,7 +3187,7 @@ window.VOX_TOUR = {
    "qual": "Editor::map_mode",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 328,
+   "line": 598,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2655,7 +3205,7 @@ window.VOX_TOUR = {
    "qual": "Editor::resolve_mappings",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 340,
+   "line": 610,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2675,7 +3225,7 @@ window.VOX_TOUR = {
    "qual": "Editor::run_binding",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 363,
+   "line": 633,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2696,7 +3246,7 @@ window.VOX_TOUR = {
    "qual": "Editor::dispatch",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 371,
+   "line": 641,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2719,7 +3269,7 @@ window.VOX_TOUR = {
    "qual": "Editor::last_line",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 380,
+   "line": 650,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2743,7 +3293,7 @@ window.VOX_TOUR = {
    "qual": "Editor::max_col",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 385,
+   "line": 655,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2764,7 +3314,7 @@ window.VOX_TOUR = {
    "qual": "Editor::set_cursor",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 394,
+   "line": 664,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2794,7 +3344,7 @@ window.VOX_TOUR = {
    "qual": "Editor::move_lines",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 401,
+   "line": 671,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2817,7 +3367,7 @@ window.VOX_TOUR = {
    "qual": "Editor::enter_insert",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 411,
+   "line": 681,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2838,7 +3388,7 @@ window.VOX_TOUR = {
    "qual": "Editor::handle_normal",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 417,
+   "line": 687,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2859,7 +3409,7 @@ window.VOX_TOUR = {
    "qual": "Editor::exec",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 438,
+   "line": 708,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2876,6 +3426,7 @@ window.VOX_TOUR = {
     "vox-editor::Editor::undo",
     "vox-editor::Editor::redo",
     "vox-editor::Editor::text_area",
+    "vox-editor::Editor::window_cmd",
     "vox-core::Document::line_len",
     "vox-core::Document::insert",
     "vox-core::Document::line_ending",
@@ -2895,7 +3446,7 @@ window.VOX_TOUR = {
    "qual": "Editor::motion_target",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 515,
+   "line": 786,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2924,7 +3475,7 @@ window.VOX_TOUR = {
    "qual": "Editor::search_target",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 595,
+   "line": 866,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2945,7 +3496,7 @@ window.VOX_TOUR = {
    "qual": "Editor::operate",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 630,
+   "line": 901,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2972,7 +3523,7 @@ window.VOX_TOUR = {
    "qual": "Editor::apply",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 695,
+   "line": 966,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3002,7 +3553,7 @@ window.VOX_TOUR = {
    "qual": "Editor::delete_lines",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 744,
+   "line": 1015,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3025,7 +3576,7 @@ window.VOX_TOUR = {
    "qual": "Editor::paste",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 759,
+   "line": 1030,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3052,7 +3603,7 @@ window.VOX_TOUR = {
    "qual": "Editor::handle_insert",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 803,
+   "line": 1074,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3079,7 +3630,7 @@ window.VOX_TOUR = {
    "qual": "Editor::undo",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 843,
+   "line": 1114,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3100,7 +3651,7 @@ window.VOX_TOUR = {
    "qual": "Editor::redo",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 851,
+   "line": 1122,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3121,7 +3672,7 @@ window.VOX_TOUR = {
    "qual": "Editor::handle_prompt",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 859,
+   "line": 1130,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3142,7 +3693,7 @@ window.VOX_TOUR = {
    "qual": "Editor::search",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 884,
+   "line": 1155,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3163,7 +3714,7 @@ window.VOX_TOUR = {
    "qual": "Editor::run_command",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 895,
+   "line": 1166,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3176,6 +3727,7 @@ window.VOX_TOUR = {
     "vox-editor::command::parse_line"
    ],
    "called_by": [
+    "vox-editor::Editor::view_key",
     "vox-editor::Editor::run_binding",
     "vox-editor::Editor::handle_prompt"
    ]
@@ -3186,7 +3738,7 @@ window.VOX_TOUR = {
    "qual": "Editor::commands",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 918,
+   "line": 1189,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3202,7 +3754,7 @@ window.VOX_TOUR = {
    "qual": "Editor::commands_mut",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 923,
+   "line": 1194,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3213,18 +3765,34 @@ window.VOX_TOUR = {
    "called_by": []
   },
   {
+   "id": "vox-editor::Editor::keymap",
+   "name": "keymap",
+   "qual": "Editor::keymap",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 1199,
+   "public": true,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn keymap(&self) -> &Keymap",
+   "doc": "The user key mappings.",
+   "calls": [],
+   "called_by": []
+  },
+  {
    "id": "vox-editor::Editor::keymap_mut",
    "name": "keymap_mut",
    "qual": "Editor::keymap_mut",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 928,
+   "line": 1204,
    "public": true,
    "owner": "Editor",
    "trait": null,
    "decl_only": false,
    "sig": "pub fn keymap_mut(&mut self) -> &mut Keymap",
-   "doc": "The user key mappings.",
+   "doc": "The user key mappings, to change them.",
    "calls": [],
    "called_by": []
   },
@@ -3234,7 +3802,7 @@ window.VOX_TOUR = {
    "qual": "Editor::apply_config",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 933,
+   "line": 1209,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3254,7 +3822,7 @@ window.VOX_TOUR = {
    "qual": "Editor::map_key",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 943,
+   "line": 1220,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3275,7 +3843,7 @@ window.VOX_TOUR = {
    "qual": "Editor::set_message",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 950,
+   "line": 1227,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3294,7 +3862,7 @@ window.VOX_TOUR = {
    "qual": "Editor::quit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 955,
+   "line": 1232,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3310,7 +3878,7 @@ window.VOX_TOUR = {
    "qual": "Editor::write",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 960,
+   "line": 1237,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3332,7 +3900,7 @@ window.VOX_TOUR = {
    "qual": "Editor::edit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 988,
+   "line": 1265,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3349,12 +3917,32 @@ window.VOX_TOUR = {
    "called_by": []
   },
   {
+   "id": "vox-editor::editor::focus_of",
+   "name": "focus_of",
+   "qual": "editor::focus_of",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 1294,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn focus_of(slot: PanelSlot) -> Focus",
+   "doc": "The focus value of a panel slot.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Editor::view_key",
+    "vox-editor::Editor::open_panel",
+    "vox-editor::Editor::close_panel"
+   ]
+  },
+  {
    "id": "vox-editor::editor::order",
    "name": "order",
    "qual": "editor::order",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 1010,
+   "line": 1302,
    "public": false,
    "owner": null,
    "trait": null,
@@ -3420,12 +4008,28 @@ window.VOX_TOUR = {
    ]
   },
   {
+   "id": "vox-editor::Keymap::iter",
+   "name": "iter",
+   "qual": "Keymap::iter",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/keymap.rs",
+   "line": 60,
+   "public": true,
+   "owner": "Keymap",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn iter(&self) -> impl Iterator<Item = (MapMode, &[Key], &Binding)>",
+   "doc": "All mappings, in the order they were added.",
+   "calls": [],
+   "called_by": []
+  },
+  {
    "id": "vox-editor::Keymap::len",
    "name": "len",
    "qual": "Keymap::len",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/keymap.rs",
-   "line": 60,
+   "line": 65,
    "public": true,
    "owner": "Keymap",
    "trait": null,
@@ -3441,7 +4045,7 @@ window.VOX_TOUR = {
    "qual": "Keymap::is_empty",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/keymap.rs",
-   "line": 65,
+   "line": 70,
    "public": true,
    "owner": "Keymap",
    "trait": null,
@@ -3457,7 +4061,7 @@ window.VOX_TOUR = {
    "qual": "Keymap::lookup",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/keymap.rs",
-   "line": 70,
+   "line": 75,
    "public": false,
    "owner": "Keymap",
    "trait": null,
@@ -3473,7 +4077,7 @@ window.VOX_TOUR = {
    "qual": "keymap::expand_leader",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/keymap.rs",
-   "line": 93,
+   "line": 98,
    "public": false,
    "owner": null,
    "trait": null,
@@ -3491,7 +4095,7 @@ window.VOX_TOUR = {
    "qual": "keymap::parse_lhs",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/keymap.rs",
-   "line": 106,
+   "line": 111,
    "public": true,
    "owner": null,
    "trait": null,
@@ -3513,7 +4117,7 @@ window.VOX_TOUR = {
    "qual": "keymap::parse_binding",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/keymap.rs",
-   "line": 112,
+   "line": 117,
    "public": true,
    "owner": null,
    "trait": null,
@@ -3561,6 +4165,7 @@ window.VOX_TOUR = {
    "doc": "Ctrl + `c`.",
    "calls": [],
    "called_by": [
+    "vox-editor::Editor::panel_key",
     "vox-editor::keys::parse_name"
    ]
   },
@@ -3586,12 +4191,30 @@ window.VOX_TOUR = {
    ]
   },
   {
+   "id": "vox-editor::keys::format_keys",
+   "name": "format_keys",
+   "qual": "keys::format_keys",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/keys.rs",
+   "line": 107,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn format_keys(keys: &[Key]) -> String",
+   "doc": "Format keys in Vim notation, the inverse of [`parse_keys`]: `[Ctrl-s, Esc]` → `\"<C-s><Esc>\"`.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::builtin::keymaps"
+   ]
+  },
+  {
    "id": "vox-editor::keys::parse_name",
    "name": "parse_name",
    "qual": "keys::parse_name",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/keys.rs",
-   "line": 107,
+   "line": 138,
    "public": false,
    "owner": null,
    "trait": null,
@@ -3612,7 +4235,7 @@ window.VOX_TOUR = {
    "qual": "normal::plain_char",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/normal.rs",
-   "line": 99,
+   "line": 105,
    "public": false,
    "owner": null,
    "trait": null,
@@ -3631,7 +4254,7 @@ window.VOX_TOUR = {
    "qual": "normal::parse_count",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/normal.rs",
-   "line": 107,
+   "line": 113,
    "public": false,
    "owner": null,
    "trait": null,
@@ -3649,7 +4272,7 @@ window.VOX_TOUR = {
    "qual": "normal::parse_motion",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/normal.rs",
-   "line": 129,
+   "line": 135,
    "public": false,
    "owner": null,
    "trait": null,
@@ -3669,7 +4292,7 @@ window.VOX_TOUR = {
    "qual": "normal::multiply",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/normal.rs",
-   "line": 168,
+   "line": 174,
    "public": false,
    "owner": null,
    "trait": null,
@@ -3687,7 +4310,7 @@ window.VOX_TOUR = {
    "qual": "normal::parse",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/normal.rs",
-   "line": 176,
+   "line": 182,
    "public": false,
    "owner": null,
    "trait": null,
@@ -3883,7 +4506,7 @@ window.VOX_TOUR = {
    "qual": "Editor::render",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/render.rs",
-   "line": 10,
+   "line": 16,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -3891,10 +4514,15 @@ window.VOX_TOUR = {
    "sig": "pub fn render(&self) -> Surface",
    "doc": "Render the whole screen at the size last given to [`Editor::resize`].",
    "calls": [
+    "vox-editor::Editor::layout",
+    "vox-editor::Editor::views",
     "vox-editor::Editor::render_text",
+    "vox-editor::Editor::focused",
+    "vox-editor::Editor::render_frame",
     "vox-editor::Editor::render_status",
     "vox-editor::Editor::render_cmdline",
-    "vox-editor::Editor::cursor_screen_position",
+    "vox-editor::Editor::render_notifications",
+    "vox-editor::Editor::place_cursor",
     "vox-editor::Surface::new"
    ],
    "called_by": [
@@ -3907,7 +4535,7 @@ window.VOX_TOUR = {
    "qual": "Editor::str_width",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/render.rs",
-   "line": 30,
+   "line": 54,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -3918,23 +4546,43 @@ window.VOX_TOUR = {
     "vox-view::display_col"
    ],
    "called_by": [
-    "vox-editor::Editor::cursor_screen_position",
+    "vox-editor::Editor::place_cursor",
     "vox-editor::Editor::render_status"
    ]
   },
   {
-   "id": "vox-editor::Editor::cursor_screen_position",
-   "name": "cursor_screen_position",
-   "qual": "Editor::cursor_screen_position",
+   "id": "vox-editor::Editor::render_frame",
+   "name": "render_frame",
+   "qual": "Editor::render_frame",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/render.rs",
-   "line": 35,
+   "line": 59,
    "public": false,
    "owner": "Editor",
    "trait": null,
    "decl_only": false,
-   "sig": "fn cursor_screen_position(&self) -> (u16, u16)",
-   "doc": "Screen position (column, row) of the cursor.",
+   "sig": "fn render_frame(&self, s: &mut Surface, rect: Rect, view: &dyn View, focused: bool)",
+   "doc": "Border (bold blue when focused) plus the view inside it.",
+   "calls": [
+    "vox-editor::Surface::draw_box"
+   ],
+   "called_by": [
+    "vox-editor::Editor::render"
+   ]
+  },
+  {
+   "id": "vox-editor::Editor::place_cursor",
+   "name": "place_cursor",
+   "qual": "Editor::place_cursor",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/render.rs",
+   "line": 71,
+   "public": false,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn place_cursor(&self, s: &mut Surface, editor: Rect, views: &[(Option<Rect>, Option<&dyn View>)])",
+   "doc": "Put the terminal cursor in the prompt, the first view in `views` that has focus, or the text. A focused view without a cursor hides it.",
    "calls": [
     "vox-editor::Editor::str_width",
     "vox-editor::Editor::gutter_width",
@@ -3950,19 +4598,19 @@ window.VOX_TOUR = {
    "qual": "Editor::render_text",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/render.rs",
-   "line": 46,
+   "line": 101,
    "public": false,
    "owner": "Editor",
    "trait": null,
    "decl_only": false,
-   "sig": "fn render_text(&self, s: &mut Surface, rows: u16)",
-   "doc": "Draw the text rows: line numbers, visible part of each line, `~` past the end.",
+   "sig": "fn render_text(&self, s: &mut Surface, area: Rect)",
+   "doc": "Draw the text rows in `area`: line numbers, visible part of each line, `~` past the end.",
    "calls": [
     "vox-editor::Editor::gutter_width",
     "vox-editor::Editor::render_selection",
-    "vox-editor::Surface::width",
     "vox-core::Document::line",
-    "vox-editor::Surface::put_str",
+    "vox-editor::Surface::put_in",
+    "vox-editor::Rect::new",
     "vox-view::visible_slice"
    ],
    "called_by": [
@@ -3975,12 +4623,12 @@ window.VOX_TOUR = {
    "qual": "Editor::render_selection",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/render.rs",
-   "line": 68,
+   "line": 125,
    "public": false,
    "owner": "Editor",
    "trait": null,
    "decl_only": false,
-   "sig": "fn render_selection(&self, s: &mut Surface, rows: u16, gutter: usize, text_width: usize)",
+   "sig": "fn render_selection(&self, s: &mut Surface, area: Rect, gutter: usize, text_width: usize)",
    "doc": "Reverse-video the visual selection.",
    "calls": [
     "vox-editor::Editor::selection",
@@ -3998,7 +4646,7 @@ window.VOX_TOUR = {
    "qual": "Editor::render_status",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/render.rs",
-   "line": 99,
+   "line": 157,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -4006,6 +4654,7 @@ window.VOX_TOUR = {
    "sig": "fn render_status(&self, s: &mut Surface, row: u16)",
    "doc": "Draw the status line: mode, file name, `[+]` if modified, cursor position.",
    "calls": [
+    "vox-editor::Editor::focused",
     "vox-editor::Editor::str_width",
     "vox-core::Document::is_modified",
     "vox-editor::Surface::width",
@@ -4022,7 +4671,7 @@ window.VOX_TOUR = {
    "qual": "Editor::render_cmdline",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/render.rs",
-   "line": 122,
+   "line": 181,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -4037,12 +4686,127 @@ window.VOX_TOUR = {
    ]
   },
   {
+   "id": "vox-editor::Editor::render_notifications",
+   "name": "render_notifications",
+   "qual": "Editor::render_notifications",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/render.rs",
+   "line": 192,
+   "public": false,
+   "owner": "Editor",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn render_notifications(&self, s: &mut Surface, body: Rect)",
+   "doc": "Draw notifications stacked in a corner of `body`, oldest first.",
+   "calls": [
+    "vox-editor::Editor::ui_config",
+    "vox-editor::Editor::notifications",
+    "vox-editor::Surface::draw_box",
+    "vox-editor::Surface::put_in",
+    "vox-editor::Rect::new",
+    "vox-editor::render::wrap"
+   ],
+   "called_by": [
+    "vox-editor::Editor::render"
+   ]
+  },
+  {
+   "id": "vox-editor::render::wrap",
+   "name": "wrap",
+   "qual": "render::wrap",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/render.rs",
+   "line": 234,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn wrap(text: &str, width: usize, max: usize) -> Vec<String>",
+   "doc": "Split `text` into at most `max` lines of up to `width` chars at spaces; the last line ends with `…` if text was cut.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Editor::render_notifications"
+   ]
+  },
+  {
+   "id": "vox-editor::Style::fg",
+   "name": "fg",
+   "qual": "Style::fg",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/surface.rs",
+   "line": 63,
+   "public": true,
+   "owner": "Style",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub const fn fg(mut self, fg: Color) -> Self",
+   "doc": "This style with foreground `fg`.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Rect::new",
+   "name": "new",
+   "qual": "Rect::new",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/surface.rs",
+   "line": 84,
+   "public": true,
+   "owner": "Rect",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub const fn new(x: u16, y: u16, w: u16, h: u16) -> Self",
+   "doc": "Create a rectangle.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Editor::render_text",
+    "vox-editor::Editor::render_notifications",
+    "vox-editor::Rect::inner",
+    "vox-editor::layout::compute",
+    "vox-editor::ListView::render"
+   ]
+  },
+  {
+   "id": "vox-editor::Rect::inner",
+   "name": "inner",
+   "qual": "Rect::inner",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/surface.rs",
+   "line": 89,
+   "public": true,
+   "owner": "Rect",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn inner(self) -> Rect",
+   "doc": "The area inside a one-cell border.",
+   "calls": [
+    "vox-editor::Rect::new"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Rect::is_empty",
+   "name": "is_empty",
+   "qual": "Rect::is_empty",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/surface.rs",
+   "line": 99,
+   "public": true,
+   "owner": "Rect",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn is_empty(self) -> bool",
+   "doc": "Whether the rectangle has no cells.",
+   "calls": [],
+   "called_by": []
+  },
+  {
    "id": "vox-editor::Cell::default",
    "name": "default",
    "qual": "Cell::default",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/surface.rs",
-   "line": 40,
+   "line": 114,
    "public": true,
    "owner": "Cell",
    "trait": "Default",
@@ -4060,7 +4824,7 @@ window.VOX_TOUR = {
    "qual": "Surface::new",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/surface.rs",
-   "line": 72,
+   "line": 148,
    "public": true,
    "owner": "Surface",
    "trait": null,
@@ -4080,7 +4844,7 @@ window.VOX_TOUR = {
    "qual": "Surface::width",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/surface.rs",
-   "line": 83,
+   "line": 160,
    "public": true,
    "owner": "Surface",
    "trait": null,
@@ -4089,7 +4853,6 @@ window.VOX_TOUR = {
    "doc": "Width in cells.",
    "calls": [],
    "called_by": [
-    "vox-editor::Editor::render_text",
     "vox-editor::Editor::render_status",
     "vox-term::Terminal::draw"
    ]
@@ -4100,7 +4863,7 @@ window.VOX_TOUR = {
    "qual": "Surface::height",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/surface.rs",
-   "line": 88,
+   "line": 165,
    "public": true,
    "owner": "Surface",
    "trait": null,
@@ -4118,7 +4881,7 @@ window.VOX_TOUR = {
    "qual": "Surface::cell",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/surface.rs",
-   "line": 93,
+   "line": 170,
    "public": true,
    "owner": "Surface",
    "trait": null,
@@ -4136,7 +4899,7 @@ window.VOX_TOUR = {
    "qual": "Surface::row",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/surface.rs",
-   "line": 98,
+   "line": 175,
    "public": true,
    "owner": "Surface",
    "trait": null,
@@ -4157,7 +4920,7 @@ window.VOX_TOUR = {
    "qual": "Surface::index",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/surface.rs",
-   "line": 104,
+   "line": 181,
    "public": false,
    "owner": "Surface",
    "trait": null,
@@ -4170,7 +4933,9 @@ window.VOX_TOUR = {
     "vox-editor::Surface::row",
     "vox-editor::Surface::put_str",
     "vox-editor::Surface::set_style",
-    "vox-editor::Surface::fill_row"
+    "vox-editor::Surface::fill_row",
+    "vox-editor::Surface::clear",
+    "vox-editor::Surface::draw_box"
    ]
   },
   {
@@ -4179,7 +4944,7 @@ window.VOX_TOUR = {
    "qual": "Surface::put_str",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/surface.rs",
-   "line": 111,
+   "line": 188,
    "public": true,
    "owner": "Surface",
    "trait": null,
@@ -4191,9 +4956,10 @@ window.VOX_TOUR = {
     "vox-view::CharWidth::width"
    ],
    "called_by": [
-    "vox-editor::Editor::render_text",
     "vox-editor::Editor::render_status",
-    "vox-editor::Editor::render_cmdline"
+    "vox-editor::Editor::render_cmdline",
+    "vox-editor::Surface::draw_box",
+    "vox-editor::Surface::put_in"
    ]
   },
   {
@@ -4202,7 +4968,7 @@ window.VOX_TOUR = {
    "qual": "Surface::set_style",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/surface.rs",
-   "line": 156,
+   "line": 233,
    "public": true,
    "owner": "Surface",
    "trait": null,
@@ -4222,7 +4988,7 @@ window.VOX_TOUR = {
    "qual": "Surface::fill_row",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/surface.rs",
-   "line": 167,
+   "line": 244,
    "public": true,
    "owner": "Surface",
    "trait": null,
@@ -4237,12 +5003,82 @@ window.VOX_TOUR = {
    ]
   },
   {
+   "id": "vox-editor::Surface::clear",
+   "name": "clear",
+   "qual": "Surface::clear",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/surface.rs",
+   "line": 260,
+   "public": true,
+   "owner": "Surface",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn clear(&mut self, area: Rect, style: Style)",
+   "doc": "Fill `area` with blank cells of `style`.",
+   "calls": [
+    "vox-editor::Surface::index"
+   ],
+   "called_by": [
+    "vox-editor::Surface::draw_box",
+    "vox-editor::ListView::render"
+   ]
+  },
+  {
+   "id": "vox-editor::Surface::draw_box",
+   "name": "draw_box",
+   "qual": "Surface::draw_box",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/surface.rs",
+   "line": 273,
+   "public": true,
+   "owner": "Surface",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn draw_box(&mut self, area: Rect, title: &str, style: Style, width: &dyn CharWidth)",
+   "doc": "Clear `area` and draw a border around it with `title` in the top edge.",
+   "calls": [
+    "vox-editor::Surface::clear",
+    "vox-editor::Surface::index",
+    "vox-editor::Surface::put_str"
+   ],
+   "called_by": [
+    "vox-editor::Editor::render_frame",
+    "vox-editor::Editor::render_notifications"
+   ]
+  },
+  {
+   "id": "vox-editor::Surface::put_in",
+   "name": "put_in",
+   "qual": "Surface::put_in",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/surface.rs",
+   "line": 311,
+   "public": true,
+   "owner": "Surface",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn put_in(&mut self, area: Rect, row: u16, text: &str, style: Style, width: &dyn CharWidth)",
+   "doc": "Write `text` inside `area` at row `row` (relative), clipped to the area.",
+   "calls": [
+    "vox-editor::Surface::put_str",
+    "vox-view::CharWidth::width"
+   ],
+   "called_by": [
+    "vox-editor::Editor::render_text",
+    "vox-editor::Editor::render_notifications",
+    "vox-editor::ListView::render",
+    "vox-editor::TextView::render",
+    "vox-editor::Confirm::render",
+    "vox-editor::Input::render"
+   ]
+  },
+  {
    "id": "vox-editor::Surface::fmt",
    "name": "fmt",
    "qual": "Surface::fmt",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/surface.rs",
-   "line": 183,
+   "line": 336,
    "public": true,
    "owner": "Surface",
    "trait": "Display",
@@ -4251,6 +5087,606 @@ window.VOX_TOUR = {
    "doc": "Text form, used by `to_string()` (std `Display` trait).",
    "calls": [
     "vox-editor::Surface::row"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::UiConfig::default",
+   "name": "default",
+   "qual": "UiConfig::default",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/layout.rs",
+   "line": 45,
+   "public": true,
+   "owner": "UiConfig",
+   "trait": "Default",
+   "decl_only": false,
+   "sig": "fn default() -> Self",
+   "doc": "Default value (std `Default` trait).",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Config::default",
+    "vox-editor::Editor::with_services"
+   ]
+  },
+  {
+   "id": "vox-editor::layout::compute",
+   "name": "compute",
+   "qual": "layout::compute",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/layout.rs",
+   "line": 79,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub(crate) fn compute((w, h): (u16, u16), cfg: &UiConfig, side: bool, bottom: bool, modal: bool) -> Layout",
+   "doc": "Split a `w` x `h` screen. Panels shrink so the text area keeps at least a few cells.",
+   "calls": [
+    "vox-editor::Rect::new"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::View::title",
+   "name": "title",
+   "qual": "View::title",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/mod.rs",
+   "line": 39,
+   "public": true,
+   "owner": "View",
+   "trait": null,
+   "decl_only": true,
+   "sig": "fn title(&self) -> String",
+   "doc": "Title shown in the border.",
+   "calls": [],
+   "called_by": [],
+   "implemented_by": [
+    "vox-editor::ListView::title",
+    "vox-editor::TextView::title",
+    "vox-editor::Confirm::title",
+    "vox-editor::Input::title"
+   ]
+  },
+  {
+   "id": "vox-editor::View::render",
+   "name": "render",
+   "qual": "View::render",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/mod.rs",
+   "line": 41,
+   "public": true,
+   "owner": "View",
+   "trait": null,
+   "decl_only": true,
+   "sig": "fn render(&self, area: Rect, s: &mut Surface, width: &dyn CharWidth)",
+   "doc": "Draw the content inside `area` (the border is already drawn).",
+   "calls": [],
+   "called_by": [],
+   "implemented_by": [
+    "vox-editor::ListView::render",
+    "vox-editor::TextView::render",
+    "vox-editor::Confirm::render",
+    "vox-editor::Input::render"
+   ]
+  },
+  {
+   "id": "vox-editor::View::handle_key",
+   "name": "handle_key",
+   "qual": "View::handle_key",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/mod.rs",
+   "line": 43,
+   "public": true,
+   "owner": "View",
+   "trait": null,
+   "decl_only": true,
+   "sig": "fn handle_key(&mut self, key: Key) -> Outcome",
+   "doc": "Handle a key while this view has focus.",
+   "calls": [],
+   "called_by": [],
+   "implemented_by": [
+    "vox-editor::ListView::handle_key",
+    "vox-editor::TextView::handle_key",
+    "vox-editor::Confirm::handle_key",
+    "vox-editor::Input::handle_key"
+   ]
+  },
+  {
+   "id": "vox-editor::View::cursor",
+   "name": "cursor",
+   "qual": "View::cursor",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/mod.rs",
+   "line": 45,
+   "public": true,
+   "owner": "View",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn cursor(&self, _area: Rect) -> Option<(u16, u16)>",
+   "doc": "Where the terminal cursor goes inside `area`; `None` hides it.",
+   "calls": [],
+   "called_by": [],
+   "implemented_by": [
+    "vox-editor::Input::cursor"
+   ]
+  },
+  {
+   "id": "vox-editor::Level::name",
+   "name": "name",
+   "qual": "Level::name",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/notify.rs",
+   "line": 20,
+   "public": true,
+   "owner": "Level",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn name(self) -> &'static str",
+   "doc": "Lowercase name: `info`, `warning`, `error`.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Level::parse",
+   "name": "parse",
+   "qual": "Level::parse",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/notify.rs",
+   "line": 29,
+   "public": true,
+   "owner": "Level",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn parse(s: &str) -> Option<Level>",
+   "doc": "Parse `info`, `warn`/`warning`, `error`.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::builtin::notify"
+   ]
+  },
+  {
+   "id": "vox-editor::Level::color",
+   "name": "color",
+   "qual": "Level::color",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/notify.rs",
+   "line": 39,
+   "public": true,
+   "owner": "Level",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn color(self) -> Color",
+   "doc": "Color used to show this level.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::views::keep_visible",
+   "name": "keep_visible",
+   "qual": "views::keep_visible",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 10,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn keep_visible(selected: usize, scroll: usize, height: usize) -> usize",
+   "doc": "Keep `selected` visible in a window of `height` rows starting at `scroll`.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::ListView::render"
+   ]
+  },
+  {
+   "id": "vox-editor::ListItem::new",
+   "name": "new",
+   "qual": "ListItem::new",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 33,
+   "public": true,
+   "owner": "ListItem",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn new(label: impl Into<String>) -> Self",
+   "doc": "A row with a label only.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::builtin::commands",
+    "vox-editor::builtin::keymaps"
+   ]
+  },
+  {
+   "id": "vox-editor::ListItem::detail",
+   "name": "detail",
+   "qual": "ListItem::detail",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 42,
+   "public": true,
+   "owner": "ListItem",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn detail(mut self, detail: impl Into<String>) -> Self",
+   "doc": "Set the dimmed detail text.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::ListItem::command",
+   "name": "command",
+   "qual": "ListItem::command",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 48,
+   "public": true,
+   "owner": "ListItem",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn command(mut self, command: impl Into<String>) -> Self",
+   "doc": "Set the command run on `Enter`.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::ListView::new",
+   "name": "new",
+   "qual": "ListView::new",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 68,
+   "public": true,
+   "owner": "ListView",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn new(title: impl Into<String>, items: Vec<ListItem>) -> Self",
+   "doc": "A list with `items`.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::builtin::commands",
+    "vox-editor::builtin::keymaps"
+   ]
+  },
+  {
+   "id": "vox-editor::ListView::selected",
+   "name": "selected",
+   "qual": "ListView::selected",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 79,
+   "public": true,
+   "owner": "ListView",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn selected(&self) -> usize",
+   "doc": "Index of the selected row.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::ListView::title",
+   "name": "title",
+   "qual": "ListView::title",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 85,
+   "public": true,
+   "owner": "ListView",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn title(&self) -> String",
+   "doc": "Title shown in the border.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::ListView::render",
+   "name": "render",
+   "qual": "ListView::render",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 89,
+   "public": true,
+   "owner": "ListView",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn render(&self, area: Rect, s: &mut Surface, width: &dyn CharWidth)",
+   "doc": "Draw the content inside `area` (the border is already drawn).",
+   "calls": [
+    "vox-editor::Surface::put_in",
+    "vox-editor::Surface::clear",
+    "vox-editor::Rect::new",
+    "vox-view::display_col",
+    "vox-editor::views::keep_visible"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::ListView::handle_key",
+   "name": "handle_key",
+   "qual": "ListView::handle_key",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 128,
+   "public": true,
+   "owner": "ListView",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn handle_key(&mut self, key: Key) -> Outcome",
+   "doc": "Handle a key while this view has focus.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::TextView::new",
+   "name": "new",
+   "qual": "TextView::new",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 164,
+   "public": true,
+   "owner": "TextView",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn new(title: impl Into<String>, lines: Vec<(Style, String)>) -> Self",
+   "doc": "Text starting at the top.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::builtin::messages"
+   ]
+  },
+  {
+   "id": "vox-editor::TextView::at_end",
+   "name": "at_end",
+   "qual": "TextView::at_end",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 173,
+   "public": true,
+   "owner": "TextView",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn at_end(mut self) -> Self",
+   "doc": "Text scrolled to the end (newest lines visible).",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::TextView::title",
+   "name": "title",
+   "qual": "TextView::title",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 180,
+   "public": true,
+   "owner": "TextView",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn title(&self) -> String",
+   "doc": "Title shown in the border.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::TextView::render",
+   "name": "render",
+   "qual": "TextView::render",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 184,
+   "public": true,
+   "owner": "TextView",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn render(&self, area: Rect, s: &mut Surface, width: &dyn CharWidth)",
+   "doc": "Draw the content inside `area` (the border is already drawn).",
+   "calls": [
+    "vox-editor::Surface::put_in"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::TextView::handle_key",
+   "name": "handle_key",
+   "qual": "TextView::handle_key",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 198,
+   "public": true,
+   "owner": "TextView",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn handle_key(&mut self, key: Key) -> Outcome",
+   "doc": "Handle a key while this view has focus.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Confirm::new",
+   "name": "new",
+   "qual": "Confirm::new",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 223,
+   "public": true,
+   "owner": "Confirm",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn new(title: impl Into<String>, message: impl Into<String>, command: impl Into<String>) -> Self",
+   "doc": "Ask `message`; on yes, run `command`.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Confirm::title",
+   "name": "title",
+   "qual": "Confirm::title",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 237,
+   "public": true,
+   "owner": "Confirm",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn title(&self) -> String",
+   "doc": "Title shown in the border.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Confirm::render",
+   "name": "render",
+   "qual": "Confirm::render",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 241,
+   "public": true,
+   "owner": "Confirm",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn render(&self, area: Rect, s: &mut Surface, width: &dyn CharWidth)",
+   "doc": "Draw the content inside `area` (the border is already drawn).",
+   "calls": [
+    "vox-editor::Surface::put_in"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Confirm::handle_key",
+   "name": "handle_key",
+   "qual": "Confirm::handle_key",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 253,
+   "public": true,
+   "owner": "Confirm",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn handle_key(&mut self, key: Key) -> Outcome",
+   "doc": "Handle a key while this view has focus.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Input::new",
+   "name": "new",
+   "qual": "Input::new",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 273,
+   "public": true,
+   "owner": "Input",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn new(title: impl Into<String>, prompt: impl Into<String>, template: impl Into<String>) -> Self",
+   "doc": "Ask with `prompt`; on `Enter`, run `template` (e.g. `\"e {}\"`).",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Input::with_text",
+   "name": "with_text",
+   "qual": "Input::with_text",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 287,
+   "public": true,
+   "owner": "Input",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn with_text(mut self, text: impl Into<String>) -> Self",
+   "doc": "Start with `text` already typed.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Input::line",
+   "name": "line",
+   "qual": "Input::line",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 293,
+   "public": false,
+   "owner": "Input",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn line(&self) -> String",
+   "doc": "Prompt plus typed text.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::Input::render",
+    "vox-editor::Input::cursor"
+   ]
+  },
+  {
+   "id": "vox-editor::Input::title",
+   "name": "title",
+   "qual": "Input::title",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 299,
+   "public": true,
+   "owner": "Input",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn title(&self) -> String",
+   "doc": "Title shown in the border.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Input::render",
+   "name": "render",
+   "qual": "Input::render",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 303,
+   "public": true,
+   "owner": "Input",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn render(&self, area: Rect, s: &mut Surface, width: &dyn CharWidth)",
+   "doc": "Draw the content inside `area` (the border is already drawn).",
+   "calls": [
+    "vox-editor::Input::line",
+    "vox-editor::Surface::put_in"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Input::handle_key",
+   "name": "handle_key",
+   "qual": "Input::handle_key",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 307,
+   "public": true,
+   "owner": "Input",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn handle_key(&mut self, key: Key) -> Outcome",
+   "doc": "Handle a key while this view has focus.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::Input::cursor",
+   "name": "cursor",
+   "qual": "Input::cursor",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 324,
+   "public": true,
+   "owner": "Input",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn cursor(&self, area: Rect) -> Option<(u16, u16)>",
+   "doc": "Cursor after the typed text.",
+   "calls": [
+    "vox-editor::Input::line"
    ],
    "called_by": []
   },
@@ -4959,7 +6395,7 @@ window.VOX_TOUR = {
    "qual": "Terminal::read_key",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 80,
+   "line": 84,
    "public": true,
    "owner": "Terminal",
    "trait": null,
@@ -4979,7 +6415,7 @@ window.VOX_TOUR = {
    "qual": "Terminal::read_key_timeout",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 85,
+   "line": 89,
    "public": true,
    "owner": "Terminal",
    "trait": null,
@@ -4999,7 +6435,7 @@ window.VOX_TOUR = {
    "qual": "Terminal::read_event",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 94,
+   "line": 98,
    "public": false,
    "owner": "Terminal",
    "trait": null,
@@ -5020,7 +6456,7 @@ window.VOX_TOUR = {
    "qual": "Terminal::drop",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 107,
+   "line": 111,
    "public": true,
    "owner": "Terminal",
    "trait": "Drop",
@@ -5038,7 +6474,7 @@ window.VOX_TOUR = {
    "qual": "restore",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 113,
+   "line": 117,
    "public": false,
    "owner": null,
    "trait": null,
@@ -5057,7 +6493,7 @@ window.VOX_TOUR = {
    "qual": "set_style",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 126,
+   "line": 130,
    "public": false,
    "owner": null,
    "trait": null,
@@ -5075,7 +6511,7 @@ window.VOX_TOUR = {
    "qual": "convert",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 138,
+   "line": 153,
    "public": true,
    "owner": null,
    "trait": null,
@@ -5093,7 +6529,7 @@ window.VOX_TOUR = {
    "qual": "run",
    "crate": "vox-term",
    "file": "crates/vox-term/src/lib.rs",
-   "line": 168,
+   "line": 183,
    "public": true,
    "owner": null,
    "trait": null,
@@ -5106,12 +6542,11 @@ window.VOX_TOUR = {
     "vox-editor::Editor::resize",
     "vox-term::Terminal::draw",
     "vox-editor::Editor::render",
-    "vox-editor::Editor::has_pending_keys",
+    "vox-editor::Editor::next_deadline",
     "vox-term::Terminal::read_key_timeout",
-    "vox-editor::Editor::key_timeout",
-    "vox-editor::Editor::handle_key",
-    "vox-editor::Editor::timeout",
     "vox-term::Terminal::read_key",
+    "vox-editor::Editor::handle_key",
+    "vox-editor::Editor::tick",
     "vox-term::Terminal::enter"
    ],
    "called_by": [
@@ -5170,6 +6605,7 @@ window.VOX_TOUR = {
    "calls": [],
    "called_by": [
     "vox-editor::Surface::put_str",
+    "vox-editor::Surface::put_in",
     "vox-view::char_width"
    ],
    "implemented_by": [
@@ -5233,7 +6669,8 @@ window.VOX_TOUR = {
    "called_by": [
     "vox-editor::Editor::cursor_dcol",
     "vox-editor::Editor::str_width",
-    "vox-editor::Editor::render_selection"
+    "vox-editor::Editor::render_selection",
+    "vox-editor::ListView::render"
    ]
   },
   {
@@ -5440,7 +6877,7 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 10,
+   "line": 11,
    "public": true,
    "doc": "A format-neutral configuration value."
   },
@@ -5450,7 +6887,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 41,
+   "line": 42,
    "public": true,
    "doc": "Validated settings."
   },
@@ -5460,7 +6897,7 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 24,
+   "line": 26,
    "public": true,
    "doc": "Editor input mode."
   },
@@ -5470,7 +6907,7 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 42,
+   "line": 44,
    "public": false,
    "doc": "How a motion's range is interpreted by an operator."
   },
@@ -5480,7 +6917,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 50,
+   "line": 52,
    "public": false,
    "doc": "Text an operator acts on. For linewise ranges only the lines of `start`/`end` matter."
   },
@@ -5490,7 +6927,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 59,
+   "line": 61,
    "public": true,
    "doc": "Platform services the editor uses. Adapters provide real implementations; the defaults are std-only stand-ins suitable for tests."
   },
@@ -5500,9 +6937,19 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/editor.rs",
-   "line": 79,
+   "line": 84,
    "public": true,
    "doc": "Top-level editor state."
+  },
+  {
+   "id": "vox-editor::OpenViews",
+   "name": "OpenViews",
+   "kind": "type",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/editor.rs",
+   "line": 1287,
+   "public": false,
+   "doc": "The open views: (side panel, bottom panel, modal)."
   },
   {
    "id": "vox-editor::ModeKind",
@@ -5735,14 +7182,34 @@ window.VOX_TOUR = {
    "doc": "All registers."
   },
   {
+   "id": "vox-editor::Color",
+   "name": "Color",
+   "kind": "enum",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/surface.rs",
+   "line": 10,
+   "public": true,
+   "doc": "Foreground color of a cell. A small fixed set; the terminal adapter picks the real colors."
+  },
+  {
    "id": "vox-editor::Style",
    "name": "Style",
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/surface.rs",
-   "line": 10,
+   "line": 28,
    "public": true,
    "doc": "Visual attributes of a cell."
+  },
+  {
+   "id": "vox-editor::Rect",
+   "name": "Rect",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/surface.rs",
+   "line": 71,
+   "public": true,
+   "doc": "A rectangle of cells: top-left corner (`x`, `y`) and size."
   },
   {
    "id": "vox-editor::Cell",
@@ -5750,7 +7217,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/surface.rs",
-   "line": 32,
+   "line": 106,
    "public": true,
    "doc": "One screen cell."
   },
@@ -5760,7 +7227,7 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/surface.rs",
-   "line": 50,
+   "line": 124,
    "public": true,
    "doc": "Terminal cursor shape."
   },
@@ -5770,9 +7237,159 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/surface.rs",
-   "line": 60,
+   "line": 134,
    "public": true,
    "doc": "A `width` x `height` grid of cells with a cursor."
+  },
+  {
+   "id": "vox-editor::SidePosition",
+   "name": "SidePosition",
+   "kind": "enum",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/layout.rs",
+   "line": 7,
+   "public": true,
+   "doc": "Side panel position."
+  },
+  {
+   "id": "vox-editor::NotifyPosition",
+   "name": "NotifyPosition",
+   "kind": "enum",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/layout.rs",
+   "line": 17,
+   "public": true,
+   "doc": "Notification corner."
+  },
+  {
+   "id": "vox-editor::UiConfig",
+   "name": "UiConfig",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/layout.rs",
+   "line": 27,
+   "public": true,
+   "doc": "UI settings (`[ui]` in the config file)."
+  },
+  {
+   "id": "vox-editor::Layout",
+   "name": "Layout",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/layout.rs",
+   "line": 60,
+   "public": false,
+   "doc": "Computed screen areas."
+  },
+  {
+   "id": "vox-editor::Outcome",
+   "name": "Outcome",
+   "kind": "enum",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/mod.rs",
+   "line": 23,
+   "public": true,
+   "doc": "What a view wants after handling a key."
+  },
+  {
+   "id": "vox-editor::View",
+   "name": "View",
+   "kind": "trait",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/mod.rs",
+   "line": 37,
+   "public": true,
+   "doc": "Something shown in a panel or the modal."
+  },
+  {
+   "id": "vox-editor::PanelSlot",
+   "name": "PanelSlot",
+   "kind": "enum",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/mod.rs",
+   "line": 52,
+   "public": true,
+   "doc": "Where a panel is shown."
+  },
+  {
+   "id": "vox-editor::Focus",
+   "name": "Focus",
+   "kind": "enum",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/mod.rs",
+   "line": 61,
+   "public": true,
+   "doc": "Which part of the screen receives keys (when no modal is open)."
+  },
+  {
+   "id": "vox-editor::Level",
+   "name": "Level",
+   "kind": "enum",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/notify.rs",
+   "line": 9,
+   "public": true,
+   "doc": "Importance of a notification or message."
+  },
+  {
+   "id": "vox-editor::Notification",
+   "name": "Notification",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/notify.rs",
+   "line": 50,
+   "public": true,
+   "doc": "A notification on screen."
+  },
+  {
+   "id": "vox-editor::ListItem",
+   "name": "ListItem",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 22,
+   "public": true,
+   "doc": "One row of a [`ListView`]."
+  },
+  {
+   "id": "vox-editor::ListView",
+   "name": "ListView",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 57,
+   "public": true,
+   "doc": "A selectable list. Keys: `j`/`k`/arrows move, `g`/`G` first/last, `Enter` runs the row's command, `q`/`Esc` close."
+  },
+  {
+   "id": "vox-editor::TextView",
+   "name": "TextView",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 155,
+   "public": true,
+   "doc": "Scrollable read-only text. Keys: `j`/`k` scroll, `g`/`G` top/bottom, `q`/`Esc` close."
+  },
+  {
+   "id": "vox-editor::Confirm",
+   "name": "Confirm",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 215,
+   "public": true,
+   "doc": "A yes/no question. `y`/`Enter` runs the command, `n`/`q`/`Esc` cancels."
+  },
+  {
+   "id": "vox-editor::Input",
+   "name": "Input",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 264,
+   "public": true,
+   "doc": "A one-line text prompt. `Enter` runs `template` with `{}` replaced by the input."
   },
   {
    "id": "vox-plugin-host::PluginHost",
@@ -6242,12 +7859,94 @@ window.VOX_TOUR = {
      "text": "The bottom line: the `:` or `/` prompt being typed, or the last message."
     },
     {
-     "fn": "vox-editor::Editor::cursor_screen_position",
-     "text": "Where the terminal cursor goes, converting the cursor's char column to screen cells."
+     "fn": "vox-editor::Editor::render_frame",
+     "text": "Open panels and the modal are drawn as bordered boxes on top, with their views inside."
+    },
+    {
+     "fn": "vox-editor::Editor::render_notifications",
+     "text": "Notifications are drawn last, so they are always visible."
+    },
+    {
+     "fn": "vox-editor::Editor::place_cursor",
+     "text": "Where the terminal cursor goes: in the `:` prompt, in a focused view (or hidden if the view has none), or in the text, converting the cursor's char column to screen cells."
     },
     {
      "fn": "vox-term::Terminal::draw",
      "text": "Compares each row with the previous frame and prints only changed rows, then places the cursor and sets its shape (block or bar)."
+    }
+   ]
+  },
+  {
+   "id": "panel",
+   "title": "Opening a panel: :keymaps",
+   "summary": "How a command fills the side panel, and how keys reach it.",
+   "steps": [
+    {
+     "fn": "vox-editor::builtin::keymaps",
+     "text": "The `:keymaps` command builds one list row per user mapping, e.g. `n <Space>w → :w`."
+    },
+    {
+     "fn": "vox-editor::Editor::open_panel",
+     "text": "Puts the list view in the side panel and moves focus there."
+    },
+    {
+     "fn": "vox-editor::Editor::layout",
+     "text": "From now on the layout has a side panel: the text area gets narrower, and scrolling uses the new width."
+    },
+    {
+     "fn": "vox-editor::layout::compute",
+     "text": "Pure function: splits the screen into text, side panel, bottom panel, modal, and notification areas using the `[ui]` settings."
+    },
+    {
+     "fn": "vox-editor::Editor::handle_key",
+     "text": "The next key: no modal is open, and the side panel has focus..."
+    },
+    {
+     "fn": "vox-editor::Editor::panel_key",
+     "text": "...so `<C-w>` and `:` keep working, and every other key goes to the panel's view."
+    },
+    {
+     "fn": "vox-editor::Editor::view_key",
+     "text": "Gives the key to the view and acts on its answer: close it, run a command line, or nothing."
+    },
+    {
+     "fn": "vox-editor::ListView::handle_key",
+     "text": "`j`/`k` move the selection; `Enter` returns the row's command; `q` returns Close."
+    },
+    {
+     "fn": "vox-editor::Editor::render_frame",
+     "text": "When drawing, the panel gets a border with its title, highlighted while focused, and the view draws inside it."
+    }
+   ]
+  },
+  {
+   "id": "notification",
+   "title": "A notification's life",
+   "summary": "`:notify error disk full`: shown, kept in history, gone after 4 seconds without any key press.",
+   "steps": [
+    {
+     "fn": "vox-editor::builtin::notify",
+     "text": "Reads the optional level (`info`, `warn`, `error`) and the text."
+    },
+    {
+     "fn": "vox-editor::Editor::notify",
+     "text": "Stores the notification with an expiry time (now + `notify_timeout_ms`, from the injected clock) and adds it to the history."
+    },
+    {
+     "fn": "vox-editor::Editor::render_notifications",
+     "text": "Draws each notification as a colored box in the configured corner, wrapped to at most 3 lines."
+    },
+    {
+     "fn": "vox-editor::Editor::next_deadline",
+     "text": "Tells the run loop the earliest time something must happen: here, the expiry."
+    },
+    {
+     "fn": "vox-term::run",
+     "text": "Waits for a key, but only until that deadline, then calls `tick` and draws again."
+    },
+    {
+     "fn": "vox-editor::Editor::tick",
+     "text": "Removes expired notifications (and times out pending key mappings). The next frame no longer shows the box."
     }
    ]
   },

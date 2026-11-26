@@ -355,12 +355,94 @@
         "text": "The bottom line: the `:` or `/` prompt being typed, or the last message."
       },
       {
-        "fn": "vox-editor::Editor::cursor_screen_position",
-        "text": "Where the terminal cursor goes, converting the cursor's char column to screen cells."
+        "fn": "vox-editor::Editor::render_frame",
+        "text": "Open panels and the modal are drawn as bordered boxes on top, with their views inside."
+      },
+      {
+        "fn": "vox-editor::Editor::render_notifications",
+        "text": "Notifications are drawn last, so they are always visible."
+      },
+      {
+        "fn": "vox-editor::Editor::place_cursor",
+        "text": "Where the terminal cursor goes: in the `:` prompt, in a focused view (or hidden if the view has none), or in the text, converting the cursor's char column to screen cells."
       },
       {
         "fn": "vox-term::Terminal::draw",
         "text": "Compares each row with the previous frame and prints only changed rows, then places the cursor and sets its shape (block or bar)."
+      }
+    ]
+  },
+  {
+    "id": "panel",
+    "title": "Opening a panel: :keymaps",
+    "summary": "How a command fills the side panel, and how keys reach it.",
+    "steps": [
+      {
+        "fn": "vox-editor::builtin::keymaps",
+        "text": "The `:keymaps` command builds one list row per user mapping, e.g. `n <Space>w → :w`."
+      },
+      {
+        "fn": "vox-editor::Editor::open_panel",
+        "text": "Puts the list view in the side panel and moves focus there."
+      },
+      {
+        "fn": "vox-editor::Editor::layout",
+        "text": "From now on the layout has a side panel: the text area gets narrower, and scrolling uses the new width."
+      },
+      {
+        "fn": "vox-editor::layout::compute",
+        "text": "Pure function: splits the screen into text, side panel, bottom panel, modal, and notification areas using the `[ui]` settings."
+      },
+      {
+        "fn": "vox-editor::Editor::handle_key",
+        "text": "The next key: no modal is open, and the side panel has focus..."
+      },
+      {
+        "fn": "vox-editor::Editor::panel_key",
+        "text": "...so `<C-w>` and `:` keep working, and every other key goes to the panel's view."
+      },
+      {
+        "fn": "vox-editor::Editor::view_key",
+        "text": "Gives the key to the view and acts on its answer: close it, run a command line, or nothing."
+      },
+      {
+        "fn": "vox-editor::ListView::handle_key",
+        "text": "`j`/`k` move the selection; `Enter` returns the row's command; `q` returns Close."
+      },
+      {
+        "fn": "vox-editor::Editor::render_frame",
+        "text": "When drawing, the panel gets a border with its title, highlighted while focused, and the view draws inside it."
+      }
+    ]
+  },
+  {
+    "id": "notification",
+    "title": "A notification's life",
+    "summary": "`:notify error disk full`: shown, kept in history, gone after 4 seconds without any key press.",
+    "steps": [
+      {
+        "fn": "vox-editor::builtin::notify",
+        "text": "Reads the optional level (`info`, `warn`, `error`) and the text."
+      },
+      {
+        "fn": "vox-editor::Editor::notify",
+        "text": "Stores the notification with an expiry time (now + `notify_timeout_ms`, from the injected clock) and adds it to the history."
+      },
+      {
+        "fn": "vox-editor::Editor::render_notifications",
+        "text": "Draws each notification as a colored box in the configured corner, wrapped to at most 3 lines."
+      },
+      {
+        "fn": "vox-editor::Editor::next_deadline",
+        "text": "Tells the run loop the earliest time something must happen: here, the expiry."
+      },
+      {
+        "fn": "vox-term::run",
+        "text": "Waits for a key, but only until that deadline, then calls `tick` and draws again."
+      },
+      {
+        "fn": "vox-editor::Editor::tick",
+        "text": "Removes expired notifications (and times out pending key mappings). The next frame no longer shows the box."
       }
     ]
   },

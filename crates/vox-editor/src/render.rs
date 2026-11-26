@@ -2,27 +2,51 @@
 
 use vox_view::{display_col, visible_slice};
 
-use crate::editor::{CHROME_ROWS, Editor, Mode};
-use crate::surface::{CursorShape, Style, Surface};
+use crate::editor::{Editor, Mode};
+use crate::surface::{Color, CursorShape, Rect, Style, Surface};
+use crate::ui::{Focus, NotifyPosition, View};
+
+/// Widest a notification box gets.
+const NOTIFY_WIDTH: u16 = 48;
+/// Most text lines in one notification.
+const NOTIFY_LINES: usize = 3;
 
 impl Editor {
     /// Render the whole screen at the size last given to [`Editor::resize`].
     pub fn render(&self) -> Surface {
         let (width, height) = self.size;
         let mut s = Surface::new(width, height);
-        let text_rows = height.saturating_sub(CHROME_ROWS);
-        self.render_text(&mut s, text_rows);
+        let layout = self.layout();
+        let (side, bottom, modal) = self.views();
+        self.render_text(&mut s, layout.editor);
+        let focus = self.focused();
+        for (rect, view, focused) in [
+            (layout.side, side, focus == Focus::Side),
+            (layout.bottom, bottom, focus == Focus::Bottom),
+        ] {
+            if let (Some(rect), Some(view)) = (rect, view) {
+                self.render_frame(&mut s, rect, view, focused && modal.is_none());
+            }
+        }
         if height >= 2 {
             self.render_status(&mut s, height - 2);
         }
         if height >= 1 {
             self.render_cmdline(&mut s, height - 1);
         }
-        s.cursor = self.cursor_screen_position();
-        s.cursor_shape = match self.mode {
-            Mode::Insert => CursorShape::Bar,
-            _ => CursorShape::Block,
-        };
+        if let (Some(rect), Some(view)) = (layout.modal, modal) {
+            self.render_frame(&mut s, rect, view, true);
+        }
+        self.render_notifications(&mut s, layout.body);
+        self.place_cursor(
+            &mut s,
+            layout.editor,
+            &[
+                (layout.modal, modal),
+                (layout.side.filter(|_| focus == Focus::Side), side),
+                (layout.bottom.filter(|_| focus == Focus::Bottom), bottom),
+            ],
+        );
         s
     }
 
@@ -31,46 +55,79 @@ impl Editor {
         display_col(self.width.as_ref(), s, s.chars().count())
     }
 
-    /// Screen position (column, row) of the cursor.
-    fn cursor_screen_position(&self) -> (u16, u16) {
+    /// Border (bold blue when focused) plus the view inside it.
+    fn render_frame(&self, s: &mut Surface, rect: Rect, view: &dyn View, focused: bool) {
+        let border = if focused {
+            Style::BOLD.fg(Color::Blue)
+        } else {
+            Style::DIM
+        };
+        s.draw_box(rect, &view.title(), border, self.width.as_ref());
+        view.render(rect.inner(), s, self.width.as_ref());
+    }
+
+    /// Put the terminal cursor in the prompt, the first view in `views` that has focus,
+    /// or the text. A focused view without a cursor hides it.
+    fn place_cursor(
+        &self,
+        s: &mut Surface,
+        editor: Rect,
+        views: &[(Option<Rect>, Option<&dyn View>)],
+    ) {
+        s.cursor_shape = match self.mode {
+            Mode::Insert => CursorShape::Bar,
+            _ => CursorShape::Block,
+        };
         if let Mode::Command(input) | Mode::Search(input) = &self.mode {
             let row = self.size.1.saturating_sub(1);
-            return (1 + self.str_width(input) as u16, row);
+            s.cursor = (1 + self.str_width(input) as u16, row);
+            return;
+        }
+        for (rect, view) in views {
+            if let (Some(rect), Some(view)) = (rect, view) {
+                match view.cursor(rect.inner()) {
+                    Some(pos) => s.cursor = pos,
+                    None => s.cursor_visible = false,
+                }
+                return;
+            }
         }
         let x = self.gutter_width() + self.cursor_dcol().saturating_sub(self.view.left);
         let y = self.cursor.line.saturating_sub(self.view.top);
-        (x as u16, y as u16)
+        s.cursor = (editor.x + x as u16, editor.y + y as u16);
     }
 
-    /// Draw the text rows: line numbers, visible part of each line, `~` past the end.
-    fn render_text(&self, s: &mut Surface, rows: u16) {
+    /// Draw the text rows in `area`: line numbers, visible part of each line, `~` past the end.
+    fn render_text(&self, s: &mut Surface, area: Rect) {
         let w = self.width.as_ref();
         let gutter = self.gutter_width();
-        let text_width = (s.width() as usize).saturating_sub(gutter);
-        for row in 0..rows {
+        let text_width = (area.w as usize).saturating_sub(gutter);
+        for row in 0..area.h {
             let idx = self.view.top + row as usize;
+            let line = Rect::new(area.x, area.y + row, area.w, 1);
             match self.doc.line(idx) {
                 Some(text) => {
                     let num = format!("{:>w$} ", idx + 1, w = gutter - 1);
-                    let x = s.put_str(0, row, &num, Style::DIM, w);
+                    s.put_in(line, 0, &num, Style::DIM, w);
                     let visible = visible_slice(w, &text, self.view.left, text_width);
-                    s.put_str(x, row, &visible, Style::default(), w);
+                    let rest = Rect::new(area.x + gutter as u16, line.y, text_width as u16, 1);
+                    if gutter < area.w as usize {
+                        s.put_in(rest, 0, &visible, Style::default(), w);
+                    }
                 }
-                None => {
-                    s.put_str(0, row, "~", Style::DIM, w);
-                }
+                None => s.put_in(line, 0, "~", Style::DIM, w),
             }
         }
-        self.render_selection(s, rows, gutter, text_width);
+        self.render_selection(s, area, gutter, text_width);
     }
 
     /// Reverse-video the visual selection.
-    fn render_selection(&self, s: &mut Surface, rows: u16, gutter: usize, text_width: usize) {
+    fn render_selection(&self, s: &mut Surface, area: Rect, gutter: usize, text_width: usize) {
         let Some((a, b, linewise)) = self.selection() else {
             return;
         };
         let w = self.width.as_ref();
-        for row in 0..rows {
+        for row in 0..area.h {
             let idx = self.view.top + row as usize;
             if idx < a.line || idx > b.line {
                 continue;
@@ -90,19 +147,21 @@ impl Editor {
             let x0 = x0.max(self.view.left) - self.view.left;
             let x1 = x1.saturating_sub(self.view.left).min(text_width);
             if x1 > x0 {
-                s.set_style((gutter + x0) as u16, row, (x1 - x0) as u16, Style::REVERSED);
+                let x = area.x + (gutter + x0) as u16;
+                s.set_style(x, area.y + row, (x1 - x0) as u16, Style::REVERSED);
             }
         }
     }
 
     /// Draw the status line: mode, file name, `[+]` if modified, cursor position.
     fn render_status(&self, s: &mut Surface, row: u16) {
-        let mode = match self.mode {
-            Mode::Normal | Mode::Search(_) => "NORMAL",
-            Mode::Insert => "INSERT",
-            Mode::Visual { line: false } => "VISUAL",
-            Mode::Visual { line: true } => "V-LINE",
-            Mode::Command(_) => "COMMAND",
+        let mode = match (&self.mode, self.focused()) {
+            (Mode::Normal, Focus::Side | Focus::Bottom) => "PANEL",
+            (Mode::Normal | Mode::Search(_), _) => "NORMAL",
+            (Mode::Insert, _) => "INSERT",
+            (Mode::Visual { line: false }, _) => "VISUAL",
+            (Mode::Visual { line: true }, _) => "V-LINE",
+            (Mode::Command(_), _) => "COMMAND",
         };
         let name = self
             .doc
@@ -127,5 +186,99 @@ impl Editor {
             _ => String::new(),
         };
         s.put_str(0, row, &text, Style::default(), self.width.as_ref());
+    }
+
+    /// Draw notifications stacked in a corner of `body`, oldest first.
+    fn render_notifications(&self, s: &mut Surface, body: Rect) {
+        let nw = NOTIFY_WIDTH.min(body.w.saturating_sub(2));
+        if nw < 10 {
+            return;
+        }
+        let x = body.x + body.w - nw - 1;
+        let bottom_up = self.ui_config().notify_position == NotifyPosition::BottomRight;
+        let mut used = 0u16;
+        for n in self.notifications() {
+            let lines = wrap(&n.text, (nw - 2) as usize, NOTIFY_LINES);
+            let h = lines.len() as u16 + 2;
+            if used + h > body.h {
+                break;
+            }
+            let y = if bottom_up {
+                body.y + body.h - used - h
+            } else {
+                body.y + used
+            };
+            let rect = Rect::new(x, y, nw, h);
+            s.draw_box(
+                rect,
+                n.level.name(),
+                Style::BOLD.fg(n.level.color()),
+                self.width.as_ref(),
+            );
+            for (i, line) in lines.iter().enumerate() {
+                s.put_in(
+                    rect.inner(),
+                    i as u16,
+                    line,
+                    Style::default(),
+                    self.width.as_ref(),
+                );
+            }
+            used += h;
+        }
+    }
+}
+
+/// Split `text` into at most `max` lines of up to `width` chars at spaces; the last line
+/// ends with `…` if text was cut.
+fn wrap(text: &str, width: usize, max: usize) -> Vec<String> {
+    let mut lines: Vec<String> = Vec::new();
+    let mut cur = String::new();
+    for word in text.split_whitespace() {
+        let mut word = word.to_string();
+        loop {
+            let len = cur.chars().count();
+            let wl = word.chars().count();
+            if len > 0 && len + 1 + wl <= width {
+                cur.push(' ');
+                cur.push_str(&word);
+                break;
+            }
+            if len == 0 && wl <= width {
+                cur = word;
+                break;
+            }
+            if len > 0 {
+                lines.push(std::mem::take(&mut cur));
+                continue;
+            }
+            // A word longer than the width: hard split.
+            let head: String = word.chars().take(width).collect();
+            word = word.chars().skip(width).collect();
+            lines.push(head);
+        }
+    }
+    if !cur.is_empty() || lines.is_empty() {
+        lines.push(cur);
+    }
+    if lines.len() > max {
+        lines.truncate(max);
+        let last = &mut lines[max - 1];
+        let keep: String = last.chars().take(width.saturating_sub(1)).collect();
+        *last = format!("{keep}…");
+    }
+    lines
+}
+
+#[cfg(test)]
+mod tests {
+    use super::wrap;
+
+    #[test]
+    fn wrap_cases() {
+        assert_eq!(wrap("a bb ccc", 4, 3), ["a bb", "ccc"]);
+        assert_eq!(wrap("abcdefgh", 3, 3), ["abc", "def", "gh"]);
+        assert_eq!(wrap("one two three four", 4, 2), ["one", "two…"]);
+        assert_eq!(wrap("", 5, 3), [""]);
     }
 }

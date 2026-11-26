@@ -14,6 +14,12 @@ has a full name and short aliases; both work.
 | `:edit`, `:e FILE` | open `FILE`; refuses with `E37` if there are unsaved changes |
 | `:e` | reload the current file |
 | `:e! [FILE]` | open/reload, discarding changes |
+| `:notify [info\|warn\|error] TEXT` | show a notification |
+| `:messages`, `:mes` | message history in the bottom panel |
+| `:commands` | list all commands in a modal; `Enter` runs one |
+| `:keymaps` | your key mappings in the side panel |
+| `:close` | close the modal or the focused panel |
+| `:focus editor\|side\|bottom` | move focus |
 
 ## Messages
 | Message | Meaning |

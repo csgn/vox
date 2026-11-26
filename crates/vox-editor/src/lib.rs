@@ -13,12 +13,14 @@ mod normal;
 mod register;
 mod render;
 mod surface;
+pub mod ui;
 
 pub use command::{Args, CommandResult, Commands};
 pub use config::{Config, Value};
 pub use editor::{Editor, Mode, Services};
 pub use event::{Event, EventKind, ModeKind};
 pub use keymap::{Binding, Keymap, MapMode};
-pub use keys::{Key, KeyCode, Modifiers, parse_keys};
+pub use keys::{Key, KeyCode, Modifiers, format_keys, parse_keys};
 pub use register::{Clipboard, NoClipboard};
-pub use surface::{Cell, CursorShape, Style, Surface};
+pub use surface::{Cell, Color, CursorShape, Rect, Style, Surface};
+pub use ui::{Focus, Level, Outcome, PanelSlot, UiConfig, View};

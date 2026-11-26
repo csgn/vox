@@ -2,14 +2,14 @@
 //! and drawing a [`Surface`] with per-row diffing.
 
 use std::io::{self, Stdout, Write};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
-use crossterm::cursor::{MoveTo, SetCursorStyle, Show};
+use crossterm::cursor::{Hide, MoveTo, SetCursorStyle, Show};
 use crossterm::event::{self, Event, KeyEventKind};
-use crossterm::style::{Attribute, Print, SetAttribute};
+use crossterm::style::{Attribute, Color as TermColor, Print, SetAttribute, SetForegroundColor};
 use crossterm::terminal::{self, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::{execute, queue};
-use vox_editor::{CursorShape, Editor, Key, KeyCode, Modifiers, Style, Surface};
+use vox_editor::{Color, CursorShape, Editor, Key, KeyCode, Modifiers, Style, Surface};
 
 /// An active terminal session. Restores the terminal when dropped.
 pub struct Terminal {
@@ -69,7 +69,11 @@ impl Terminal {
             CursorShape::Block => SetCursorStyle::SteadyBlock,
             CursorShape::Bar => SetCursorStyle::SteadyBar,
         };
-        queue!(self.out, MoveTo(s.cursor.0, s.cursor.1), shape, Show)?;
+        if s.cursor_visible {
+            queue!(self.out, MoveTo(s.cursor.0, s.cursor.1), shape, Show)?;
+        } else {
+            queue!(self.out, Hide)?;
+        }
         self.out.flush()?;
         self.prev = Some(s.clone());
         Ok(())
@@ -131,7 +135,18 @@ fn set_style(out: &mut Stdout, style: Style) -> io::Result<()> {
     if style.reversed {
         queue!(out, SetAttribute(Attribute::Reverse))?;
     }
-    Ok(())
+    if style.bold {
+        queue!(out, SetAttribute(Attribute::Bold))?;
+    }
+    let fg = match style.fg {
+        Color::Default => return Ok(()),
+        Color::Red => TermColor::Red,
+        Color::Yellow => TermColor::Yellow,
+        Color::Green => TermColor::Green,
+        Color::Blue => TermColor::Blue,
+        Color::Gray => TermColor::DarkGrey,
+    };
+    queue!(out, SetForegroundColor(fg))
 }
 
 /// Convert a crossterm key event into a vox key. `None` for keys vox does not use.
@@ -171,16 +186,19 @@ pub fn run(editor: &mut Editor) -> io::Result<()> {
         let (w, h) = term.size()?;
         editor.resize(w, h);
         term.draw(&editor.render())?;
-        if editor.has_pending_keys() {
-            // Keys may still become a mapping: wait only so long for the rest.
-            match term.read_key_timeout(editor.key_timeout())? {
-                Ok(Some(key)) => editor.handle_key(key),
-                Ok(None) => {}
-                Err(()) => editor.timeout(),
+        // Wait for a key, but only until the editor has something time-based to do
+        // (a notification expires, a pending mapping times out).
+        let key = match editor.next_deadline() {
+            Some(deadline) => {
+                let wait = deadline.saturating_duration_since(Instant::now());
+                term.read_key_timeout(wait)?.unwrap_or(None)
             }
-        } else if let Some(key) = term.read_key()? {
+            None => term.read_key()?,
+        };
+        if let Some(key) = key {
             editor.handle_key(key);
         }
+        editor.tick();
     }
     Ok(())
 }

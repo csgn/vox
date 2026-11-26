@@ -103,6 +103,37 @@ pub fn parse_keys(s: &str) -> Vec<Key> {
     out
 }
 
+/// Format keys in Vim notation, the inverse of [`parse_keys`]: `[Ctrl-s, Esc]` → `"<C-s><Esc>"`.
+pub fn format_keys(keys: &[Key]) -> String {
+    keys.iter()
+        .map(|k| match (k.code, k.mods.ctrl) {
+            (KeyCode::Char(c), true) => format!("<C-{c}>"),
+            (KeyCode::Char(' '), _) => "<Space>".into(),
+            (KeyCode::Char('<'), _) => "<lt>".into(),
+            (KeyCode::Char(c), _) => c.to_string(),
+            (code, _) => {
+                let name = match code {
+                    KeyCode::Esc => "Esc",
+                    KeyCode::Enter => "CR",
+                    KeyCode::Backspace => "BS",
+                    KeyCode::Tab => "Tab",
+                    KeyCode::Up => "Up",
+                    KeyCode::Down => "Down",
+                    KeyCode::Left => "Left",
+                    KeyCode::Right => "Right",
+                    KeyCode::Home => "Home",
+                    KeyCode::End => "End",
+                    KeyCode::PageUp => "PageUp",
+                    KeyCode::PageDown => "PageDown",
+                    KeyCode::Delete => "Del",
+                    KeyCode::Char(_) => unreachable!(),
+                };
+                format!("<{name}>")
+            }
+        })
+        .collect()
+}
+
 /// Parse the inside of `<...>` (e.g. `Esc`, `C-r`) into a key.
 fn parse_name(name: &str) -> Option<Key> {
     let lower = name.to_ascii_lowercase();
@@ -154,6 +185,13 @@ mod tests {
                 Key::new(KeyCode::Enter),
             ]
         );
+    }
+
+    #[test]
+    fn format_round_trip() {
+        for s in ["ia<Esc><C-r><CR>", "<Space>w", "<lt>x<Up><Del>"] {
+            assert_eq!(format_keys(&parse_keys(s)), s);
+        }
     }
 
     #[test]

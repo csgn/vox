@@ -8,16 +8,18 @@ use std::time::Duration;
 
 use crate::builtin;
 use crate::command::{self, Commands};
+use std::time::Instant;
+
 use crate::config::Config;
 use crate::event::{Event, EventHandler, EventKind, ModeKind};
 use crate::keymap::{self, Binding, Keymap, Lookup, MapMode};
 use crate::keys::{Key, KeyCode};
+use crate::ui::{
+    self, Focus, Layout, Level, Notification, Outcome, PanelSlot, SidePosition, UiConfig, View,
+};
 
 use crate::normal::{self, Action, Cmd, InsertAt, Motion, Operator, Parse, Scroll, Target};
 use crate::register::{self, Clipboard, NoClipboard, Reg, Registers};
-
-/// Rows reserved below the text area: statusline + command line.
-pub(crate) const CHROME_ROWS: u16 = 2;
 
 /// Editor input mode.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -63,6 +65,8 @@ pub struct Services {
     pub width: Box<dyn CharWidth>,
     /// Backing store of the `"+` / `"*` registers.
     pub clipboard: Box<dyn Clipboard>,
+    /// Current time; replaced in tests to control notification expiry.
+    pub clock: Box<dyn Fn() -> Instant>,
 }
 
 impl Default for Services {
@@ -71,6 +75,7 @@ impl Default for Services {
             storage: SimpleStorage::boxed,
             width: Box::new(Monospace),
             clipboard: Box::new(NoClipboard),
+            clock: Box::new(Instant::now),
         }
     }
 }
@@ -103,6 +108,19 @@ pub struct Editor {
     /// What `<leader>` means in mappings.
     leader: String,
     subscribers: Vec<(EventKind, EventHandler)>,
+    ui: UiConfig,
+    side: Option<Box<dyn View>>,
+    bottom: Option<Box<dyn View>>,
+    modal: Option<Box<dyn View>>,
+    focus: Focus,
+    /// `<C-w>` typed while a panel has focus; the next key picks the direction.
+    ctrl_w_pending: bool,
+    notifications: Vec<Notification>,
+    /// Messages and notifications, oldest first (`:messages`).
+    history: Vec<(Level, String)>,
+    clock: Box<dyn Fn() -> Instant>,
+    /// When the first still-pending mapping key was typed.
+    pending_since: Option<Instant>,
     /// Nesting depth of public entry points; only the outermost sends change events.
     event_depth: u32,
 }
@@ -150,6 +168,16 @@ impl Editor {
             key_timeout: Duration::from_millis(1000),
             leader: "\\".into(),
             subscribers: Vec::new(),
+            ui: UiConfig::default(),
+            side: None,
+            bottom: None,
+            modal: None,
+            focus: Focus::Editor,
+            ctrl_w_pending: false,
+            notifications: Vec::new(),
+            history: Vec::new(),
+            clock: services.clock,
+            pending_since: None,
             event_depth: 0,
         }
     }
@@ -209,13 +237,22 @@ impl Editor {
         self.doc.line_count().to_string().len().max(3) + 1
     }
 
-    /// Text area size (width, height) in cells.
+    /// Text area size (width, height) in cells, excluding the gutter.
     pub(crate) fn text_area(&self) -> (usize, usize) {
-        let width = (self.size.0 as usize)
-            .saturating_sub(self.gutter_width())
-            .max(1);
-        let height = self.size.1.saturating_sub(CHROME_ROWS).max(1) as usize;
-        (width, height)
+        let area = self.layout().editor;
+        let width = (area.w as usize).saturating_sub(self.gutter_width()).max(1);
+        (width, (area.h as usize).max(1))
+    }
+
+    /// Where everything goes on screen right now.
+    pub(crate) fn layout(&self) -> Layout {
+        ui::compute(
+            self.size,
+            &self.ui,
+            self.side.is_some(),
+            self.bottom.is_some(),
+            self.modal.is_some(),
+        )
     }
 
     /// Display column of the cursor within its line.
@@ -236,10 +273,234 @@ impl Editor {
     /// Handle one key press.
     pub fn handle_key(&mut self, key: Key) {
         self.with_change_events(|ed| {
+            if ed.modal.is_some() {
+                ed.view_key(None, key);
+                return;
+            }
+            let prompt = matches!(ed.mode, Mode::Command(_) | Mode::Search(_));
+            if let (Some(slot), false) = (ed.focused_panel(), prompt) {
+                ed.panel_key(slot, key);
+                return;
+            }
             ed.map_pending.push(key);
             ed.resolve_mappings(false);
         });
+        self.pending_since = match (self.map_pending.is_empty(), self.pending_since) {
+            (true, _) => None,
+            (false, None) => Some((self.clock)()),
+            (false, since) => since,
+        };
         self.follow_cursor();
+    }
+
+    /// Key for a focused panel: `<C-w>` window keys and `:` work as usual; the rest goes
+    /// to the panel's view.
+    fn panel_key(&mut self, slot: PanelSlot, key: Key) {
+        if std::mem::take(&mut self.ctrl_w_pending) {
+            if let KeyCode::Char(c) = key.code {
+                self.window_cmd(c);
+            }
+            return;
+        }
+        if key == Key::ctrl('w') {
+            self.ctrl_w_pending = true;
+            return;
+        }
+        if key.code == KeyCode::Char(':') && !key.mods.ctrl {
+            self.message = None;
+            self.mode = Mode::Command(String::new());
+            return;
+        }
+        self.view_key(Some(slot), key);
+    }
+
+    /// Give `key` to the modal (`None`) or a panel, then act on the view's [`Outcome`].
+    fn view_key(&mut self, slot: Option<PanelSlot>, key: Key) {
+        let taken = match slot {
+            None => self.modal.take(),
+            Some(PanelSlot::Side) => self.side.take(),
+            Some(PanelSlot::Bottom) => self.bottom.take(),
+        };
+        let Some(mut view) = taken else {
+            return;
+        };
+        let outcome = view.handle_key(key);
+        let keep = !matches!(outcome, Outcome::Close | Outcome::RunAndClose(_));
+        if keep {
+            self.put_view(slot, view);
+        } else if slot.is_some_and(|s| self.focus == focus_of(s)) {
+            self.focus = Focus::Editor;
+        }
+        if let Outcome::Run(cmd) | Outcome::RunAndClose(cmd) = outcome {
+            self.run_command(&cmd);
+        }
+    }
+
+    /// Store `view` in the modal (`None`) or a panel slot.
+    fn put_view(&mut self, slot: Option<PanelSlot>, view: Box<dyn View>) {
+        match slot {
+            None => self.modal = Some(view),
+            Some(PanelSlot::Side) => self.side = Some(view),
+            Some(PanelSlot::Bottom) => self.bottom = Some(view),
+        }
+    }
+
+    /// The panel that has focus, if it is open.
+    fn focused_panel(&self) -> Option<PanelSlot> {
+        match self.focus {
+            Focus::Side if self.side.is_some() => Some(PanelSlot::Side),
+            Focus::Bottom if self.bottom.is_some() => Some(PanelSlot::Bottom),
+            _ => None,
+        }
+    }
+
+    /// `<C-w>` + `c`: `h`/`l` left/right, `j`/`k` down/up, `w` next, `c`/`q` close panel.
+    pub(crate) fn window_cmd(&mut self, c: char) {
+        let side_left = self.ui.side_panel == SidePosition::Left;
+        let target = match (c, self.focus) {
+            ('h', Focus::Editor) if side_left => Focus::Side,
+            ('h', Focus::Side) if !side_left => Focus::Editor,
+            ('l', Focus::Editor) if !side_left => Focus::Side,
+            ('l', Focus::Side) if side_left => Focus::Editor,
+            ('j', Focus::Editor | Focus::Side) => Focus::Bottom,
+            ('k', Focus::Bottom) => Focus::Editor,
+            ('w', Focus::Editor) if self.side.is_some() => Focus::Side,
+            ('w', Focus::Editor | Focus::Side) if self.bottom.is_some() => Focus::Bottom,
+            ('w', _) => Focus::Editor,
+            ('c' | 'q', _) => {
+                self.close_focused();
+                return;
+            }
+            _ => return,
+        };
+        self.focus(target);
+    }
+
+    /// Move focus to `target` if it is open (the editor is always open).
+    pub fn focus(&mut self, target: Focus) {
+        let open = match target {
+            Focus::Editor => true,
+            Focus::Side => self.side.is_some(),
+            Focus::Bottom => self.bottom.is_some(),
+        };
+        if open {
+            self.focus = target;
+        }
+    }
+
+    /// Which part has focus (ignoring the modal, which always has focus while open).
+    pub fn focused(&self) -> Focus {
+        self.focus
+    }
+
+    /// Show `view` in the modal (replacing any open one). The modal takes all keys.
+    pub fn open_modal(&mut self, view: Box<dyn View>) {
+        self.modal = Some(view);
+    }
+
+    /// Show `view` in a panel (replacing what was there) and focus it.
+    pub fn open_panel(&mut self, slot: PanelSlot, view: Box<dyn View>) {
+        self.put_view(Some(slot), view);
+        self.focus = focus_of(slot);
+    }
+
+    /// Close the modal.
+    pub fn close_modal(&mut self) {
+        self.modal = None;
+    }
+
+    /// Close a panel; focus returns to the editor if it was there.
+    pub fn close_panel(&mut self, slot: PanelSlot) {
+        match slot {
+            PanelSlot::Side => self.side = None,
+            PanelSlot::Bottom => self.bottom = None,
+        }
+        if self.focus == focus_of(slot) {
+            self.focus = Focus::Editor;
+        }
+    }
+
+    /// Close the modal, else the focused panel, else the bottom panel, else the side panel.
+    pub fn close_focused(&mut self) {
+        if self.modal.is_some() {
+            self.close_modal();
+        } else if let Some(slot) = self.focused_panel() {
+            self.close_panel(slot);
+        } else if self.bottom.is_some() {
+            self.close_panel(PanelSlot::Bottom);
+        } else {
+            self.close_panel(PanelSlot::Side);
+        }
+    }
+
+    /// Whether the modal is open.
+    pub fn has_modal(&self) -> bool {
+        self.modal.is_some()
+    }
+
+    /// Whether a panel is open.
+    pub fn has_panel(&self, slot: PanelSlot) -> bool {
+        match slot {
+            PanelSlot::Side => self.side.is_some(),
+            PanelSlot::Bottom => self.bottom.is_some(),
+        }
+    }
+
+    /// The open views: (side panel, bottom panel, modal).
+    pub(crate) fn views(&self) -> OpenViews<'_> {
+        (
+            self.side.as_deref(),
+            self.bottom.as_deref(),
+            self.modal.as_deref(),
+        )
+    }
+
+    /// Show a notification for a few seconds (`[ui] notify_timeout_ms`).
+    pub fn notify(&mut self, level: Level, text: impl Into<String>) {
+        let text = text.into();
+        let expires = (self.clock)() + Duration::from_millis(self.ui.notify_timeout_ms);
+        self.history.push((level, text.clone()));
+        self.notifications.push(Notification {
+            level,
+            text,
+            expires,
+        });
+    }
+
+    /// Notifications currently on screen, oldest first.
+    pub fn notifications(&self) -> &[Notification] {
+        &self.notifications
+    }
+
+    /// Messages and notifications so far, oldest first.
+    pub fn history(&self) -> &[(Level, String)] {
+        &self.history
+    }
+
+    /// When something time-based happens next (a notification expires or a pending mapping
+    /// times out). The run loop should call [`Editor::tick`] then.
+    pub fn next_deadline(&self) -> Option<Instant> {
+        let mapping = self.pending_since.map(|t| t + self.key_timeout);
+        let note = self.notifications.iter().map(|n| n.expires).min();
+        mapping.into_iter().chain(note).min()
+    }
+
+    /// Handle time passing: remove expired notifications, time out pending mappings.
+    pub fn tick(&mut self) {
+        let now = (self.clock)();
+        self.notifications.retain(|n| n.expires > now);
+        if self
+            .pending_since
+            .is_some_and(|t| now >= t + self.key_timeout)
+        {
+            self.pending_since = None;
+            self.timeout();
+        }
+    }
+
+    /// The UI settings in use.
+    pub fn ui_config(&self) -> &UiConfig {
+        &self.ui
     }
 
     /// Call once when the editor starts: sends [`Event::BufOpen`] for the first buffer.
@@ -270,11 +531,20 @@ impl Editor {
     /// for what `f` changed.
     fn with_change_events(&mut self, f: impl FnOnce(&mut Self)) {
         let (mode, rev) = (self.mode_kind(), self.doc.revision());
+        let msg = self.message.clone();
         self.event_depth += 1;
         f(self);
         self.event_depth -= 1;
         if self.event_depth > 0 {
             return;
+        }
+        if self.message != msg
+            && let Some(m) = &self.message
+        {
+            // `E123: ...` messages are errors, like Vim's.
+            let is_error = m.starts_with('E') && m[1..].starts_with(|c: char| c.is_ascii_digit());
+            let level = if is_error { Level::Error } else { Level::Info };
+            self.history.push((level, m.clone()));
         }
         if self.doc.revision() != rev {
             self.emit(&Event::TextChanged);
@@ -507,6 +777,7 @@ impl Editor {
                 self.message = None;
                 self.mode = Mode::Search(String::new());
             }
+            Action::Window(c) => self.window_cmd(c),
         }
     }
 
@@ -925,6 +1196,11 @@ impl Editor {
     }
 
     /// The user key mappings.
+    pub fn keymap(&self) -> &Keymap {
+        &self.keymap
+    }
+
+    /// The user key mappings, to change them.
     pub fn keymap_mut(&mut self) -> &mut Keymap {
         &mut self.keymap
     }
@@ -932,6 +1208,7 @@ impl Editor {
     /// Apply settings: leader, mapping timeout, and key mappings.
     pub fn apply_config(&mut self, cfg: &Config) {
         self.key_timeout = Duration::from_millis(cfg.timeout_ms);
+        self.ui = cfg.ui;
         self.leader = cfg.leader.clone();
         for (mode, lhs, rhs) in &cfg.keymaps {
             self.map_key(*mode, lhs, rhs);
@@ -1003,6 +1280,21 @@ impl Editor {
             path: Some(path.display().to_string()),
         });
         Ok(())
+    }
+}
+
+/// The open views: (side panel, bottom panel, modal).
+pub(crate) type OpenViews<'a> = (
+    Option<&'a dyn View>,
+    Option<&'a dyn View>,
+    Option<&'a dyn View>,
+);
+
+/// The focus value of a panel slot.
+fn focus_of(slot: PanelSlot) -> Focus {
+    match slot {
+        PanelSlot::Side => Focus::Side,
+        PanelSlot::Bottom => Focus::Bottom,
     }
 }
 

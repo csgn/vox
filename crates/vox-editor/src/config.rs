@@ -4,6 +4,7 @@
 use std::collections::BTreeMap;
 
 use crate::keymap::MapMode;
+use crate::ui::{NotifyPosition, SidePosition, UiConfig};
 
 /// A format-neutral configuration value.
 #[derive(Debug, Clone, PartialEq)]
@@ -45,6 +46,8 @@ pub struct Config {
     pub timeout_ms: u64,
     /// Key mappings: (mode, left side, right side), in Vim notation.
     pub keymaps: Vec<(MapMode, String, String)>,
+    /// Panels, modal, and notifications (`[ui]`).
+    pub ui: UiConfig,
 }
 
 impl Default for Config {
@@ -53,6 +56,7 @@ impl Default for Config {
             leader: "\\".into(),
             timeout_ms: 1000,
             keymaps: Vec::new(),
+            ui: UiConfig::default(),
         }
     }
 }
@@ -105,7 +109,8 @@ impl Config {
                         }
                     }
                 }
-                ("leader" | "timeout_ms" | "keymap", other) => {
+                ("ui", Value::Table(t)) => parse_ui(t, &mut cfg.ui, &mut errors),
+                ("leader" | "timeout_ms" | "keymap" | "ui", other) => {
                     let want = match key.as_str() {
                         "leader" => "a string",
                         "timeout_ms" => "an integer",
@@ -117,6 +122,47 @@ impl Config {
             }
         }
         (cfg, errors)
+    }
+}
+
+/// Read `[ui]` settings into `ui`, collecting errors.
+fn parse_ui(t: &BTreeMap<String, Value>, ui: &mut UiConfig, errors: &mut Vec<String>) {
+    for (key, v) in t {
+        let int = |min: i64, max: i64| match v {
+            Value::Integer(n) if (min..=max).contains(n) => Ok(*n),
+            Value::Integer(_) => Err(format!("`ui.{key}` must be between {min} and {max}")),
+            other => Err(format!(
+                "`ui.{key}` must be an integer, not {}",
+                other.type_name()
+            )),
+        };
+        let result = match key.as_str() {
+            "side_panel" => match v {
+                Value::String(s) if s == "left" => Some(SidePosition::Left),
+                Value::String(s) if s == "right" => Some(SidePosition::Right),
+                _ => None,
+            }
+            .map(|p| ui.side_panel = p)
+            .ok_or_else(|| "`ui.side_panel` must be \"left\" or \"right\"".to_string()),
+            "notify_position" => match v {
+                Value::String(s) if s == "top-right" => Some(NotifyPosition::TopRight),
+                Value::String(s) if s == "bottom-right" => Some(NotifyPosition::BottomRight),
+                _ => None,
+            }
+            .map(|p| ui.notify_position = p)
+            .ok_or_else(|| {
+                "`ui.notify_position` must be \"top-right\" or \"bottom-right\"".to_string()
+            }),
+            "side_width" => int(10, 500).map(|n| ui.side_width = n as u16),
+            "bottom_height" => int(3, 200).map(|n| ui.bottom_height = n as u16),
+            "modal_width" => int(10, 100).map(|n| ui.modal_width = n as u16),
+            "modal_height" => int(10, 100).map(|n| ui.modal_height = n as u16),
+            "notify_timeout_ms" => int(0, 600_000).map(|n| ui.notify_timeout_ms = n as u64),
+            other => Err(format!("unknown setting `ui.{other}`")),
+        };
+        if let Err(e) = result {
+            errors.push(e);
+        }
     }
 }
 
@@ -165,6 +211,32 @@ mod tests {
             vec![
                 (MapMode::Insert, "jk".into(), "<Esc>".into()),
                 (MapMode::Normal, "<leader>w".into(), ":w".into()),
+            ]
+        );
+    }
+
+    #[test]
+    fn ui_section() {
+        let v = table(&[(
+            "ui",
+            table(&[
+                ("side_panel", s("left")),
+                ("side_width", Value::Integer(30)),
+                ("notify_position", s("bottom-right")),
+                ("modal_width", Value::Integer(5)),
+                ("colour", s("x")),
+            ]),
+        )]);
+        let (cfg, errors) = Config::from_value(&v);
+        assert_eq!(cfg.ui.side_panel, SidePosition::Left);
+        assert_eq!(cfg.ui.side_width, 30);
+        assert_eq!(cfg.ui.notify_position, NotifyPosition::BottomRight);
+        assert_eq!(cfg.ui.modal_width, UiConfig::default().modal_width);
+        assert_eq!(
+            errors,
+            [
+                "unknown setting `ui.colour`",
+                "`ui.modal_width` must be between 10 and 100"
             ]
         );
     }

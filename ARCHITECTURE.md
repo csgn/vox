@@ -17,7 +17,7 @@ vox (bin) ──────>│ vox-editor ──> vox-view                  �
 |---|---|---|---|
 | `vox-core` | core | `Document` over `TextStorage` trait, `Position`, undo/redo, `motion`, literal `search`, `SimpleStorage` | none |
 | `vox-view` | core | `Viewport`, `CharWidth` trait (+ `Monospace`), char-column → screen-cell mapping | none |
-| `vox-editor` | core | `Editor`: modes, Vim grammar, registers; developer API (command registry, key mappings, events, edit functions, `Config` from a format-neutral `Value`); own `Key` types; renders to own `Surface`; `Clipboard` trait; `Services` injection | none |
+| `vox-editor` | core | `Editor`: modes, Vim grammar, registers; developer API (command registry, key mappings, events, edit functions, `Config` from a format-neutral `Value`); UI layer (panels, modal, notifications, views); own `Key` types; renders to own `Surface`; `Clipboard` trait; `Services` injection | none |
 | `vox-storage` | adapter | `Storage: TextStorage` — fast text storage for large files (tree of text chunks) | ropey |
 | `vox-width` | adapter | `UnicodeWidth: CharWidth` — terminal cell width of each char | unicode-width |
 | `vox-clipboard` | adapter | `SystemClipboard: Clipboard` — system copy/paste | arboard |

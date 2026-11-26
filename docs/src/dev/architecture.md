@@ -42,6 +42,15 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
 - `Surface`: cells (`symbol`, `Style { dim, reversed }`), cursor, cursor shape.
   `Editor::render()` fills it. `Display` prints rows for snapshot tests.
 
+## UI layer (`vox-editor/src/ui/`)
+- `layout::compute(size, &UiConfig, side, bottom, modal) -> Layout`: text area, side panel,
+  bottom panel, modal, and the area notifications may use.
+- `View` trait + `ListView`, `TextView`, `Confirm`, `Input`. Views return `Outcome`s that name
+  command lines; the editor runs them.
+- Key routing in `Editor::handle_key`: modal first, then a focused panel (`<C-w>` and `:`
+  still work), then mappings and the Vim grammar.
+- Notifications expire through `next_deadline()` / `tick()` with an injected clock.
+
 ## vox-term
 - `Terminal::enter()` (raw mode, alternate screen, panic-safe restore), `draw(&Surface)` with
   per-row diffing, `read_key()`, and `run(&mut Editor)`.

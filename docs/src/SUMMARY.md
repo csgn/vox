@@ -7,6 +7,7 @@
 - [Keybindings](user/keybindings.md)
 - [Commands](user/commands.md)
 - [Configuration](user/configuration.md)
+- [Panels and notifications](user/interface.md)
 - [Plugins](user/plugins.md)
 
 # Code tour

@@ -2,7 +2,8 @@
 
 Vim-like modal terminal editor written in Rust. Planned: built-in Claude integration (via the `claude` CLI) and Rust plugins compiled to WASM.
 
-Status: **v0.6.0** — Vim editing, a developer API (commands, key mappings, events), a config file
+Status: **v0.7.0** — Vim editing, panels / modal / notifications, a developer API (commands,
+key mappings, events), a config file
 (`~/.config/vox/config.toml`), and sandboxed WebAssembly plugins written in Rust
 (`~/.config/vox/plugins/*.wasm`, see `plugins/text-tools`). Editor logic is `std`-only; third-party libraries live in small
 adapter crates (see [ARCHITECTURE.md](ARCHITECTURE.md)).

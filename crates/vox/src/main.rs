@@ -29,6 +29,7 @@ fn main() -> ExitCode {
         storage: Storage::boxed,
         width: Box::new(UnicodeWidth),
         clipboard: Box::new(SystemClipboard::default()),
+        clock: Box::new(std::time::Instant::now),
     };
     let mut editor = Editor::with_services(doc, services);
     load_config(&mut editor);

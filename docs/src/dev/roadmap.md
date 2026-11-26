@@ -14,8 +14,8 @@ Built one milestone at a time; each ships with tests, docs, and a changelog entr
 | M2.5 | 0.4.0 | Dependency isolation: std-only core, adapter crates; code tour | done |
 | M3 | 0.5.0 | Developer API (commands, keymaps), config file, configurable keys | done |
 | M4 | 0.6.0 | WASM plugins: WIT contract, sandboxed host, Rust SDK, example plugin, events | done |
-| M5 | 0.7.0 | UI layer: side/bottom panels, modal, notifications, focus; configurable in `[ui]` | next |
-| M6 | 0.8.0 | Logging and developer mode: log panel, reload config/plugins shortcuts | |
+| M5 | 0.7.0 | UI layer: side/bottom panels, modal, notifications, focus; configurable in `[ui]` | done |
+| M6 | 0.8.0 | Logging and developer mode: log panel, reload config/plugins shortcuts | next |
 | M7 | 0.9.0 | Plugin packages: standard project structure, `plugin.toml` manifest, health checks (error / warning / info) for plugins, vox version, programs, custom checks; plugin settings | |
 | M8 | 0.10.0 | Plugin manager (modal or side panel): list, add (path or git URL), edit settings / open files, enable/disable, delete, reload, health | |
 

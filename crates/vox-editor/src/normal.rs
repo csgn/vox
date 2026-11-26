@@ -86,13 +86,19 @@ pub(crate) enum Action {
     Move(Motion),
     Operate(Operator, Target),
     Insert(InsertAt),
-    Paste { before: bool },
+    Paste {
+        before: bool,
+    },
     Undo,
     Redo,
     Scroll(Scroll),
-    Visual { line: bool },
+    Visual {
+        line: bool,
+    },
     CommandLine,
     Search,
+    /// `<C-w>` + char: move focus between editor and panels, or close a panel.
+    Window(char),
 }
 
 /// The char of a key typed without Ctrl, if it is a char key.
@@ -203,6 +209,11 @@ pub(crate) fn parse(keys: &[Key], visual: bool) -> Parse<Cmd> {
             KeyCode::Char('f') => done(Action::Scroll(Scroll::PageDown)),
             KeyCode::Char('b') => done(Action::Scroll(Scroll::PageUp)),
             KeyCode::Char('r') if !visual => done(Action::Redo),
+            KeyCode::Char('w') => match keys.get(i + 1).map(|k| k.code) {
+                None => Parse::Incomplete,
+                Some(KeyCode::Char(c)) => done(Action::Window(c)),
+                Some(_) => Parse::Invalid,
+            },
             _ => Parse::Invalid,
         };
     }

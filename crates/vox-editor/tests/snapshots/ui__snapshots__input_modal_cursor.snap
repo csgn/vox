@@ -1,0 +1,14 @@
+---
+source: crates/vox-editor/tests/ui.rs
+expression: s.to_string()
+---
+"  1 hello                               "
+"~                                       "
+"~     ┌─ Open ───────────────────┐      "
+"~     │file: ab                  │      "
+"~     │                          │      "
+"~     │                          │      "
+"~     │                          │      "
+"~     └──────────────────────────┘      "
+" NORMAL  [No Name]                  1:1 "
+"                                        "

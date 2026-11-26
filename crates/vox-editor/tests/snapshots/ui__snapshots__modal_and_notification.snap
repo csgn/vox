@@ -1,0 +1,18 @@
+---
+source: crates/vox-editor/tests/ui.rs
+expression: "screen(&mut ed, 60, 14)"
+---
+"  1 hello  ┌─ warning ────────────────────────────────────┐ "
+"~          │careful: this is a long warning text          │ "
+"~          └──────────────────────────────────────────────┘ "
+"~        ┌─ Delete ───────────────────────────────┐         "
+"~        │Delete plugin foo?                      │         "
+"~        │                                        │         "
+"~        │[y] yes   [n] no                        │         "
+"~        │                                        │         "
+"~        │                                        │         "
+"~        │                                        │         "
+"~        └────────────────────────────────────────┘         "
+"~                                                           "
+" NORMAL  [No Name]                                      1:1 "
+"                                                            "

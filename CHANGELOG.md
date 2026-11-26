@@ -5,6 +5,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-26 — M5 panels, modal, notifications
+
+### Added
+- UI layer in core: side panel (left/right), bottom panel, centered modal, notification stack.
+- Views: `ListView`, `TextView`, `Confirm` (yes/no), `Input` (one-line prompt); `View` trait
+  for custom views. Views act through command lines (`Outcome::Run`), so actions are mappable.
+- Focus and keys: `<C-w>h/j/k/l/w`, `<C-w>c`/`q`, `q`/`Esc` in views; modal takes all keys;
+  `:` works from panels; status line shows `PANEL`.
+- Notifications (info / warning / error, colored, auto-dismiss) and message history.
+- Commands: `:notify`, `:messages` (`:mes`), `:commands`, `:keymaps`, `:close`, `:focus`.
+- `[ui]` settings: `side_panel`, `side_width`, `bottom_height`, `modal_width`,
+  `modal_height`, `notify_timeout_ms`, `notify_position`.
+- `Style` gets `bold` and `fg: Color`; `Surface` gets `Rect`, `draw_box`, `put_in`,
+  `cursor_visible`.
+- Time handling: `Editor::next_deadline()` / `tick()`, clock injected via `Services::clock`.
+- `format_keys` (inverse of `parse_keys`), `Keymap::iter`, `Editor::keymap`.
+- Docs: Panels and notifications page; UI section in Developer API; code-tour walkthroughs.
+
+### Changed
+- `vox-term` run loop waits until the next deadline instead of only for mapping timeouts;
+  hides the cursor when a view has none; draws colors and bold.
+
 ## [0.6.0] - 2026-11-26 — M4 plugins
 
 ### Added

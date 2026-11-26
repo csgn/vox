@@ -56,6 +56,11 @@ impl Keymap {
         self.maps.retain(|(m, l, _)| !(*m == mode && l == lhs));
     }
 
+    /// All mappings, in the order they were added.
+    pub fn iter(&self) -> impl Iterator<Item = (MapMode, &[Key], &Binding)> {
+        self.maps.iter().map(|(m, l, b)| (*m, l.as_slice(), b))
+    }
+
     /// Number of mappings.
     pub fn len(&self) -> usize {
         self.maps.len()

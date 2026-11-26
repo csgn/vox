@@ -59,6 +59,34 @@ into a `Value`. A new setting means: a field in `Config`, a case in `from_value`
 | `insert_text`, `delete_text`, `set_cursor` | edit; edits made inside one command undo together |
 | `map_key(mode, lhs, rhs)` | add a mapping with the user's leader key |
 | `start()` | send the first `BufOpen` (called once by the binary) |
+| `notify(level, text)`, `history()` | notifications; message history |
+| `open_modal(view)`, `open_panel(slot, view)`, `close_focused()`, `focus(f)` | UI |
+| `next_deadline()`, `tick()` | time-based work (run loop) |
+
+## UI: panels, modal, notifications
+
+A **view** is anything that implements `vox_editor::View`: a title, `render` into an area,
+`handle_key` returning an `Outcome`, and optionally a cursor. Built-in views: `ListView`,
+`TextView`, `Confirm`, `Input` (`vox_editor::ui`).
+
+```rust
+use vox_editor::ui::{Confirm, ListItem, ListView};
+use vox_editor::{Level, PanelSlot};
+
+editor.notify(Level::Warn, "low disk space");
+editor.open_modal(Box::new(Confirm::new("Delete", "Delete foo?", "delete-foo")));
+editor.open_panel(PanelSlot::Side, Box::new(ListView::new("Items", vec![
+    ListItem::new("first").detail("more info").command("notify picked first"),
+])));
+```
+
+Views do not get `&mut Editor`. When they want something done they return
+`Outcome::Run("command line")` or `Outcome::RunAndClose(...)`, and the editor runs that
+command. So every action a view can trigger is also a normal, mappable command.
+
+Time: the editor never sleeps. `next_deadline()` says when something time-based is due
+(notification expiry, mapping timeout); the run loop waits at most until then and calls
+`tick()`. Tests inject a fake clock through `Services::clock`.
 
 ## Events
 

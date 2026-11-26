@@ -22,7 +22,16 @@ help of AI tools (Claude Code).
   not aim to copy any project, and no code from other editors was knowingly copied.
 - Names and trademarks belong to their owners.
 
-## Build
+## Install
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/csgn/vox/master/install.sh | sh
+```
+
+Builds the latest release with `cargo` (needs `git` and [Rust](https://rustup.rs)) into
+`~/.cargo/bin`. Options: `VOX_VERSION=v0.13.0`, `VOX_INSTALL_ROOT=DIR` (installs to `DIR/bin`).
+
+## Build from a checkout
 
 ```sh
 cargo build --release

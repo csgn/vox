@@ -5,6 +5,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Added
+- `install.sh`: `curl -fsSL …/install.sh | sh` builds and installs the latest tagged release
+  with `cargo install` (`VOX_VERSION`, `VOX_REPO`, `VOX_INSTALL_ROOT`).
+
 ## [0.13.0] - 2026-11-27 — M11 plugin manager
 
 ### Added

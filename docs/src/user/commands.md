@@ -25,6 +25,10 @@ has a full name and short aliases; both work.
 | `:devmode [on\|off]` | toggle developer mode |
 | `:reload-config` | re-read the config file |
 | `:reload-plugins [NAME]` | reload all plugins or one |
+| `:scope` | show the active scope (global / local / vanilla) and its paths |
+| `:scope setup` | open the project set-up dialog (local mode) |
+| `:scope-pick` | checklist of global config and plugins to copy into the project |
+| `:scope-init empty\|all\|[config] [PLUGIN...]` | create `.vox/` and copy from the global setup |
 
 ## Messages
 | Message | Meaning |

@@ -150,6 +150,94 @@ impl View for ListView {
     }
 }
 
+/// A list of checkboxes. Keys: `j`/`k` move, `Space` toggles, `a` toggles all, `Enter`
+/// runs `template` with `{}` replaced by the checked values (space-separated), `q`/`Esc`
+/// cancel.
+#[derive(Debug, Clone)]
+pub struct CheckList {
+    title: String,
+    /// (label, value, checked).
+    items: Vec<(String, String, bool)>,
+    selected: usize,
+    template: String,
+}
+
+impl CheckList {
+    /// Rows of (label, value); all unchecked.
+    pub fn new(
+        title: impl Into<String>,
+        items: Vec<(String, String)>,
+        template: impl Into<String>,
+    ) -> Self {
+        Self {
+            title: title.into(),
+            items: items.into_iter().map(|(l, v)| (l, v, false)).collect(),
+            selected: 0,
+            template: template.into(),
+        }
+    }
+
+    /// Values of checked rows, in order.
+    pub fn checked(&self) -> Vec<&str> {
+        self.items
+            .iter()
+            .filter(|i| i.2)
+            .map(|i| i.1.as_str())
+            .collect()
+    }
+}
+
+impl View for CheckList {
+    fn title(&self) -> String {
+        format!("{} — Space toggle, a all, Enter confirm", self.title)
+    }
+
+    fn render(&self, area: Rect, s: &mut Surface, width: &dyn CharWidth) {
+        let scroll = keep_visible(self.selected, 0, area.h as usize);
+        for (row, (label, _, checked)) in self
+            .items
+            .iter()
+            .enumerate()
+            .skip(scroll)
+            .take(area.h as usize)
+        {
+            let style = if row == self.selected {
+                Style::REVERSED
+            } else {
+                Style::default()
+            };
+            let line = Rect::new(area.x, area.y + (row - scroll) as u16, area.w, 1);
+            s.clear(line, style);
+            let mark = if *checked { "[x]" } else { "[ ]" };
+            s.put_in(line, 0, &format!(" {mark} {label}"), style, width);
+        }
+    }
+
+    fn handle_key(&mut self, key: Key) -> Outcome {
+        let last = self.items.len().saturating_sub(1);
+        match key.code {
+            KeyCode::Char('j') | KeyCode::Down => self.selected = (self.selected + 1).min(last),
+            KeyCode::Char('k') | KeyCode::Up => self.selected = self.selected.saturating_sub(1),
+            KeyCode::Char(' ') => {
+                if let Some(item) = self.items.get_mut(self.selected) {
+                    item.2 = !item.2;
+                }
+            }
+            KeyCode::Char('a') => {
+                let all = self.items.iter().all(|i| i.2);
+                self.items.iter_mut().for_each(|i| i.2 = !all);
+            }
+            KeyCode::Enter => {
+                let values = self.checked().join(" ");
+                return Outcome::RunAndClose(self.template.replace("{}", &values));
+            }
+            KeyCode::Char('q') | KeyCode::Esc => return Outcome::Close,
+            _ => return Outcome::Ignored,
+        }
+        Outcome::Handled
+    }
+}
+
 /// Scrollable read-only text. Keys: `j`/`k` scroll, `g`/`G` top/bottom, `q`/`Esc` close.
 #[derive(Debug, Clone)]
 pub struct TextView {
@@ -386,6 +474,25 @@ mod tests {
         press(&mut v, "gj");
         assert_eq!(draw(&v, 3, 2), "\"l2 \"\n\"l3 \"\n");
         assert_eq!(press(&mut v, "q"), [Outcome::Close]);
+    }
+
+    #[test]
+    fn checklist_toggles_and_confirms() {
+        let items = vec![
+            ("Config".into(), "config".into()),
+            ("Plugin a".into(), "a".into()),
+        ];
+        let mut c = CheckList::new("Copy", items, "init {}");
+        press(&mut c, "<Space>j<Space>");
+        assert_eq!(c.checked(), ["config", "a"]);
+        assert_eq!(draw(&c, 14, 2), "\" [x] Config   \"\n\" [x] Plugin a \"\n");
+        press(&mut c, "a");
+        assert!(c.checked().is_empty());
+        press(&mut c, "a");
+        assert_eq!(
+            press(&mut c, "<CR>"),
+            [Outcome::RunAndClose("init config a".into())]
+        );
     }
 
     #[test]

@@ -6,7 +6,11 @@
     "steps": [
       {
         "fn": "vox::main",
-        "text": "The program starts here. It reads the command-line arguments: no argument means an empty buffer, one argument is a file path."
+        "text": "The program starts here. `cli::parse` reads the arguments: the file to open and the mode (`--local-config [DIR]`, `--vanilla`, or global by default)."
+      },
+      {
+        "fn": "vox::cli::parse",
+        "text": "Turns the arguments into a mode and a file. `--local-config` takes a following argument as the project folder only if it is a directory, so `vox --local-config notes.txt` still opens the file."
       },
       {
         "fn": "vox-core::Document::open",
@@ -30,11 +34,11 @@
       },
       {
         "fn": "vox::load_config",
-        "text": "Reads `~/.config/vox/config.toml` (if it exists) and applies leader key, mapping timeout, and key mappings. Problems become the first message on screen. See the walkthrough “Loading the config file”."
+        "text": "Reads the active scope's `config.toml` (global `~/.config/vox/`, or the project's `.vox/` with `--local-config`; nothing with `--vanilla`) and applies it."
       },
       {
         "fn": "vox::load_plugins",
-        "text": "Loads every `*.wasm` file from `~/.config/vox/plugins/`. A broken plugin only produces a message. See the walkthrough “Loading a plugin”."
+        "text": "Loads every `*.wasm` file from the active scope's plugin folder. A broken plugin only produces a notification."
       },
       {
         "fn": "vox-editor::Editor::start",
@@ -71,6 +75,53 @@
       {
         "fn": "vox-editor::Editor::handle_key",
         "text": "The single entry point for input. It first checks the key against the user's mappings, then sends it to the handler for the current mode, then scrolls so the cursor stays visible. The loop then draws again."
+      }
+    ]
+  },
+  {
+    "id": "local-setup",
+    "title": "Starting a project with --local-config",
+    "summary": "`vox --local-config notes.txt` in a project that has no `.vox/` yet, then choosing “Copy everything”.",
+    "steps": [
+      {
+        "fn": "vox::cli::parse",
+        "text": "Mode: local, no folder given."
+      },
+      {
+        "fn": "vox-editor::scope::find_project_root",
+        "text": "Looks upward from the current folder for a `.vox/`. None found, so the current folder is the project."
+      },
+      {
+        "fn": "vox-editor::Scope::local",
+        "text": "The active scope: config, plugins, and lockfile all live in `<project>/.vox/`."
+      },
+      {
+        "fn": "vox-editor::Editor::set_scope",
+        "text": "The editor learns the active scope (for `:scope` and the `LOCAL` badge) and the global one (the source for copying)."
+      },
+      {
+        "fn": "vox::load_config",
+        "text": "Tries the project's `config.toml`: it does not exist yet, so nothing is applied. `:reload-config` is registered for the project path anyway."
+      },
+      {
+        "fn": "vox::load_plugins",
+        "text": "Same for plugins: the project's plugin folder is empty for now. The global plugins are not loaded."
+      },
+      {
+        "fn": "vox-editor::builtin::open_setup",
+        "text": "Because `.vox/` does not exist, `main` runs `:scope setup`: a dialog listing what can be copied from the global setup."
+      },
+      {
+        "fn": "vox-editor::builtin::scope_init",
+        "text": "“Copy everything” runs `:scope-init all`."
+      },
+      {
+        "fn": "vox-editor::scope::setup_local",
+        "text": "Creates `.vox/plugins/` and copies `config.toml` and each global plugin, never overwriting existing files."
+      },
+      {
+        "fn": "vox-editor::Editor::run_command",
+        "text": "Runs `:reload-config` and `:reload-plugins`, which read from the project paths: the copied config and plugins are active immediately."
       }
     ]
   },
@@ -277,11 +328,11 @@
     "steps": [
       {
         "fn": "vox::load_config",
-        "text": "Called once at start-up by `main`."
+        "text": "Called once at start-up by `main` with the active scope's config path (none in vanilla mode)."
       },
       {
-        "fn": "vox-config-file::default_path",
-        "text": "Adapter: `$VOX_CONFIG`, else `$XDG_CONFIG_HOME/vox/config.toml`, else `~/.config/vox/config.toml`."
+        "fn": "vox-config-file::global_dir",
+        "text": "Adapter: the global folder: `$VOX_CONFIG_DIR`, else `$XDG_CONFIG_HOME/vox`, else `~/.config/vox`. The binary turns it into the global scope; in local or vanilla mode a different scope is used."
       },
       {
         "fn": "vox-config-file::load",

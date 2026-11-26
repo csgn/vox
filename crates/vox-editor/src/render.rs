@@ -36,6 +36,18 @@ impl Editor {
         }
         if let (Some(rect), Some(view)) = (layout.modal, modal) {
             self.render_frame(&mut s, rect, view, true);
+            if self.modal_depth() > 0 && rect.w > 18 {
+                // Hint on the bottom border: this dialog was opened from another one.
+                let hint = " Esc: back ";
+                let x = rect.x + rect.w - hint.chars().count() as u16 - 2;
+                s.put_str(
+                    x,
+                    rect.y + rect.h - 1,
+                    hint,
+                    Style::BOLD.fg(Color::Blue),
+                    self.width.as_ref(),
+                );
+            }
         }
         self.render_notifications(&mut s, layout.body);
         self.place_cursor(
@@ -171,7 +183,12 @@ impl Editor {
         let modified = if self.doc.is_modified() { " [+]" } else { "" };
         let pos = format!("{}:{} ", self.cursor.line + 1, self.cursor.col + 1);
         let dev = if self.developer_mode() { " DEV " } else { "" };
-        let left = format!(" {mode}{dev}  {name}{modified}");
+        let scope = match self.scope().kind {
+            crate::scope::ScopeKind::Global => "",
+            crate::scope::ScopeKind::Local => " LOCAL ",
+            crate::scope::ScopeKind::Vanilla => " VANILLA ",
+        };
+        let left = format!(" {mode}{dev}{scope}  {name}{modified}");
         let pad = (s.width() as usize).saturating_sub(self.str_width(&left) + self.str_width(&pos));
         let text = format!("{left}{}{pos}", " ".repeat(pad));
         s.fill_row(row, Style::REVERSED);

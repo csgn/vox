@@ -5,8 +5,9 @@ use crate::command::{Args, CommandResult, Commands};
 use crate::keymap::{Binding, MapMode};
 use crate::keys::format_keys;
 use crate::log::LogView;
+use crate::scope::{self, ScopeKind, SetupChoice};
 use crate::surface::Style;
-use crate::ui::{Focus, Level, ListItem, ListView, PanelSlot, TextView};
+use crate::ui::{CheckList, Focus, Level, ListItem, ListView, PanelSlot, TextView};
 
 const E37: &str = "E37: No write since last change (add ! to override)";
 
@@ -67,6 +68,21 @@ pub(crate) fn register(c: &mut Commands) {
         "devmode",
         "Developer mode: `:devmode on|off`, no argument toggles.",
         devmode,
+    );
+    c.register(
+        "scope",
+        "Show the active scope (global, local, vanilla); `:scope setup` sets up a project.",
+        scope,
+    );
+    c.register(
+        "scope-init",
+        "Set up the project's .vox: `:scope-init empty|all|[config] [PLUGIN...]`.",
+        scope_init,
+    );
+    c.register(
+        "scope-pick",
+        "Choose global config/plugins to copy into the project.",
+        scope_pick,
     );
 }
 
@@ -232,5 +248,184 @@ fn devmode(ed: &mut Editor, a: Args<'_>) -> CommandResult {
         Level::Info,
         format!("developer mode {}", if on { "on" } else { "off" }),
     );
+    Ok(())
+}
+
+/// `:scope` shows the scope; `:scope setup` opens the project set-up dialog.
+fn scope(ed: &mut Editor, a: Args<'_>) -> CommandResult {
+    match a.arg {
+        None => {
+            let sc = ed.scope().clone();
+            let show = |p: Option<std::path::PathBuf>| {
+                p.map_or("—".to_string(), |p| {
+                    let mark = if p.exists() { "" } else { "(missing) " };
+                    format!("{mark}{}", p.display())
+                })
+            };
+            let lines = vec![
+                (Style::BOLD, format!("scope    {}", sc.kind.name())),
+                (
+                    Style::default(),
+                    format!("config   {}", show(sc.config_path())),
+                ),
+                (
+                    Style::default(),
+                    format!("plugins  {}", show(sc.plugin_dir())),
+                ),
+                (
+                    Style::default(),
+                    format!("lockfile {}", show(sc.lock_path())),
+                ),
+                (Style::default(), String::new()),
+                (
+                    Style::DIM,
+                    "vox                     global (~/.config/vox)".into(),
+                ),
+                (
+                    Style::DIM,
+                    "vox --local-config [DIR] this project's .vox only".into(),
+                ),
+                (
+                    Style::DIM,
+                    "vox --vanilla           no config, no plugins".into(),
+                ),
+            ];
+            ed.open_modal(Box::new(TextView::new("Scope", lines)));
+            Ok(())
+        }
+        Some("setup") => open_setup(ed),
+        Some(_) => Err("E474: Use :scope or :scope setup".into()),
+    }
+}
+
+/// Error unless the local scope is active.
+fn require_local(ed: &Editor) -> CommandResult {
+    match ed.scope().kind {
+        ScopeKind::Local => Ok(()),
+        _ => Err("E900: project set-up needs local mode: start with vox --local-config".into()),
+    }
+}
+
+/// The project set-up dialog.
+fn open_setup(ed: &mut Editor) -> CommandResult {
+    require_local(ed)?;
+    let plugins = ed
+        .global_scope()
+        .and_then(|g| g.plugin_dir())
+        .map(|d| scope::list_plugins(&d))
+        .unwrap_or_default();
+    let has_config = ed
+        .global_scope()
+        .and_then(|g| g.config_path())
+        .is_some_and(|p| p.is_file());
+    let root = ed
+        .scope()
+        .project_root()
+        .map(|p| p.display().to_string())
+        .unwrap_or_default();
+    let mut items = vec![
+        ListItem::new("Start empty")
+            .detail("no config, no plugins")
+            .command("scope-init empty"),
+    ];
+    if has_config {
+        items.push(
+            ListItem::new("Copy global config")
+                .detail("config.toml")
+                .command("scope-init config"),
+        );
+    }
+    if has_config || !plugins.is_empty() {
+        items.push(
+            ListItem::new("Choose what to copy…")
+                .detail("pick config and plugins")
+                .command("scope-pick"),
+        );
+        items.push(
+            ListItem::new("Copy everything")
+                .detail(format!("config + {} plugin(s)", plugins.len()))
+                .command("scope-init all"),
+        );
+    }
+    items.push(
+        ListItem::new("Not now")
+            .detail("run without project setup")
+            .command("notify info Not set up. Run :scope setup any time."),
+    );
+    let title = format!("Set up project {root}/.vox");
+    ed.open_modal(Box::new(ListView::new(title, items)));
+    Ok(())
+}
+
+/// `:scope-pick`: checkboxes for the global config and each global plugin.
+fn scope_pick(ed: &mut Editor, _: Args<'_>) -> CommandResult {
+    require_local(ed)?;
+    let global = ed
+        .global_scope()
+        .cloned()
+        .ok_or("E900: no global setup found")?;
+    let mut items = Vec::new();
+    if global.config_path().is_some_and(|p| p.is_file()) {
+        items.push(("config.toml".to_string(), "config".to_string()));
+    }
+    for name in global
+        .plugin_dir()
+        .map(|d| scope::list_plugins(&d))
+        .unwrap_or_default()
+    {
+        items.push((format!("plugin {name}"), name));
+    }
+    ed.open_modal(Box::new(CheckList::new(
+        "Copy into project",
+        items,
+        "scope-init {}",
+    )));
+    Ok(())
+}
+
+/// `:scope-init empty|all|[config] [PLUGIN...]`: create `.vox/`, copy, then reload.
+fn scope_init(ed: &mut Editor, a: Args<'_>) -> CommandResult {
+    require_local(ed)?;
+    let global = ed
+        .global_scope()
+        .cloned()
+        .unwrap_or_else(scope::Scope::vanilla);
+    let global_plugins = global
+        .plugin_dir()
+        .map(|d| scope::list_plugins(&d))
+        .unwrap_or_default();
+    let mut choice = SetupChoice::default();
+    for word in a.arg.unwrap_or("empty").split_whitespace() {
+        match word {
+            "empty" => {}
+            "all" => {
+                choice.config = true;
+                choice.plugins = global_plugins.clone();
+            }
+            "config" => choice.config = true,
+            name => choice.plugins.push(name.to_string()),
+        }
+    }
+    let local = ed.scope().clone();
+    let report = scope::setup_local(&global, &local, &choice)
+        .map_err(|e| format!("E900: project set-up failed: {e}"))?;
+    for line in &report {
+        ed.log(Level::Info, "editor", line);
+    }
+    for cmd in ["reload-config", "reload-plugins"] {
+        if ed.commands().get(cmd).is_some() {
+            ed.run_command(cmd);
+        }
+    }
+    let dir = local
+        .dir
+        .map(|d| d.display().to_string())
+        .unwrap_or_default();
+    let summary = if report.is_empty() {
+        format!("created {dir}")
+    } else {
+        format!("set up {dir}: {}", report.join(", "))
+    };
+    ed.notify(Level::Info, summary);
     Ok(())
 }

@@ -14,6 +14,7 @@ mod normal;
 pub mod owner;
 mod register;
 mod render;
+pub mod scope;
 mod surface;
 pub mod ui;
 
@@ -25,5 +26,6 @@ pub use keymap::{Binding, Keymap, MapMode};
 pub use keys::{Key, KeyCode, Modifiers, format_keys, parse_keys};
 pub use log::{Log, LogEntry, LogView};
 pub use register::{Clipboard, NoClipboard};
+pub use scope::{Scope, ScopeKind};
 pub use surface::{Cell, Color, CursorShape, Rect, Style, Surface};
 pub use ui::{Focus, Level, Outcome, PanelSlot, UiConfig, View};

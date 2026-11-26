@@ -345,3 +345,36 @@ mod devmode {
         assert_eq!(ed.keymap().iter().count(), 0);
     }
 }
+
+#[test]
+fn three_levels_of_dialogs_go_back_one_at_a_time() {
+    use vox_editor::ui::{ListItem, ListView};
+    let (mut ed, _) = editor("abc");
+    for (name, next) in [("one", "two"), ("two", "three")] {
+        let next = next.to_string();
+        ed.commands_mut()
+            .register(&format!("open-{name}"), "", move |ed, _| {
+                let item = ListItem::new(format!("to {next}")).command(format!("open-{next}"));
+                ed.open_modal(Box::new(ListView::new(next.clone(), vec![item])));
+                Ok(())
+            });
+    }
+    ed.commands_mut().register("open-three", "", |ed, _| {
+        ed.open_modal(Box::new(ListView::new("three", vec![ListItem::new("end")])));
+        Ok(())
+    });
+    let first = ListItem::new("to one").command("open-one");
+    ed.open_modal(Box::new(ListView::new("zero", vec![first])));
+    // zero → (open-one) "two" → (open-two) "three" → (open-three) last "three".
+    feed(&mut ed, "<CR><CR><CR>");
+    assert_eq!(ed.modal_depth(), 3);
+    feed(&mut ed, "<Esc>");
+    assert_eq!(ed.modal_depth(), 2);
+    feed(&mut ed, "<Esc>");
+    assert_eq!(ed.modal_depth(), 1);
+    feed(&mut ed, "<Esc>");
+    assert_eq!(ed.modal_depth(), 0);
+    assert!(ed.has_modal());
+    feed(&mut ed, "<Esc>");
+    assert!(!ed.has_modal());
+}

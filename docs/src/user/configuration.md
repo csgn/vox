@@ -1,10 +1,11 @@
 # Configuration
 
-vox reads one file at start-up:
+vox reads one `config.toml` at start-up, from the active [scope](scopes.md):
 
-1. `$VOX_CONFIG` if set (any path), else
-2. `$XDG_CONFIG_HOME/vox/config.toml`, else
-3. `~/.config/vox/config.toml`.
+- global (default): `~/.config/vox/config.toml` (or `$VOX_CONFIG_DIR/config.toml`, or
+  `$XDG_CONFIG_HOME/vox/config.toml`);
+- local (`--local-config`): `<project>/.vox/config.toml`;
+- vanilla (`--vanilla`): none.
 
 No file means default settings. The file uses [TOML](https://toml.io), a simple
 `key = value` format. Problems (syntax errors, unknown settings, wrong types) are shown on the

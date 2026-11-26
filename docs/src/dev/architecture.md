@@ -61,6 +61,14 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
   by `vox-plugin-host::PluginHost::register_commands` (the adapters own the file and plugin
   access). The plugin host runs every plugin call under the owner `plugin:NAME`.
 
+## Scopes
+- `scope.rs` (core, std only): `Scope { kind, dir }` with `config_path`, `plugin_dir`,
+  `lock_path`; `find_project_root` (upward search for `.vox/`); `list_plugins`;
+  `setup_local(global, local, choice)` copies without overwriting.
+- The binary (`crates/vox/src/cli.rs`, `main.rs`) parses `--local-config [DIR]` /
+  `--vanilla`, builds the active scope, and loads config and plugins only from its paths.
+  The editor only stores the scope (for `:scope`, the badge, and the set-up dialog).
+
 ## vox-term
 - `Terminal::enter()` (raw mode, alternate screen, panic-safe restore), `draw(&Surface)` with
   per-row diffing, `read_key()`, and `run(&mut Editor)`.

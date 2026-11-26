@@ -83,6 +83,10 @@ editor.open_panel(PanelSlot::Side, Box::new(ListView::new("Items", vec![
 ])));
 ```
 
+If a view's `RunAndClose` command opens another modal, the editor keeps the first one in a
+history: the new one's `Close` goes back to it (`modal_depth()` tells how deep). A command that
+opens no modal ends the chain.
+
 Views do not get `&mut Editor`. When they want something done they return
 `Outcome::Run("command line")` or `Outcome::RunAndClose(...)`, and the editor runs that
 command. So every action a view can trigger is also a normal, mappable command.

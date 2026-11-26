@@ -16,6 +16,7 @@ use crate::keymap::{self, Binding, Keymap, Lookup, MapMode};
 use crate::keys::{Key, KeyCode};
 use crate::log::Log;
 use crate::owner;
+use crate::scope::Scope;
 use crate::ui::{
     self, Focus, Layout, Level, Notification, Outcome, PanelSlot, SidePosition, UiConfig, View,
 };
@@ -115,10 +116,15 @@ pub struct Editor {
     owner: String,
     log: Log,
     developer_mode: bool,
+    /// Active scope, and the global one (source for copying into a project).
+    scope: Scope,
+    global_scope: Option<Scope>,
     ui: UiConfig,
     side: Option<Box<dyn View>>,
     bottom: Option<Box<dyn View>>,
     modal: Option<Box<dyn View>>,
+    /// Modals the current one was opened from, oldest first; `Esc` goes back to the last.
+    modal_history: Vec<Box<dyn View>>,
     focus: Focus,
     /// `<C-w>` typed while a panel has focus; the next key picks the direction.
     ctrl_w_pending: bool,
@@ -180,10 +186,17 @@ impl Editor {
             owner: owner::USER.into(),
             log: Log::new((services.clock)()),
             developer_mode: false,
+            // Until the binary sets one: global without a folder (no badge, nothing loaded).
+            scope: Scope {
+                kind: crate::scope::ScopeKind::Global,
+                dir: None,
+            },
+            global_scope: None,
             ui: UiConfig::default(),
             side: None,
             bottom: None,
             modal: None,
+            modal_history: Vec::new(),
             focus: Focus::Editor,
             ctrl_w_pending: false,
             notifications: Vec::new(),
@@ -337,6 +350,10 @@ impl Editor {
             return;
         };
         let outcome = view.handle_key(key);
+        if slot.is_none() {
+            self.modal_outcome(view, outcome);
+            return;
+        }
         let keep = !matches!(outcome, Outcome::Close | Outcome::RunAndClose(_));
         if keep {
             self.put_view(slot, view);
@@ -346,6 +363,35 @@ impl Editor {
         if let Outcome::Run(cmd) | Outcome::RunAndClose(cmd) = outcome {
             self.run_command(&cmd);
         }
+    }
+
+    /// Act on a modal's outcome. A command that opens another modal keeps this one in the
+    /// history, so closing the new one (`Esc`/`q`) goes back here.
+    fn modal_outcome(&mut self, view: Box<dyn View>, outcome: Outcome) {
+        match outcome {
+            Outcome::Handled | Outcome::Ignored => self.modal = Some(view),
+            Outcome::Run(cmd) => {
+                self.modal = Some(view);
+                self.run_command(&cmd);
+            }
+            Outcome::Close => self.modal = self.modal_history.pop(),
+            Outcome::RunAndClose(cmd) => {
+                let depth = self.modal_history.len();
+                self.run_command(&cmd);
+                if self.modal.is_some() {
+                    // The command opened a new modal: remember where we came from.
+                    self.modal_history.insert(depth, view);
+                } else {
+                    // A final choice: the whole chain of dialogs is done.
+                    self.modal_history.clear();
+                }
+            }
+        }
+    }
+
+    /// How many modals are below the current one (each `Esc` goes back one).
+    pub fn modal_depth(&self) -> usize {
+        self.modal_history.len()
     }
 
     /// Store `view` in the modal (`None`) or a panel slot.
@@ -417,8 +463,10 @@ impl Editor {
     }
 
     /// Close the modal.
+    /// Closes the whole chain of modals (see [`Editor::modal_depth`]).
     pub fn close_modal(&mut self) {
         self.modal = None;
+        self.modal_history.clear();
     }
 
     /// Close a panel; focus returns to the editor if it was there.
@@ -578,6 +626,36 @@ impl Editor {
                 lv.refresh(log);
             }
         }
+    }
+
+    /// Set the active scope and the user's global scope (if known). Only informs `:scope`,
+    /// the status line, and project set-up; loading config and plugins is done by the
+    /// binary from the scope's paths.
+    pub fn set_scope(&mut self, scope: Scope, global: Option<Scope>) {
+        self.log(
+            Level::Info,
+            "editor",
+            format!(
+                "scope {} ({})",
+                scope.kind.name(),
+                scope
+                    .dir
+                    .as_ref()
+                    .map_or("no folder".into(), |d| d.display().to_string())
+            ),
+        );
+        self.scope = scope;
+        self.global_scope = global;
+    }
+
+    /// The active scope.
+    pub fn scope(&self) -> &Scope {
+        &self.scope
+    }
+
+    /// The user's global scope, if known (even when another scope is active).
+    pub fn global_scope(&self) -> Option<&Scope> {
+        self.global_scope.as_ref()
     }
 
     /// Whether developer mode is on.

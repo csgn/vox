@@ -25,6 +25,11 @@ and the focused panel's border is highlighted.
 
 A **modal** always takes all keys until it closes.
 
+When a choice in a modal opens another one (e.g. *Choose what to copy…* in the project set-up
+dialog), the first stays underneath: **`Esc` or `q` goes back** to it, and the nested dialog
+shows `Esc: back` on its bottom border. Confirming a final choice closes the whole chain;
+`:close` closes all of it at once.
+
 ## Inside a panel or modal
 
 | View | Keys |
@@ -33,6 +38,7 @@ A **modal** always takes all keys until it closes.
 | Text | `j`/`k` scroll, `g`/`G` top/bottom, `q`/`Esc` close |
 | Question | `y`/`Enter` yes, `n`/`q`/`Esc` no |
 | Prompt | type, `Backspace`, `Enter` confirm, `Esc` cancel |
+| Checklist | `j`/`k` move, `Space` toggle, `a` all/none, `Enter` confirm, `q`/`Esc` cancel |
 | Log | `f` level, `s` source, `c` clear, `j`/`k`/`g`/`G`, `q` (see [Developer mode](developer-mode.md)) |
 
 ## Notifications

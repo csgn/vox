@@ -5,22 +5,17 @@ use std::path::{Path, PathBuf};
 
 use vox_editor::{Config, Editor, Level, Value, owner};
 
-/// Where the config file is looked for: `$VOX_CONFIG` if set, else
-/// `$XDG_CONFIG_HOME/vox/config.toml`, else `~/.config/vox/config.toml`.
-pub fn default_path() -> Option<PathBuf> {
-    if let Some(p) = std::env::var_os("VOX_CONFIG") {
+/// The global scope's folder: `$VOX_CONFIG_DIR` if set, else
+/// `$XDG_CONFIG_HOME/vox`, else `~/.config/vox`.
+pub fn global_dir() -> Option<PathBuf> {
+    if let Some(p) = std::env::var_os("VOX_CONFIG_DIR").filter(|v| !v.is_empty()) {
         return Some(PathBuf::from(p));
     }
     let base = std::env::var_os("XDG_CONFIG_HOME")
         .filter(|v| !v.is_empty())
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))?;
-    Some(base.join("vox").join("config.toml"))
-}
-
-/// Directory plugins are loaded from: `plugins/` next to the config file.
-pub fn plugin_dir() -> Option<PathBuf> {
-    Some(default_path()?.parent()?.join("plugins"))
+    Some(base.join("vox"))
 }
 
 /// Load and parse the config file at `path`. `Ok(None)` if the file does not exist.

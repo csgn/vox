@@ -25,7 +25,7 @@ vox (bin) ──────>│ vox-editor ──> vox-view                  �
 | `vox-config-file` | adapter | finds and reads `config.toml`, converts it to `Value` | toml |
 | `vox-plugin-host` | adapter | runs WebAssembly plugins (time/memory limits, no system access); maps plugin requests to the `Editor` API | wasmtime, wasmtime-wasi |
 | `vox-plugin-sdk` | plugin SDK | Rust glue for plugin authors, from `wit/vox.wit` (not linked into vox) | wit-bindgen |
-| `vox` | binary | builds `Services` from adapters, loads the config and plugins, opens the file, runs `vox-term` | none directly |
+| `vox` | binary | parses the command line (`--local-config`, `--vanilla`), picks the scope, builds `Services`, loads the scope's config and plugins, runs `vox-term` | none directly |
 
 ## Rules
 - **Core crates are `std`-only.** A third-party crate may only appear in an adapter crate or

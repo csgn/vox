@@ -11,7 +11,7 @@ mod views;
 pub(crate) use layout::{Layout, compute};
 pub use layout::{NotifyPosition, SidePosition, UiConfig};
 pub use notify::{Level, Notification};
-pub use views::{Confirm, Input, ListItem, ListView, TextView};
+pub use views::{CheckList, Confirm, Input, ListItem, ListView, TextView};
 
 use vox_view::CharWidth;
 

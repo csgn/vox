@@ -8,4 +8,4 @@ workspace = true
 
 [dependencies]
 crossterm = "0.29.0"
-vox-editor = { version = "0.8.0", path = "../vox-editor" }
+vox-editor = { version = "0.9.0", path = "../vox-editor" }

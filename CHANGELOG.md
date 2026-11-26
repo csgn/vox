@@ -5,6 +5,31 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-26 — M7 project setups
+
+### Added
+- Scopes: global (default, `~/.config/vox`), local (`--local-config [DIR]`, the project's
+  `.vox/` only; global config and plugins are not loaded), vanilla (`--vanilla`: no config,
+  no plugins). Exactly one is active; status line shows `LOCAL` / `VANILLA`.
+- Project root: `DIR`, else the nearest folder upward containing `.vox/`, else the current
+  folder.
+- Project set-up dialog on first local start (and `:scope setup`): start empty, copy global
+  config, choose what to copy (checklist), copy everything, not now. Copies never overwrite.
+- Commands: `:scope`, `:scope setup`, `:scope-pick`, `:scope-init`.
+- `CheckList` view (multi-select).
+- Nested dialogs: a modal opened from a modal keeps the first one underneath; `Esc`/`q` goes
+  back one step (`Esc: back` hint on the border), a final choice closes the chain
+  (`Editor::modal_depth`).
+- Command line: `--help`, `--version`, errors for unknown options and conflicting modes.
+- Core `vox_editor::scope` (std only): `Scope`, `find_project_root`, `list_plugins`,
+  `setup_local`.
+- Docs: Project setups page; code-tour walkthrough.
+
+### Changed
+- The global folder comes from `$VOX_CONFIG_DIR` (a folder). **`$VOX_CONFIG` (a file path)
+  is no longer read.**
+- `vox-config-file`: `global_dir()` replaces `default_path()` / `plugin_dir()`.
+
 ## [0.8.0] - 2026-11-26 — M6 logging and developer mode
 
 ### Added

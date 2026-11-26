@@ -5,14 +5,15 @@ file (a WebAssembly component).
 
 ## Installing
 
-Put the `.wasm` file in the `plugins` folder next to your config file:
+Put the `.wasm` file in the `plugins` folder of the active [scope](scopes.md):
 
 ```
-~/.config/vox/plugins/text_tools.wasm
+~/.config/vox/plugins/text_tools.wasm        # global (default)
+<project>/.vox/plugins/text_tools.wasm       # local, with --local-config
 ```
 
-(or `$XDG_CONFIG_HOME/vox/plugins/`, or `plugins/` next to `$VOX_CONFIG`). vox loads every
-`*.wasm` file there at start-up, in name order. Remove the file to uninstall.
+vox loads every `*.wasm` file there at start-up, in name order. Remove the file to
+uninstall. With `--vanilla` no plugins load.
 
 ## Safety
 

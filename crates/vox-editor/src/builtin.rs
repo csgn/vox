@@ -82,6 +82,7 @@ pub(crate) fn register(c: &mut Commands) {
     );
     crate::settings::register(c);
     crate::plugin::manage::register(c);
+    crate::update::register(c);
     c.register(
         "scope setup",
         "Open the project set-up dialog (local mode).",

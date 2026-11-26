@@ -45,6 +45,7 @@ jk = "<Esc>"          # type jk quickly to leave insert mode
 | `[keymap.insert]` | table | — | Mappings in insert mode. |
 | `[keymap.visual]` | table | — | Mappings in visual mode (`v` and `V`). |
 | `developer_mode` | bool | `false` | Log and reload shortcuts: see [Developer mode](developer-mode.md). |
+| `check_updates` | bool | `true` | Look for a newer vox release at start-up: see [Updating vox](updating.md). |
 | `[plugins.NAME]` | table | — | A plugin's settings and `enabled`: see [Plugins](plugins.md#settings-and-turning-plugins-off). |
 | `[ui]` | table | — | Panels, modal, notifications: see [Panels and notifications](interface.md#settings). |
 

@@ -1,0 +1,228 @@
+//! Updating vox itself: find the newest `vX.Y.Z` tag of vox's git repository and install it
+//! with `cargo install`. Uses the `git` and `cargo` programs (std `process`), no libraries.
+//!
+//! `:update check` looks for a newer version and asks whether to install it;
+//! `:update install [VERSION]` installs one. The binary checks once at start-up
+//! ([`check_on_start`]) unless `check_updates = false`.
+
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+use crate::Editor;
+use crate::command::{Args, CommandResult, Commands};
+use crate::plugin::Version;
+use crate::plugin::install::run;
+use crate::ui::Level;
+
+/// Where updates come from and where they go; set by the binary.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpdateSource {
+    /// Git URL of vox's repository.
+    pub repo: String,
+    /// The running version.
+    pub current: Version,
+    /// `cargo install --root` folder of the running binary (see [`install_root_of`]); `None`
+    /// if vox was not installed with `cargo install`, so it cannot replace itself.
+    pub install_root: Option<PathBuf>,
+}
+
+/// Register `:update check` and `:update install`.
+pub(crate) fn register(c: &mut Commands) {
+    c.register(
+        "update check",
+        "Look for a newer vox release and ask whether to install it.",
+        |ed, _| {
+            let src = source(ed)?;
+            spawn_check(ed, src, false);
+            Ok(())
+        },
+    );
+    c.register(
+        "update install",
+        "Install a vox release with cargo: `:update install [VERSION]` (default: the newest).",
+        install_cmd,
+    );
+}
+
+/// The update source, or why updates are not available.
+fn source(ed: &Editor) -> Result<UpdateSource, String> {
+    ed.update_source()
+        .cloned()
+        .ok_or_else(|| "E900: updates are not available in this build".into())
+}
+
+/// The newest `vX.Y.Z` tag in `git ls-remote --tags --refs` output.
+pub fn newest_tag(ls_remote: &str) -> Option<Version> {
+    ls_remote
+        .lines()
+        .filter_map(|l| l.rsplit("refs/tags/").next())
+        .filter_map(|tag| tag.trim().strip_prefix('v'))
+        .filter_map(|v| Version::parse(v).ok())
+        .max()
+}
+
+/// Ask `repo` for its newest release tag.
+pub fn latest(repo: &str) -> Result<Option<Version>, String> {
+    let out = run(Command::new("git").args(["ls-remote", "--tags", "--refs", repo, "v*"]))?;
+    Ok(newest_tag(&out))
+}
+
+/// The `cargo install --root` folder of an installed binary: `ROOT/bin/vox` → `ROOT`.
+/// `None` for anything else (e.g. `target/release/vox`), which must not be replaced.
+pub fn install_root_of(exe: &Path) -> Option<PathBuf> {
+    let bin = exe.parent()?;
+    (bin.file_name()? == "bin").then(|| bin.parent().map(Path::to_path_buf))?
+}
+
+/// Arguments for `cargo` that install release `version` from `repo` into `root`.
+pub fn install_args(repo: &str, version: Version, root: &Path) -> Vec<String> {
+    let mut args: Vec<String> = ["install", "--locked", "--force", "--git", repo, "--tag"]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+    args.push(format!("v{version}"));
+    args.push("--root".into());
+    args.push(root.display().to_string());
+    args.push("vox".into());
+    args
+}
+
+/// Check in the background. `quiet` (start-up): no "checking" notification, and errors
+/// and "up to date" only go to the log.
+fn spawn_check(ed: &mut Editor, src: UpdateSource, quiet: bool) {
+    let work = move |_: &dyn Fn(&str)| -> crate::JobDone {
+        let result = latest(&src.repo);
+        Box::new(move |ed: &mut Editor| match result {
+            Ok(Some(v)) if v > src.current => offer(ed, src.current, v),
+            Ok(_) => {
+                let text = format!("vox {} is up to date", src.current);
+                ed.log(Level::Info, "update", &text);
+                if !quiet {
+                    ed.notify(Level::Info, text);
+                }
+            }
+            Err(e) => {
+                ed.log(Level::Warn, "update", format!("update check failed: {e}"));
+                if !quiet {
+                    ed.notify(Level::Error, format!("update check failed: {e}"));
+                }
+            }
+        })
+    };
+    if quiet {
+        ed.spawn_quiet_job(work);
+    } else {
+        ed.spawn_job("checking for updates", work);
+    }
+}
+
+/// A newer version exists: ask to install it, or just say so if a dialog is already open
+/// or nobody is at the keyboard.
+fn offer(ed: &mut Editor, current: Version, newer: Version) {
+    let text = format!("vox {newer} is available (you have {current})");
+    ed.log(Level::Info, "update", &text);
+    if ed.interactive() && ed.modal_title().is_none() {
+        let ask = crate::ui::Confirm::new(
+            "Update vox",
+            format!("Install vox {newer}? You have {current}."),
+            format!("update install {newer}"),
+        );
+        ed.open_modal(Box::new(ask));
+    } else {
+        ed.notify(Level::Info, format!("{text} — :update install"));
+    }
+}
+
+/// `:update install [VERSION]`.
+fn install_cmd(ed: &mut Editor, a: Args<'_>) -> CommandResult {
+    let src = source(ed)?;
+    let root = src.install_root.clone().ok_or(
+        "E900: this vox was not installed with cargo install, so it cannot update itself; \
+         use install.sh",
+    )?;
+    let wanted = a
+        .arg
+        .map(|v| Version::parse(v.trim_start_matches('v')))
+        .transpose()
+        .map_err(|e| format!("E474: {e}"))?;
+    let title = match wanted {
+        Some(v) => format!("installing vox {v}"),
+        None => "installing the newest vox".into(),
+    };
+    ed.spawn_job(&title, move |progress| {
+        let result = (|| {
+            let version = match wanted {
+                Some(v) => v,
+                None => latest(&src.repo)?.ok_or("no release tags found")?,
+            };
+            progress(&format!(
+                "building vox {version} with cargo (takes a few minutes)"
+            ));
+            run(Command::new("cargo").args(install_args(&src.repo, version, &root)))?;
+            Ok::<Version, String>(version)
+        })();
+        Box::new(move |ed: &mut Editor| match result {
+            Ok(v) => {
+                ed.log(Level::Info, "update", format!("installed vox {v}"));
+                ed.notify(
+                    Level::Info,
+                    format!("installed vox {v} — restart vox to use it"),
+                );
+            }
+            Err(e) => {
+                ed.log(Level::Error, "update", format!("update failed: {e}"));
+                ed.notify(Level::Error, format!("update failed: {e}"));
+            }
+        })
+    });
+    Ok(())
+}
+
+/// Start-up check (called by the binary): in the background, without notifications unless
+/// a newer version exists. Does nothing if `check_updates = false` or no source is set.
+pub fn check_on_start(ed: &mut Editor) {
+    if !ed.config().check_updates {
+        return;
+    }
+    if let Some(src) = ed.update_source().cloned() {
+        spawn_check(ed, src, true);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn v(s: &str) -> Version {
+        Version::parse(s).unwrap()
+    }
+
+    #[test]
+    fn newest_tag_picks_highest_version() {
+        let out = "abc\trefs/tags/v0.9.0\nabd\trefs/tags/v0.14.0\nabe\trefs/tags/v0.13.2\n\
+                   abf\trefs/tags/vnext\nabg\trefs/tags/other";
+        assert_eq!(newest_tag(out), Some(v("0.14.0")));
+        assert_eq!(newest_tag(""), None);
+    }
+
+    #[test]
+    fn install_root_only_for_cargo_installs() {
+        assert_eq!(
+            install_root_of(Path::new("/home/u/.cargo/bin/vox")),
+            Some(PathBuf::from("/home/u/.cargo"))
+        );
+        assert_eq!(
+            install_root_of(Path::new("/src/vox/target/release/vox")),
+            None
+        );
+        assert_eq!(install_root_of(Path::new("vox")), None);
+    }
+
+    #[test]
+    fn cargo_install_arguments() {
+        assert_eq!(
+            install_args("https://x/vox.git", v("1.2.3"), Path::new("/r")).join(" "),
+            "install --locked --force --git https://x/vox.git --tag v1.2.3 --root /r vox"
+        );
+    }
+}

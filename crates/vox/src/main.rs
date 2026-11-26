@@ -9,13 +9,17 @@ use std::rc::Rc;
 
 use vox_clipboard::SystemClipboard;
 use vox_core::Document;
-use vox_editor::plugin::{HealthStatus, PluginInfo};
+use vox_editor::plugin::{HealthStatus, PluginInfo, Version};
 use vox_editor::scope::{self, Scope};
+use vox_editor::update::UpdateSource;
 use vox_editor::{Editor, Level, ScopeKind, Services};
 use vox_storage::Storage;
 use vox_width::UnicodeWidth;
 
 use cli::{Exit, Mode};
+
+/// Where vox releases come from: `vX.Y.Z` tags of this repository.
+const REPO: &str = "https://github.com/csgn/vox.git";
 
 /// Parse arguments, open the file, load the scope's config and plugins, run the editor.
 fn main() -> ExitCode {
@@ -71,6 +75,10 @@ fn main() -> ExitCode {
     load_config(&mut editor, &active);
     load_plugins(&mut editor, &active);
     vox_editor::plugin::manage::lock_status_notice(&mut editor);
+    editor.set_update_source(update_source());
+    if active.kind != ScopeKind::Vanilla {
+        vox_editor::update::check_on_start(&mut editor);
+    }
     register_plugin_new(&mut editor);
     if active.kind == ScopeKind::Local && !active.exists() {
         editor.run_command("scope setup");
@@ -81,6 +89,16 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
     ExitCode::SUCCESS
+}
+
+/// vox's repository (the one install.sh uses), this version, and where it is installed.
+fn update_source() -> UpdateSource {
+    let exe = std::env::current_exe().unwrap_or_default();
+    UpdateSource {
+        repo: REPO.into(),
+        current: Version::parse(env!("CARGO_PKG_VERSION")).expect("package version is valid"),
+        install_root: vox_editor::update::install_root_of(&exe),
+    }
 }
 
 /// Read the scope's config file, if any, and register `:reload config`.

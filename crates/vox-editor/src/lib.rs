@@ -19,6 +19,7 @@ pub mod scope;
 pub mod settings;
 mod surface;
 pub mod ui;
+pub mod update;
 
 pub use command::{Args, CommandResult, Commands};
 pub use config::{Config, Value};

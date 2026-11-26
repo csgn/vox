@@ -5,6 +5,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-27 — M13 updater
+
+### Added
+- Updater: at start-up vox checks the newest `vX.Y.Z` tag of its repository in the
+  background (`git ls-remote`) and asks whether to install a newer release; yes runs
+  `cargo install --locked --force --git … --tag vX.Y.Z --root ROOT vox` as a job, into the
+  running binary's install root. Builds not installed with cargo are never replaced.
+- `:update check`, `:update install [VERSION]`.
+- `check_updates = false` turns the start-up check off (also in `:settings`); `--vanilla`
+  never checks.
+- `Editor::spawn_quiet_job`, `Editor::set_update_source`, `vox_editor::update`.
+
 ## [0.14.0] - 2026-11-27 — M12 command API
 
 ### Added

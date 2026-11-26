@@ -338,7 +338,7 @@ fn git(dir: &Path, args: &[&str]) -> Result<String, String> {
 }
 
 /// Run a command; returns trimmed stdout, or an error with the end of stderr.
-fn run(cmd: &mut Command) -> Result<String, String> {
+pub(crate) fn run(cmd: &mut Command) -> Result<String, String> {
     let program = cmd.get_program().to_string_lossy().into_owned();
     let out = cmd.output().map_err(|e| format!("{program}: {e}"))?;
     if out.status.success() {

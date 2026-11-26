@@ -91,7 +91,15 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
 ## Settings (`vox-editor/src/settings/`)
 - `mod.rs`: vox settings schema, `Config::to_value`, `ConfigEdit`, `apply_edits`.
 - `dialog.rs`: `:settings` commands, forms, the key-mapping list.
+- `commands.rs`: `:settings list|get|set|unset` (dotted keys, no dialog).
 - Saving goes through `Editor::save_config_edits` → injected `ConfigWriter` → `apply_config`.
+
+## Updates (`vox-editor/src/update.rs`)
+- `UpdateSource { repo, current, install_root }` is set by the binary; `install_root` comes
+  from the running binary's path (`ROOT/bin/vox`), `None` for builds that must not be replaced.
+- `:update check` runs `git ls-remote --tags` as a job and offers the newest `vX.Y.Z` tag in
+  a `Confirm`; yes runs `:update install VERSION` (`cargo install --git --tag --root`).
+- `check_on_start` does the same quietly at start-up unless `check_updates = false`.
 
 ## vox-term
 - `Terminal::enter()` (raw mode, alternate screen, panic-safe restore), `draw(&Surface)` with

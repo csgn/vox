@@ -165,6 +165,8 @@ pub struct Editor {
     reply: Option<crate::config::Value>,
     /// The running command tried to open a view while not interactive.
     view_refused: bool,
+    /// Where vox updates come from (set by the binary).
+    update_source: Option<crate::update::UpdateSource>,
 }
 
 impl std::fmt::Debug for Editor {
@@ -248,6 +250,7 @@ impl Editor {
             interactive: true,
             reply: None,
             view_refused: false,
+            update_source: None,
         };
         ed.default_mappings();
         ed
@@ -634,10 +637,17 @@ impl Editor {
         title: &str,
         work: impl FnOnce(&dyn Fn(&str)) -> JobDone + Send + 'static,
     ) {
-        let tx = self.jobs_tx.clone();
-        let title = title.to_string();
-        self.jobs_running += 1;
         self.notify(Level::Info, format!("{title}…"));
+        self.spawn_quiet_job(work);
+    }
+
+    /// Like [`Editor::spawn_job`], without the notification that the job started.
+    pub fn spawn_quiet_job(
+        &mut self,
+        work: impl FnOnce(&dyn Fn(&str)) -> JobDone + Send + 'static,
+    ) {
+        let tx = self.jobs_tx.clone();
+        self.jobs_running += 1;
         std::thread::spawn(move || {
             let progress_tx = tx.clone();
             let progress = |text: &str| {
@@ -646,6 +656,16 @@ impl Editor {
             let done = work(&progress);
             let _ = tx.send(JobMsg::Done(done));
         });
+    }
+
+    /// Where vox updates come from, if set (see [`crate::update`]).
+    pub fn update_source(&self) -> Option<&crate::update::UpdateSource> {
+        self.update_source.as_ref()
+    }
+
+    /// Set where vox updates come from (the binary does this).
+    pub fn set_update_source(&mut self, source: crate::update::UpdateSource) {
+        self.update_source = Some(source);
     }
 
     /// Number of background jobs still running.

@@ -12,6 +12,7 @@
 - [Panels and notifications](user/interface.md)
 - [Plugins](user/plugins.md)
 - [Developer mode](user/developer-mode.md)
+- [Updating vox](user/updating.md)
 
 # Code tour
 - [Crate map](tour/README.md)

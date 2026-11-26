@@ -163,6 +163,12 @@ pub fn vox_settings() -> Vec<SettingSpec> {
             Text("modal".into()),
             "Where :plugins opens",
         ),
+        spec(
+            "check_updates",
+            SettingKind::Bool,
+            Bool(d.check_updates),
+            "Look for a newer vox release at start-up",
+        ),
     ]
 }
 
@@ -243,6 +249,7 @@ impl Config {
         top.insert("leader".into(), s(&self.leader));
         top.insert("timeout_ms".into(), Value::Integer(self.timeout_ms as i64));
         top.insert("developer_mode".into(), Value::Bool(self.developer_mode));
+        top.insert("check_updates".into(), Value::Bool(self.check_updates));
         top.insert("ui".into(), Value::Table(ui));
         if !keymap.is_empty() {
             top.insert("keymap".into(), Value::Table(keymap));

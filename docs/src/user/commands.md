@@ -49,6 +49,8 @@ none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
 | `:settings get KEY` | a setting's value, e.g. `:settings get ui.side_width`, `:settings get plugins.NAME.KEY` |
 | `:settings set KEY VALUE` | change a setting and save it to the scope's `config.toml` (checked against its type and limits) |
 | `:settings unset KEY` | remove a setting from `config.toml` (back to its default) |
+| `:update check` | look for a newer vox release; asks to install it ([Updating vox](updating.md)) |
+| `:update install [VERSION]` | install a release with cargo (default: the newest) |
 | `:scope` | show the active scope (global / local / vanilla) and its paths |
 | `:scope show` | the active scope and its paths as data |
 | `:scope setup` | open the project set-up dialog (local mode) |

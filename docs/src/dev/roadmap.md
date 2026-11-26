@@ -22,8 +22,9 @@ Built one milestone at a time; each ships with tests, docs, and a changelog entr
 | M10 | 0.12.0 | Lockfile and installer: `vox.lock` per scope (version, path or git URL + commit, checksum), install from path or git, `:plugins sync` | done |
 | M11 | 0.13.0 | Plugin manager (modal or side panel), scope-aware: list, add (installs into the active scope only), edit settings / open files, enable/disable, delete, reload, health, sync | done |
 | M12 | 0.14.0 | Command API: `Editor::execute` returns a result, `Editor::reply` lets commands return data (`Value`); non-interactive mode (missing arguments and confirmations are errors, views are refused); data commands: `plugin list`, `plugin info`, `settings list/get/set/unset`, `settings key list`, `commands list`, `scope show` | done |
-| M13 | 0.15.0 | Headless CLI: `vox run [SCOPE] [--json] [--file FILE] CMD...` (or `-` for stdin) runs commands without a terminal, waits for background jobs, prints results as text or JSON (hand-written printer), exit code 0/1/2 | planned |
-| M14 | 0.16.0 | Remote control (only if needed for Claude): `vox run --attach` sends commands to a running vox over a Unix socket; buffer commands (`buffer get`, `buffer replace`, `cursor get/set`) | planned |
+| M13 | 0.15.0 | Updater: at start-up check the newest `vX.Y.Z` tag of vox's repository (`git ls-remote`, background job), ask to install it (`cargo install --git --tag`); `:update check`, `:update install [VERSION]`, `check_updates = false` | done |
+| M14 | 0.16.0 | Headless CLI: `vox run [SCOPE] [--json] [--file FILE] CMD...` (or `-` for stdin) runs commands without a terminal, waits for background jobs, prints results as text or JSON (hand-written printer), exit code 0/1/2 | planned |
+| M15 | 0.17.0 | Remote control (only if needed for Claude): `vox run --attach` sends commands to a running vox over a Unix socket; buffer commands (`buffer get`, `buffer replace`, `cursor get/set`) | planned |
 
 ## Scopes
 
@@ -37,5 +38,5 @@ Exactly one scope is active. Without `DIR`, the project is the nearest folder up
 contains `.vox/` (like git).
 
 ## Later (only if needed)
-Claude integration (MCP server on top of `vox run`, after M13/M14), plugin registry, plugin-defined panels, splits, fuzzy finder,
+Claude integration (MCP server on top of `vox run`, after M14/M15), plugin registry, plugin-defined panels, splits, fuzzy finder,
 tree-sitter highlighting, themes, LSP, git signs, macros, marks, named registers.

@@ -2,7 +2,7 @@
 
 Vim-like modal terminal editor written in Rust. Planned: built-in Claude integration (via the `claude` CLI) and Rust plugins compiled to WASM.
 
-Status: **M0 — skeleton**. Read-only viewer: open a file, scroll, `:q`.
+Status: **M1 — core editing** (v0.2.0). Cursor, insert/normal mode, basic motions, undo/redo, save.
 
 ## Build
 
@@ -11,15 +11,13 @@ cargo build --release
 ./target/release/vox path/to/file
 ```
 
-## Keys (M0)
+## Keys
 
-| Key | Action |
-|---|---|
-| `j` / `Down`, `k` / `Up` | scroll one line |
-| `Ctrl-d` / `Ctrl-u` | scroll half page |
-| `Ctrl-f` / `Ctrl-b`, `PageDown` / `PageUp` | scroll full page |
-| `gg` / `G` | top / bottom |
-| `:q` | quit |
+Normal: `h j k l` `w b` `0 $` `gg G` `Ctrl-d/u/f/b` · `i a o O` insert · `x` delete char · `u` / `Ctrl-r` undo/redo · `:` command line.
+Insert: type text, `Enter`, `Backspace`, `Tab`, arrows, `Esc` back to normal.
+Commands: `:w [file]` `:q` `:q!` `:wq` `:x` `:e [file]` `:e!`.
+
+Full list: `docs/src/user/keybindings.md`.
 
 ## Docs
 

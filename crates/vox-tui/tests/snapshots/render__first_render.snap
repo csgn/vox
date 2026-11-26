@@ -1,6 +1,6 @@
 ---
 source: crates/vox-tui/tests/render.rs
-expression: "draw(&mut app, 40, 8)"
+expression: screen
 ---
 "  1 fn main() {                         "
 "  2     println!("hi");                 "
@@ -8,5 +8,5 @@ expression: "draw(&mut app, 40, 8)"
 "~                                       "
 "~                                       "
 "~                                       "
-" NORMAL  [No Name]                  1/3 "
+" NORMAL  [No Name]                  1:1 "
 "                                        "

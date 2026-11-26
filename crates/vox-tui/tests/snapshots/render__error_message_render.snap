@@ -1,0 +1,8 @@
+---
+source: crates/vox-tui/tests/render.rs
+expression: screen
+---
+"  1 x                                   "
+"~                                       "
+" NORMAL  [No Name]                  1:1 "
+"E492: Not an editor command: nope       "

@@ -1,0 +1,8 @@
+---
+source: crates/vox-tui/tests/render.rs
+expression: screen
+---
+"  1     x                     "
+"~                             "
+" INSERT  [No Name] [+]    1:2 "
+"                              "

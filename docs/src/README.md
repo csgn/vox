@@ -1,5 +1,6 @@
 # vox
 
-Vim-like modal terminal editor in Rust, with planned built-in Claude integration and WASM plugins written in Rust.
+Vim-like modal terminal editor in Rust. Not a Neovim clone: a small editor focused on
+Vim-style editing, a simple developer API, Rust/WASM plugins, and built-in Claude.
 
-Current version: 0.1.0 (M0 — skeleton viewer).
+Current version: 0.2.0 (M1 — core editing).

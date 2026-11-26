@@ -1,8 +1,8 @@
 ---
 source: crates/vox-tui/tests/render.rs
-expression: "draw(&mut app, 30, 4)"
+expression: screen
 ---
 "  1 x                         "
 "~                             "
-" COMMAND  [No Name]       1/1 "
+" COMMAND  [No Name]       1:1 "
 ":q                            "

@@ -1,0 +1,7 @@
+---
+source: crates/vox-tui/tests/render.rs
+expression: screen
+---
+"  1 stuvwxyzabcdefgh"
+" NORMAL  [No Name]1:"
+"                    "

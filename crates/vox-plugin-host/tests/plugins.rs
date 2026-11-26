@@ -5,8 +5,10 @@ use std::path::PathBuf;
 use std::sync::OnceLock;
 use std::time::Instant;
 
+use std::rc::Rc;
 use vox_core::Document;
-use vox_editor::{Editor, parse_keys};
+
+use vox_editor::{Editor, Level, owner, parse_keys};
 use vox_plugin_host::PluginHost;
 
 fn root() -> PathBuf {
@@ -188,4 +190,94 @@ fn load_dir_loads_all_wasm_files() {
     assert_eq!(results, vec![Ok("a".to_string())]);
     assert!(ed.commands().get("wordcount").is_some());
     assert!(host().load_dir(&mut ed, &dir).is_empty(), "missing dir");
+}
+
+#[test]
+fn plugin_log_and_notify() {
+    let mut ed = editor("x");
+    host().load(&mut ed, &plugin("misbehave")).unwrap();
+    feed(&mut ed, ":say<CR>");
+    assert!(
+        ed.log_entries()
+            .entries()
+            .any(|e| e.source == "plugin:misbehave"
+                && e.level == Level::Warn
+                && e.message == "said something")
+    );
+    assert_eq!(ed.notifications()[0].text, "hello from misbehave");
+    assert!(
+        ed.log_entries()
+            .entries()
+            .any(|e| e.source == "plugin:misbehave" && e.message.starts_with("loaded"))
+    );
+}
+
+#[test]
+fn unloading_restores_replaced_builtin() {
+    let mut ed = editor("x");
+    host().load(&mut ed, &plugin("misbehave")).unwrap();
+    assert_eq!(ed.commands().get("x").unwrap().owner, "plugin:misbehave");
+    feed(&mut ed, ":x<CR>");
+    assert_eq!(ed.message(), Some("plugin xit"));
+    ed.remove_owned(&owner::plugin("misbehave"));
+    assert_eq!(ed.commands().get("xit").unwrap().owner, owner::BUILTIN);
+    assert!(ed.commands().get("spin").is_none());
+}
+
+#[test]
+fn reload_brings_back_a_disabled_plugin() {
+    let host = Rc::new(PluginHost::new().unwrap());
+    let mut ed = editor("x");
+    host.load(&mut ed, &plugin("misbehave")).unwrap();
+    feed(&mut ed, ":crash<CR>:ok<CR>");
+    assert!(ed.message().unwrap().contains("disabled"));
+    assert!(
+        ed.log_entries()
+            .entries()
+            .any(|e| e.level == Level::Error && e.source == "plugin:misbehave")
+    );
+    let dir = root().join("plugins/target/wasm32-wasip2/release");
+    PluginHost::register_commands(host.clone(), &mut ed, dir);
+    feed(&mut ed, ":reload-plugins misbehave<CR>");
+    assert_eq!(
+        ed.notifications().last().unwrap().text,
+        "reloaded 1 plugin(s)"
+    );
+    feed(&mut ed, ":ok<CR>");
+    assert_eq!(ed.message(), Some("ok"), "fresh instance after reload");
+    assert_eq!(host.names(), ["misbehave"]);
+    feed(&mut ed, ":reload-plugins nope<CR>");
+    assert!(
+        ed.notifications()
+            .last()
+            .unwrap()
+            .text
+            .contains("no plugin named nope")
+    );
+}
+
+#[test]
+fn reload_all_from_dir() {
+    let dir = std::env::temp_dir().join(format!("vox-reload-dir-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::copy(plugin("text-tools"), dir.join("text_tools.wasm")).unwrap();
+    let host = Rc::new(PluginHost::new().unwrap());
+    let mut ed = editor("a b");
+    host.load_dir(&mut ed, &dir);
+    PluginHost::register_commands(host.clone(), &mut ed, dir.clone());
+    feed(&mut ed, ":reload-plugins<CR>");
+    std::fs::remove_dir_all(&dir).unwrap();
+    assert_eq!(
+        ed.notifications().last().unwrap().text,
+        "reloaded 1 plugin(s)"
+    );
+    feed(&mut ed, ":wordcount<CR>");
+    assert_eq!(ed.message(), Some("2 words, 1 lines, 3 characters"));
+    // Exactly one copy of the plugin's mapping after reloading.
+    let maps = ed
+        .keymap()
+        .iter()
+        .filter(|m| m.3 == "plugin:text_tools")
+        .count();
+    assert_eq!(maps, 1);
 }

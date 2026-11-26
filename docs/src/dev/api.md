@@ -62,6 +62,9 @@ into a `Value`. A new setting means: a field in `Config`, a case in `from_value`
 | `notify(level, text)`, `history()` | notifications; message history |
 | `open_modal(view)`, `open_panel(slot, view)`, `close_focused()`, `focus(f)` | UI |
 | `next_deadline()`, `tick()` | time-based work (run loop) |
+| `with_owner(owner, f)`, `remove_owned(owner)` | ownership, unloading |
+| `log(level, source, text)`, `log_entries()` | developer log |
+| `set_developer_mode(on)`, `developer_mode()` | developer mode |
 
 ## UI: panels, modal, notifications
 
@@ -87,6 +90,28 @@ command. So every action a view can trigger is also a normal, mappable command.
 Time: the editor never sleeps. `next_deadline()` says when something time-based is due
 (notification expiry, mapping timeout); the run loop waits at most until then and calls
 `tick()`. Tests inject a fake clock through `Services::clock`.
+
+## Owners and reloading
+
+Everything registered (commands, mappings, subscriptions) records its **owner**:
+`builtin`, `config`, `devmode`, `plugin:NAME`, or `user` (the default). Constants are in
+`vox_editor::owner`.
+
+```rust
+editor.with_owner("plugin:demo", |ed| {
+    ed.commands_mut().register("demo", "", |_, _| Ok(()));
+    ed.map_key(MapMode::Normal, "<leader>x", ":demo");
+});
+editor.remove_owned("plugin:demo"); // removes exactly those two
+```
+
+A newer owner's command or mapping with the same name hides the older one; removing it
+brings the older one back.
+
+## Log
+
+`editor.log(Level::Warn, "plugin:demo", "something odd")` adds an entry (`Level::Debug` is
+log-only). `log_entries()` reads it; open `LogView`s update automatically.
 
 ## Events
 

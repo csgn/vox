@@ -39,26 +39,48 @@ pub(crate) enum Lookup<'a> {
 }
 
 /// All user key mappings.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Keymap {
-    maps: Vec<(MapMode, Vec<Key>, Binding)>,
+    /// (mode, keys, binding, owner), oldest first. For the same keys the newest wins.
+    maps: Vec<(MapMode, Vec<Key>, Binding, String)>,
+    /// Owner given to new mappings.
+    pub(crate) owner: String,
+}
+
+impl Default for Keymap {
+    fn default() -> Self {
+        Self {
+            maps: Vec::new(),
+            owner: crate::owner::USER.into(),
+        }
+    }
 }
 
 impl Keymap {
-    /// Map `lhs` to `binding` in `mode`, replacing an existing mapping of `lhs`.
+    /// Map `lhs` to `binding` in `mode`. Replaces this owner's mapping of `lhs`; hides
+    /// other owners' mappings of `lhs` until this one is removed.
     pub fn set(&mut self, mode: MapMode, lhs: Vec<Key>, binding: Binding) {
-        self.remove(mode, &lhs);
-        self.maps.push((mode, lhs, binding));
+        let owner = self.owner.clone();
+        self.maps
+            .retain(|(m, l, _, o)| !(*m == mode && *l == lhs && *o == owner));
+        self.maps.push((mode, lhs, binding, owner));
     }
 
-    /// Remove the mapping of `lhs` in `mode`, if any.
+    /// Remove all mappings of `lhs` in `mode`.
     pub fn remove(&mut self, mode: MapMode, lhs: &[Key]) {
-        self.maps.retain(|(m, l, _)| !(*m == mode && l == lhs));
+        self.maps.retain(|(m, l, _, _)| !(*m == mode && l == lhs));
     }
 
-    /// All mappings, in the order they were added.
-    pub fn iter(&self) -> impl Iterator<Item = (MapMode, &[Key], &Binding)> {
-        self.maps.iter().map(|(m, l, b)| (*m, l.as_slice(), b))
+    /// Remove every mapping added by `owner`.
+    pub fn remove_owned(&mut self, owner: &str) {
+        self.maps.retain(|(_, _, _, o)| o != owner);
+    }
+
+    /// All mappings with their owner, in the order they were added.
+    pub fn iter(&self) -> impl Iterator<Item = (MapMode, &[Key], &Binding, &str)> {
+        self.maps
+            .iter()
+            .map(|(m, l, b, o)| (*m, l.as_slice(), b, o.as_str()))
     }
 
     /// Number of mappings.
@@ -75,7 +97,7 @@ impl Keymap {
     pub(crate) fn lookup(&self, mode: MapMode, keys: &[Key]) -> Lookup<'_> {
         let mut exact = None;
         let mut longer = false;
-        for (m, lhs, b) in &self.maps {
+        for (m, lhs, b, _) in &self.maps {
             if *m != mode || !lhs.starts_with(keys) {
                 continue;
             }
@@ -165,6 +187,27 @@ mod tests {
         );
         m.remove(MapMode::Normal, &k("H"));
         assert!(m.is_empty());
+    }
+
+    #[test]
+    fn owners_hide_and_restore() {
+        let mut m = Keymap {
+            owner: "config".into(),
+            ..Keymap::default()
+        };
+        m.set(MapMode::Normal, k("H"), Binding::Keys(k("0")));
+        m.owner = "plugin:x".into();
+        m.set(MapMode::Normal, k("H"), Binding::Keys(k("^")));
+        assert_eq!(
+            m.lookup(MapMode::Normal, &k("H")),
+            Lookup::Exact(&Binding::Keys(k("^")))
+        );
+        m.remove_owned("plugin:x");
+        assert_eq!(
+            m.lookup(MapMode::Normal, &k("H")),
+            Lookup::Exact(&Binding::Keys(k("0")))
+        );
+        assert_eq!(m.len(), 1);
     }
 
     #[test]

@@ -45,7 +45,7 @@ pub mod bindings {
 pub use bindings::Guest as Plugin;
 /// Functions the plugin can call: register commands, map keys, read and edit the text.
 pub use bindings::vox::plugin::editor;
-pub use bindings::vox::plugin::types::{Event, EventKind, MapMode, Mode, Position};
+pub use bindings::vox::plugin::types::{Event, EventKind, Level, MapMode, Mode, Position};
 
 /// Export `$t` (the name of a type implementing [`Plugin`]) as this plugin.
 #[macro_export]

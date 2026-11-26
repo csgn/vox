@@ -2,9 +2,11 @@
 
 use std::process::ExitCode;
 
+use std::rc::Rc;
 use vox_clipboard::SystemClipboard;
 use vox_core::Document;
-use vox_editor::{Config, Editor, Services};
+
+use vox_editor::{Editor, Level, Services};
 use vox_storage::Storage;
 use vox_width::UnicodeWidth;
 
@@ -42,44 +44,25 @@ fn main() -> ExitCode {
     ExitCode::SUCCESS
 }
 
-/// Read the user's config file, if any, and apply it. Problems are shown as the
-/// editor's first message.
+/// Read the user's config file, if any, and register `:reload-config`.
 fn load_config(editor: &mut Editor) {
     let Some(path) = vox_config_file::default_path() else {
         return;
     };
-    let value = match vox_config_file::load(&path) {
-        Ok(Some(value)) => value,
-        Ok(None) => return,
-        Err(e) => {
-            editor.set_message(format!("config: {e}"));
-            return;
-        }
-    };
-    let (config, errors) = Config::from_value(&value);
-    editor.apply_config(&config);
-    if let Some(first) = errors.first() {
-        let more = match errors.len() {
-            1 => String::new(),
-            n => format!(" ({} more)", n - 1),
-        };
-        editor.set_message(format!("config {}: {first}{more}", path.display()));
-    }
+    vox_config_file::load_and_apply(editor, &path);
+    vox_config_file::register_commands(editor, path);
 }
 
-/// Load every plugin in the plugin directory. Failures are shown as the message; the
-/// editor runs without the failed plugins.
+/// Load every plugin in the plugin directory and register `:reload-plugins`. Failures
+/// are logged and shown as a notification; the editor runs without the failed plugins.
 fn load_plugins(editor: &mut Editor) {
     let Some(dir) = vox_config_file::plugin_dir() else {
         return;
     };
-    if !dir.is_dir() {
-        return;
-    }
     let host = match vox_plugin_host::PluginHost::new() {
-        Ok(host) => host,
+        Ok(host) => Rc::new(host),
         Err(e) => {
-            editor.set_message(format!("plugins: {e}"));
+            editor.notify(Level::Error, format!("plugins: {e}"));
             return;
         }
     };
@@ -91,8 +74,9 @@ fn load_plugins(editor: &mut Editor) {
     if let Some(first) = errors.first() {
         let more = match errors.len() {
             1 => String::new(),
-            n => format!(" ({} more)", n - 1),
+            n => format!(" ({} more, see :log)", n - 1),
         };
-        editor.set_message(format!("{first}{more}"));
+        editor.notify(Level::Error, format!("{first}{more}"));
     }
+    vox_plugin_host::PluginHost::register_commands(host, editor, dir);
 }

@@ -48,6 +48,8 @@ pub struct Config {
     pub keymaps: Vec<(MapMode, String, String)>,
     /// Panels, modal, and notifications (`[ui]`).
     pub ui: UiConfig,
+    /// Developer mode: log shortcuts and reload shortcuts.
+    pub developer_mode: bool,
 }
 
 impl Default for Config {
@@ -57,6 +59,7 @@ impl Default for Config {
             timeout_ms: 1000,
             keymaps: Vec::new(),
             ui: UiConfig::default(),
+            developer_mode: false,
         }
     }
 }
@@ -110,10 +113,12 @@ impl Config {
                     }
                 }
                 ("ui", Value::Table(t)) => parse_ui(t, &mut cfg.ui, &mut errors),
-                ("leader" | "timeout_ms" | "keymap" | "ui", other) => {
+                ("developer_mode", Value::Bool(b)) => cfg.developer_mode = *b,
+                ("leader" | "timeout_ms" | "keymap" | "ui" | "developer_mode", other) => {
                     let want = match key.as_str() {
                         "leader" => "a string",
                         "timeout_ms" => "an integer",
+                        "developer_mode" => "true/false",
                         _ => "a table",
                     };
                     errors.push(format!("`{key}` must be {want}, not {}", other.type_name()));

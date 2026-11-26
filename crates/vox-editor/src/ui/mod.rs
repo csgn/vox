@@ -45,6 +45,10 @@ pub trait View {
     fn cursor(&self, _area: Rect) -> Option<(u16, u16)> {
         None
     }
+    /// `Some` if this is the live log view, so the editor can update it.
+    fn as_log_view(&mut self) -> Option<&mut crate::log::LogView> {
+        None
+    }
 }
 
 /// Where a panel is shown.

@@ -170,7 +170,8 @@ impl Editor {
             .unwrap_or_else(|| "[No Name]".into());
         let modified = if self.doc.is_modified() { " [+]" } else { "" };
         let pos = format!("{}:{} ", self.cursor.line + 1, self.cursor.col + 1);
-        let left = format!(" {mode}  {name}{modified}");
+        let dev = if self.developer_mode() { " DEV " } else { "" };
+        let left = format!(" {mode}{dev}  {name}{modified}");
         let pad = (s.width() as usize).saturating_sub(self.str_width(&left) + self.str_width(&pos));
         let text = format!("{left}{}{pos}", " ".repeat(pad));
         s.fill_row(row, Style::REVERSED);

@@ -28,6 +28,8 @@ pub struct Command {
     pub name: String,
     /// One-line description for help and docs.
     pub description: String,
+    /// Who registered it: `builtin`, `config`, `plugin:NAME`, or `user` (see [`owner`](crate::owner)).
+    pub owner: String,
     pub(crate) handler: Handler,
 }
 
@@ -36,57 +38,95 @@ impl std::fmt::Debug for Command {
         f.debug_struct("Command")
             .field("name", &self.name)
             .field("description", &self.description)
+            .field("owner", &self.owner)
             .finish_non_exhaustive()
     }
 }
 
 /// All commands, by name, plus short aliases (`w` → `write`).
-#[derive(Debug, Default, Clone)]
+///
+/// Registering a name that exists hides the old command; removing the newer owner's
+/// commands (e.g. unloading a plugin) brings the old one back.
+#[derive(Debug, Clone)]
 pub struct Commands {
-    by_name: BTreeMap<String, Command>,
-    aliases: BTreeMap<String, String>,
+    /// Per name: registrations, oldest first; the last one is active.
+    by_name: BTreeMap<String, Vec<Command>>,
+    /// Per alias: (target, owner), oldest first; the last one is active.
+    aliases: BTreeMap<String, Vec<(String, String)>>,
+    /// Owner given to new registrations.
+    pub(crate) owner: String,
+}
+
+impl Default for Commands {
+    fn default() -> Self {
+        Self {
+            by_name: BTreeMap::new(),
+            aliases: BTreeMap::new(),
+            owner: crate::owner::USER.into(),
+        }
+    }
 }
 
 impl Commands {
-    /// Register (or replace) command `name`.
+    /// Register command `name`, hiding an existing one with the same name.
     pub fn register(
         &mut self,
         name: &str,
         description: &str,
         handler: impl Fn(&mut Editor, Args<'_>) -> CommandResult + 'static,
     ) {
-        self.by_name.insert(
-            name.to_string(),
-            Command {
-                name: name.to_string(),
-                description: description.to_string(),
-                handler: Rc::new(handler),
-            },
-        );
+        let cmd = Command {
+            name: name.to_string(),
+            description: description.to_string(),
+            owner: self.owner.clone(),
+            handler: Rc::new(handler),
+        };
+        let stack = self.by_name.entry(name.to_string()).or_default();
+        stack.retain(|c| c.owner != cmd.owner);
+        stack.push(cmd);
     }
 
     /// Make `alias` another name for command `target`.
     pub fn alias(&mut self, alias: &str, target: &str) {
-        self.aliases.insert(alias.to_string(), target.to_string());
+        let owner = self.owner.clone();
+        let stack = self.aliases.entry(alias.to_string()).or_default();
+        stack.retain(|(_, o)| *o != owner);
+        stack.push((target.to_string(), owner));
     }
 
     /// Look up a command by name or alias.
     pub fn get(&self, name: &str) -> Option<&Command> {
-        let name = self.aliases.get(name).map_or(name, String::as_str);
-        self.by_name.get(name)
+        let name = self
+            .aliases
+            .get(name)
+            .and_then(|s| s.last())
+            .map_or(name, |(t, _)| t.as_str());
+        self.by_name.get(name).and_then(|s| s.last())
     }
 
-    /// All commands in name order.
+    /// All active commands in name order.
     pub fn iter(&self) -> impl Iterator<Item = &Command> {
-        self.by_name.values()
+        self.by_name.values().filter_map(|s| s.last())
     }
 
     /// Aliases of command `name`, in order.
     pub fn aliases_of<'a>(&'a self, name: &'a str) -> impl Iterator<Item = &'a str> + 'a {
         self.aliases
             .iter()
-            .filter(move |(_, t)| t.as_str() == name)
+            .filter(move |(_, s)| s.last().is_some_and(|(t, _)| t == name))
             .map(|(a, _)| a.as_str())
+    }
+
+    /// Remove every command and alias registered by `owner`.
+    pub fn remove_owned(&mut self, owner: &str) {
+        for stack in self.by_name.values_mut() {
+            stack.retain(|c| c.owner != owner);
+        }
+        self.by_name.retain(|_, s| !s.is_empty());
+        for stack in self.aliases.values_mut() {
+            stack.retain(|(_, o)| o != owner);
+        }
+        self.aliases.retain(|_, s| !s.is_empty());
     }
 }
 
@@ -131,6 +171,27 @@ mod tests {
             )
         );
         assert_eq!(parse_line("").0, "");
+    }
+
+    #[test]
+    fn newer_owner_hides_and_removal_restores() {
+        let mut c = Commands {
+            owner: "builtin".into(),
+            ..Commands::default()
+        };
+        c.register("write", "builtin write", |_, _| Ok(()));
+        c.alias("w", "write");
+        c.owner = "plugin:x".into();
+        c.register("write", "plugin write", |_, _| Ok(()));
+        c.register("extra", "", |_, _| Ok(()));
+        c.alias("w", "extra");
+        assert_eq!(c.get("write").unwrap().description, "plugin write");
+        assert_eq!(c.get("w").unwrap().name, "extra");
+        c.remove_owned("plugin:x");
+        assert_eq!(c.get("write").unwrap().description, "builtin write");
+        assert_eq!(c.get("w").unwrap().name, "write");
+        assert!(c.get("extra").is_none());
+        assert_eq!(c.iter().count(), 1);
     }
 
     #[test]

@@ -40,6 +40,7 @@ jk = "<Esc>"          # type jk quickly to leave insert mode
 | `[keymap.normal]` | table | — | Mappings in normal mode (also after an operator like `d`). |
 | `[keymap.insert]` | table | — | Mappings in insert mode. |
 | `[keymap.visual]` | table | — | Mappings in visual mode (`v` and `V`). |
+| `developer_mode` | bool | `false` | Log and reload shortcuts: see [Developer mode](developer-mode.md). |
 | `[ui]` | table | — | Panels, modal, notifications: see [Panels and notifications](interface.md#settings). |
 
 ## Mappings

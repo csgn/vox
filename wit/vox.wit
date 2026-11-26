@@ -29,6 +29,14 @@ interface types {
         visual,
     }
 
+    /// Importance of a log entry or notification.
+    enum level {
+        debug,
+        info,
+        warn,
+        error,
+    }
+
     /// Event categories a plugin can subscribe to.
     enum event-kind {
         buf-open,
@@ -52,7 +60,7 @@ interface types {
 
 /// What a plugin can ask the editor to do.
 interface editor {
-    use types.{position, mode, map-mode, event-kind};
+    use types.{position, mode, map-mode, event-kind, level};
 
     /// Add a `:` command. When the user runs it, vox calls the plugin's `run-command`.
     register-command: func(name: string, description: string);
@@ -64,6 +72,10 @@ interface editor {
 
     /// Show text on the bottom line.
     message: func(text: string);
+    /// Show a notification in the corner for a few seconds.
+    notify: func(level: level, text: string);
+    /// Add a line to the log (`:log`), with this plugin as the source.
+    log: func(level: level, text: string);
     /// Run a command line, e.g. `w` or `e notes.txt`.
     run-command: func(line: string);
 

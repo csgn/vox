@@ -14,6 +14,8 @@ use crate::config::Config;
 use crate::event::{Event, EventHandler, EventKind, ModeKind};
 use crate::keymap::{self, Binding, Keymap, Lookup, MapMode};
 use crate::keys::{Key, KeyCode};
+use crate::log::Log;
+use crate::owner;
 use crate::ui::{
     self, Focus, Layout, Level, Notification, Outcome, PanelSlot, SidePosition, UiConfig, View,
 };
@@ -107,7 +109,12 @@ pub struct Editor {
     key_timeout: Duration,
     /// What `<leader>` means in mappings.
     leader: String,
-    subscribers: Vec<(EventKind, EventHandler)>,
+    /// (kind, owner, handler).
+    subscribers: Vec<(EventKind, String, EventHandler)>,
+    /// Owner given to new commands, mappings, and subscriptions (see [`crate::owner`]).
+    owner: String,
+    log: Log,
+    developer_mode: bool,
     ui: UiConfig,
     side: Option<Box<dyn View>>,
     bottom: Option<Box<dyn View>>,
@@ -146,7 +153,9 @@ impl Editor {
         let mut registers = Registers::default();
         registers.clipboard = services.clipboard;
         let mut commands = Commands::default();
+        commands.owner = owner::BUILTIN.into();
         builtin::register(&mut commands);
+        commands.owner = owner::USER.into();
         Self {
             doc,
             view: Viewport::default(),
@@ -168,6 +177,9 @@ impl Editor {
             key_timeout: Duration::from_millis(1000),
             leader: "\\".into(),
             subscribers: Vec::new(),
+            owner: owner::USER.into(),
+            log: Log::new((services.clock)()),
+            developer_mode: false,
             ui: UiConfig::default(),
             side: None,
             bottom: None,
@@ -511,7 +523,85 @@ impl Editor {
 
     /// Call `handler` for every event of `kind`.
     pub fn subscribe(&mut self, kind: EventKind, handler: impl Fn(&mut Editor, &Event) + 'static) {
-        self.subscribers.push((kind, std::rc::Rc::new(handler)));
+        let owner = self.owner.clone();
+        self.subscribers
+            .push((kind, owner, std::rc::Rc::new(handler)));
+    }
+
+    /// Run `f` with `owner` as the owner of everything it registers (commands, mappings,
+    /// subscriptions), so [`Editor::remove_owned`] can remove exactly those later.
+    pub fn with_owner<R>(&mut self, owner: &str, f: impl FnOnce(&mut Self) -> R) -> R {
+        let prev = std::mem::replace(&mut self.owner, owner.to_string());
+        let prev_cmd = std::mem::replace(&mut self.commands.owner, owner.to_string());
+        let prev_map = std::mem::replace(&mut self.keymap.owner, owner.to_string());
+        let r = f(self);
+        self.owner = prev;
+        self.commands.owner = prev_cmd;
+        self.keymap.owner = prev_map;
+        r
+    }
+
+    /// Remove every command, mapping, and subscription added by `owner`. Things they hid
+    /// (e.g. a built-in command a plugin replaced) become active again.
+    pub fn remove_owned(&mut self, owner: &str) {
+        self.commands.remove_owned(owner);
+        self.keymap.remove_owned(owner);
+        self.subscribers.retain(|(_, o, _)| o != owner);
+    }
+
+    /// Add a log entry. `source` is e.g. `editor`, `config`, or `plugin:NAME`.
+    pub fn log(&mut self, level: Level, source: &str, message: impl AsRef<str>) {
+        let now = (self.clock)();
+        self.log.push(now, level, source, message.as_ref());
+        self.refresh_log_views();
+    }
+
+    /// The log.
+    pub fn log_entries(&self) -> &Log {
+        &self.log
+    }
+
+    /// Clear the log.
+    pub(crate) fn clear_log(&mut self) {
+        self.log.clear();
+        self.refresh_log_views();
+    }
+
+    /// Update open log views after the log or their filters changed.
+    pub(crate) fn refresh_log_views(&mut self) {
+        let log = &self.log;
+        for view in [&mut self.side, &mut self.bottom, &mut self.modal]
+            .into_iter()
+            .flatten()
+        {
+            if let Some(lv) = view.as_log_view() {
+                lv.refresh(log);
+            }
+        }
+    }
+
+    /// Whether developer mode is on.
+    pub fn developer_mode(&self) -> bool {
+        self.developer_mode
+    }
+
+    /// Turn developer mode on or off. On: adds `<leader>dl` (log), `<leader>dr` (reload
+    /// plugins), `<leader>dc` (reload config).
+    pub fn set_developer_mode(&mut self, on: bool) {
+        self.remove_owned(owner::DEVMODE);
+        self.developer_mode = on;
+        if on {
+            self.with_owner(owner::DEVMODE, |ed| {
+                ed.map_key(MapMode::Normal, "<leader>dl", ":log");
+                ed.map_key(MapMode::Normal, "<leader>dr", ":reload-plugins");
+                ed.map_key(MapMode::Normal, "<leader>dc", ":reload-config");
+            });
+        }
+        self.log(
+            Level::Info,
+            "editor",
+            format!("developer mode {}", if on { "on" } else { "off" }),
+        );
     }
 
     /// Send `event` to its subscribers, in subscription order.
@@ -519,8 +609,8 @@ impl Editor {
         let handlers: Vec<EventHandler> = self
             .subscribers
             .iter()
-            .filter(|(k, _)| *k == event.kind())
-            .map(|(_, h)| h.clone())
+            .filter(|(k, _, _)| *k == event.kind())
+            .map(|(_, _, h)| h.clone())
             .collect();
         for h in handlers {
             h(self, event);
@@ -1173,8 +1263,15 @@ impl Editor {
             return;
         };
         let handler = cmd.handler.clone();
+        let (cmd_name, cmd_owner) = (cmd.name.clone(), cmd.owner.clone());
+        self.log(
+            Level::Debug,
+            "editor",
+            format!(":{} ({cmd_owner})", line.trim()),
+        );
         self.with_change_events(|ed| {
             if let Err(e) = handler(ed, args) {
+                ed.log(Level::Error, &cmd_owner, format!(":{cmd_name}: {e}"));
                 ed.message = Some(e);
             }
             // A command's edits are one undo step; keep the cursor valid after them.
@@ -1206,12 +1303,19 @@ impl Editor {
     }
 
     /// Apply settings: leader, mapping timeout, and key mappings.
+    /// Earlier config mappings are replaced, so this also reloads a config.
     pub fn apply_config(&mut self, cfg: &Config) {
         self.key_timeout = Duration::from_millis(cfg.timeout_ms);
         self.ui = cfg.ui;
         self.leader = cfg.leader.clone();
-        for (mode, lhs, rhs) in &cfg.keymaps {
-            self.map_key(*mode, lhs, rhs);
+        self.remove_owned(owner::CONFIG);
+        self.with_owner(owner::CONFIG, |ed| {
+            for (mode, lhs, rhs) in &cfg.keymaps {
+                ed.map_key(*mode, lhs, rhs);
+            }
+        });
+        if cfg.developer_mode != self.developer_mode {
+            self.set_developer_mode(cfg.developer_mode);
         }
     }
 

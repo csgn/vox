@@ -3,7 +3,7 @@ source: crates/vox-editor/tests/ui.rs
 expression: "screen(&mut ed, 50, 8)"
 ---
 "  1 hello                 ┌─ Key mappings ───────┐"
-"  2 world                 │ n H → ^              │"
+"  2 world                 │ n H → ^  (config)    │"
 "~                         │                      │"
 "~                         │                      │"
 "~                         │                      │"

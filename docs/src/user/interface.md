@@ -33,6 +33,7 @@ A **modal** always takes all keys until it closes.
 | Text | `j`/`k` scroll, `g`/`G` top/bottom, `q`/`Esc` close |
 | Question | `y`/`Enter` yes, `n`/`q`/`Esc` no |
 | Prompt | type, `Backspace`, `Enter` confirm, `Esc` cancel |
+| Log | `f` level, `s` source, `c` clear, `j`/`k`/`g`/`G`, `q` (see [Developer mode](developer-mode.md)) |
 
 ## Notifications
 

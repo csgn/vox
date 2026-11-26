@@ -5,6 +5,31 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-26 — M6 logging and developer mode
+
+### Added
+- Log: `Editor::log(level, source, text)`, 2000-entry ring buffer, `Level::Debug`.
+  Logged: commands run (debug), command errors, config load and warnings, plugin load /
+  failure / disable, plugin log lines.
+- `:log [LEVEL] [SOURCE]`: live log view in the bottom panel (`f` level, `s` source,
+  `c` clear); `:log-clear`, `:log-refresh`.
+- Developer mode (`developer_mode = true` or `:devmode`): `DEV` badge, `<leader>dl` log,
+  `<leader>dr` reload plugins, `<leader>dc` reload config.
+- `:reload-config` (vox-config-file) and `:reload-plugins [NAME]` (vox-plugin-host);
+  reloading revives disabled plugins.
+- Ownership: commands, aliases, mappings, and subscriptions record an owner (`builtin`,
+  `config`, `devmode`, `plugin:NAME`, `user`); `Editor::with_owner`, `remove_owned`.
+  A newer owner hides an older registration; removing it restores the older one.
+- Plugin API (`wit/vox.wit`): `notify(level, text)`, `log(level, text)`, `level` enum.
+- `:keymaps` shows each mapping's owner.
+- Docs: Developer mode page; owners and log in Developer API; plugin development loop;
+  code-tour walkthroughs.
+
+### Changed
+- `Editor::apply_config` replaces earlier config mappings (so it doubles as reload).
+- Config errors at start-up are notifications (and log lines) instead of the message line.
+- `Keymap::iter` yields the owner too.
+
 ## [0.7.0] - 2026-11-26 — M5 panels, modal, notifications
 
 ### Added

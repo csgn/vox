@@ -9,6 +9,7 @@
 - [Configuration](user/configuration.md)
 - [Panels and notifications](user/interface.md)
 - [Plugins](user/plugins.md)
+- [Developer mode](user/developer-mode.md)
 
 # Code tour
 - [Crate map](tour/README.md)

@@ -245,3 +245,103 @@ mod snapshots {
         assert_eq!(s.cell(x - 1, y).symbol, "b");
     }
 }
+
+mod devmode {
+    use super::*;
+    use vox_editor::owner;
+
+    fn log_view_lines(ed: &mut Editor) -> String {
+        ed.resize(80, 20);
+        ed.render().to_string()
+    }
+
+    #[test]
+    fn toggle_adds_and_removes_shortcuts() {
+        let (mut ed, _) = editor("abc");
+        assert!(!ed.developer_mode());
+        feed(&mut ed, ":devmode<CR>");
+        assert!(ed.developer_mode());
+        assert!(ed.render().to_string().contains(" DEV "));
+        let dev_maps = ed.keymap().iter().filter(|m| m.3 == owner::DEVMODE).count();
+        assert_eq!(dev_maps, 3);
+        feed(&mut ed, "\\dl"); // default leader is backslash
+        assert!(ed.has_panel(PanelSlot::Bottom));
+        feed(&mut ed, "q:devmode off<CR>");
+        assert!(!ed.developer_mode());
+        assert_eq!(ed.keymap().iter().count(), 0);
+    }
+
+    #[test]
+    fn config_turns_it_on() {
+        let (mut ed, _) = editor("abc");
+        ed.apply_config(&Config {
+            developer_mode: true,
+            ..Config::default()
+        });
+        assert!(ed.developer_mode());
+    }
+
+    #[test]
+    fn log_view_filters_and_updates_live() {
+        let (mut ed, _) = editor("abc");
+        ed.log(Level::Debug, "test", "quiet detail");
+        ed.log(Level::Warn, "test", "first warning");
+        feed(&mut ed, ":log warn<CR>");
+        let screen = log_view_lines(&mut ed);
+        assert!(screen.contains("first warning") && !screen.contains("quiet detail"));
+        ed.log(Level::Error, "other", "arrives later");
+        assert!(
+            log_view_lines(&mut ed).contains("arrives later"),
+            "live update"
+        );
+        feed(&mut ed, "f"); // warn -> error only
+        let screen = log_view_lines(&mut ed);
+        assert!(!screen.contains("first warning") && screen.contains("arrives later"));
+        feed(&mut ed, "c");
+        assert!(ed.log_entries().is_empty());
+    }
+
+    #[test]
+    fn commands_are_logged_with_owner() {
+        let (mut ed, _) = editor("abc");
+        feed(&mut ed, ":nope<CR>:notify hi<CR>");
+        let msgs: Vec<_> = ed
+            .log_entries()
+            .entries()
+            .map(|e| e.message.clone())
+            .collect();
+        assert!(
+            msgs.contains(&":notify hi (builtin)".to_string()),
+            "{msgs:?}"
+        );
+    }
+
+    #[test]
+    fn remove_owned_drops_subscriptions_and_restores_builtins() {
+        let (mut ed, _) = editor("abc");
+        let hits = Rc::new(Cell::new(0));
+        let h = hits.clone();
+        ed.with_owner("plugin:t", |ed| {
+            ed.subscribe(vox_editor::EventKind::TextChanged, move |_, _| {
+                h.set(h.get() + 1)
+            });
+            ed.commands_mut().register("write", "fake", |ed, _| {
+                ed.set_message("fake write");
+                Ok(())
+            });
+            ed.map_key(vox_editor::MapMode::Normal, "Q", ":q!");
+        });
+        feed(&mut ed, "x:w<CR>");
+        assert_eq!(hits.get(), 1);
+        assert_eq!(ed.message(), Some("fake write"));
+        ed.remove_owned("plugin:t");
+        feed(&mut ed, "x:w<CR>");
+        assert_eq!(hits.get(), 1, "subscription removed");
+        assert_eq!(
+            ed.message(),
+            Some("E32: No file name"),
+            "built-in write is back"
+        );
+        assert_eq!(ed.keymap().iter().count(), 0);
+    }
+}

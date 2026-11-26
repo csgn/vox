@@ -4,7 +4,7 @@
 //! - `:upper` uppercases the cursor line.
 //! - After every save, shows the word count.
 
-use vox_plugin_sdk::{Event, EventKind, MapMode, Plugin, Position, editor, export_plugin};
+use vox_plugin_sdk::{Event, EventKind, Level, MapMode, Plugin, Position, editor, export_plugin};
 
 struct TextTools;
 
@@ -26,6 +26,7 @@ impl Plugin for TextTools {
         editor::register_command("upper", "Uppercase the cursor line");
         editor::map_key(MapMode::Normal, "<leader>c", ":wordcount");
         editor::subscribe(EventKind::BufWrite);
+        editor::log(Level::Info, "text-tools ready: :wordcount, :upper, <leader>c");
         Ok(())
     }
 
@@ -38,6 +39,7 @@ impl Plugin for TextTools {
             }
             "upper" => {
                 let cursor = editor::cursor();
+                editor::log(Level::Debug, &format!("upper: line {}", cursor.line + 1));
                 let line = editor::line(cursor.line).unwrap_or_default();
                 let start = Position { line: cursor.line, col: 0 };
                 let end = Position { line: cursor.line, col: line.chars().count() as u32 };

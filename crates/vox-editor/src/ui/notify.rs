@@ -7,6 +7,8 @@ use crate::surface::Color;
 /// Importance of a notification or message.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Level {
+    /// Details for developers (log only).
+    Debug,
     /// Something happened.
     Info,
     /// Something may be wrong.
@@ -19,6 +21,7 @@ impl Level {
     /// Lowercase name: `info`, `warning`, `error`.
     pub fn name(self) -> &'static str {
         match self {
+            Level::Debug => "debug",
             Level::Info => "info",
             Level::Warn => "warning",
             Level::Error => "error",
@@ -28,6 +31,7 @@ impl Level {
     /// Parse `info`, `warn`/`warning`, `error`.
     pub fn parse(s: &str) -> Option<Level> {
         match s {
+            "debug" => Some(Level::Debug),
             "info" => Some(Level::Info),
             "warn" | "warning" => Some(Level::Warn),
             "error" => Some(Level::Error),
@@ -38,6 +42,7 @@ impl Level {
     /// Color used to show this level.
     pub fn color(self) -> Color {
         match self {
+            Level::Debug => Color::Gray,
             Level::Info => Color::Blue,
             Level::Warn => Color::Yellow,
             Level::Error => Color::Red,

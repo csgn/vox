@@ -639,5 +639,71 @@
         "text": "Plugins that subscribed (for example to `buf-write`) get events through handlers registered here."
       }
     ]
+  },
+  {
+    "id": "reload-plugin",
+    "title": "Reloading a plugin",
+    "summary": "`:reload-plugins text_tools` after rebuilding the plugin.",
+    "steps": [
+      {
+        "fn": "vox-plugin-host::PluginHost::register_commands",
+        "text": "At start-up the binary registered `:reload-plugins`; its handler holds the plugin host."
+      },
+      {
+        "fn": "vox-plugin-host::PluginHost::reload",
+        "text": "Finds the file the plugin was loaded from."
+      },
+      {
+        "fn": "vox-editor::Editor::remove_owned",
+        "text": "Removes everything owned by `plugin:text_tools`: its commands, mappings, and event handlers. Their closures held the only references to the old plugin instance, so it is dropped."
+      },
+      {
+        "fn": "vox-editor::Commands::remove_owned",
+        "text": "If the plugin had replaced a command (say `:xit`), the older registration (the built-in) becomes active again."
+      },
+      {
+        "fn": "vox-plugin-host::PluginHost::load",
+        "text": "Loads the file again (a fresh instance, so a disabled plugin works again) and logs the result with source `plugin:text_tools`."
+      },
+      {
+        "fn": "vox-plugin-host::call",
+        "text": "The plugin's `init` runs under the owner `plugin:text_tools`, so everything it registers can be removed again next time."
+      },
+      {
+        "fn": "vox-editor::Editor::with_owner",
+        "text": "Sets the owner for commands, mappings, and subscriptions for the duration of the call."
+      }
+    ]
+  },
+  {
+    "id": "devmode",
+    "title": "Developer mode: the log",
+    "summary": "With `developer_mode = true`, pressing `<leader>dl`.",
+    "steps": [
+      {
+        "fn": "vox-editor::Editor::apply_config",
+        "text": "The config turns developer mode on."
+      },
+      {
+        "fn": "vox-editor::Editor::set_developer_mode",
+        "text": "Adds three mappings owned by `devmode` (`<leader>dl`, `<leader>dr`, `<leader>dc`) and logs the change. Turning it off removes exactly those."
+      },
+      {
+        "fn": "vox-editor::builtin::log",
+        "text": "`<leader>dl` runs `:log`: a `LogView` filled from the log opens in the bottom panel."
+      },
+      {
+        "fn": "vox-editor::Editor::log",
+        "text": "Any later log line (a command run, a plugin's `log(...)`) is added to the ring buffer..."
+      },
+      {
+        "fn": "vox-editor::Editor::refresh_log_views",
+        "text": "...and every open log view is refreshed, so the panel updates live."
+      },
+      {
+        "fn": "vox-editor::LogView::handle_key",
+        "text": "In the panel, `f` and `s` change the level and source filters and ask the editor to refresh; `c` clears."
+      }
+    ]
   }
 ]

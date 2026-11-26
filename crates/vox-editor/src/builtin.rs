@@ -4,6 +4,7 @@ use crate::Editor;
 use crate::command::{Args, CommandResult, Commands};
 use crate::keymap::{Binding, MapMode};
 use crate::keys::format_keys;
+use crate::log::LogView;
 use crate::surface::Style;
 use crate::ui::{Focus, Level, ListItem, ListView, PanelSlot, TextView};
 
@@ -49,6 +50,24 @@ pub(crate) fn register(c: &mut Commands) {
     );
     c.register("close", "Close the modal or the focused panel.", close);
     c.register("focus", "Move focus: `:focus editor|side|bottom`.", focus);
+    c.register(
+        "log",
+        "Show the log in the bottom panel: `:log [debug|info|warn|error] [SOURCE]`.",
+        log,
+    );
+    c.register("log-refresh", "Refresh open log views.", |ed, _| {
+        ed.refresh_log_views();
+        Ok(())
+    });
+    c.register("log-clear", "Clear the log.", |ed, _| {
+        ed.clear_log();
+        Ok(())
+    });
+    c.register(
+        "devmode",
+        "Developer mode: `:devmode on|off`, no argument toggles.",
+        devmode,
+    );
 }
 
 /// `:write [FILE]` / `:w`.
@@ -144,7 +163,7 @@ fn keymaps(ed: &mut Editor, _: Args<'_>) -> CommandResult {
     let items = ed
         .keymap()
         .iter()
-        .map(|(mode, lhs, b)| {
+        .map(|(mode, lhs, b, owner)| {
             let mode = match mode {
                 MapMode::Normal => "n",
                 MapMode::Insert => "i",
@@ -155,7 +174,8 @@ fn keymaps(ed: &mut Editor, _: Args<'_>) -> CommandResult {
                 Binding::Keys(k) => format_keys(k),
                 Binding::Command(c) => format!(":{c}"),
             };
-            ListItem::new(format!("{mode} {}", format_keys(lhs))).detail(format!("→ {rhs}"))
+            ListItem::new(format!("{mode} {}", format_keys(lhs)))
+                .detail(format!("→ {rhs}  ({owner})"))
         })
         .collect();
     ed.open_panel(
@@ -180,5 +200,37 @@ fn focus(ed: &mut Editor, a: Args<'_>) -> CommandResult {
         _ => return Err("E474: Use :focus editor|side|bottom".into()),
     };
     ed.focus(target);
+    Ok(())
+}
+
+/// `:log [level] [source]`.
+fn log(ed: &mut Editor, a: Args<'_>) -> CommandResult {
+    let mut level = Level::Debug;
+    let mut source = None;
+    for word in a.arg.unwrap_or("").split_whitespace() {
+        match Level::parse(word) {
+            Some(l) => level = l,
+            None => source = Some(word.to_string()),
+        }
+    }
+    let mut view = LogView::new(level, source);
+    view.refresh(ed.log_entries());
+    ed.open_panel(PanelSlot::Bottom, Box::new(view));
+    Ok(())
+}
+
+/// `:devmode [on|off]`.
+fn devmode(ed: &mut Editor, a: Args<'_>) -> CommandResult {
+    let on = match a.arg {
+        Some("on") => true,
+        Some("off") => false,
+        None => !ed.developer_mode(),
+        Some(_) => return Err("E474: Use :devmode on|off".into()),
+    };
+    ed.set_developer_mode(on);
+    ed.notify(
+        Level::Info,
+        format!("developer mode {}", if on { "on" } else { "off" }),
+    );
     Ok(())
 }

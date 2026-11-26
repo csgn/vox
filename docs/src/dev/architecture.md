@@ -51,6 +51,16 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
   still work), then mappings and the Vim grammar.
 - Notifications expire through `next_deadline()` / `tick()` with an injected clock.
 
+## Owners, log, developer mode
+- `owner.rs`: owner names. `Commands` and `Keymap` keep per-name stacks with owners;
+  `Editor::with_owner` / `remove_owned` add and remove by owner. `apply_config` replaces the
+  `config` owner's mappings, so it also reloads.
+- `log.rs`: `Log` ring buffer (2000 entries) and the live `LogView`; views expose
+  `as_log_view()` so the editor can refresh them.
+- `:reload-config` is registered by `vox-config-file::register_commands`; `:reload-plugins`
+  by `vox-plugin-host::PluginHost::register_commands` (the adapters own the file and plugin
+  access). The plugin host runs every plugin call under the owner `plugin:NAME`.
+
 ## vox-term
 - `Terminal::enter()` (raw mode, alternate screen, panic-safe restore), `draw(&Surface)` with
   per-row diffing, `read_key()`, and `run(&mut Editor)`.

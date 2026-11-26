@@ -1,13 +1,14 @@
 //! Test plugin that breaks the rules on purpose. Used by the plugin host tests to check
 //! that limits work and that the editor survives. Not an example to copy.
 
-use vox_plugin_sdk::{Event, Plugin, editor, export_plugin};
+use vox_plugin_sdk::{Event, Level, Plugin, editor, export_plugin};
 
 struct Misbehave;
 
 impl Plugin for Misbehave {
     fn init() -> Result<(), String> {
-        for name in ["spin", "grow", "crash", "reenter", "fail", "ok"] {
+        // `xit` replaces the built-in `:xit` to test that unloading restores it.
+        for name in ["spin", "grow", "crash", "reenter", "fail", "ok", "say", "xit"] {
             editor::register_command(name, "test command");
         }
         Ok(())
@@ -35,6 +36,15 @@ impl Plugin for Misbehave {
                 Ok(())
             }
             "fail" => Err("E900: failed on purpose".into()),
+            "say" => {
+                editor::log(Level::Warn, "said something");
+                editor::notify(Level::Info, "hello from misbehave");
+                Ok(())
+            }
+            "xit" => {
+                editor::message("plugin xit");
+                Ok(())
+            }
             _ => {
                 editor::message("ok");
                 Ok(())

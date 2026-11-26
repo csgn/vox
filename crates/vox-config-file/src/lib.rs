@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use vox_editor::Value;
+use vox_editor::{Config, Editor, Level, Value, owner};
 
 /// Where the config file is looked for: `$VOX_CONFIG` if set, else
 /// `$XDG_CONFIG_HOME/vox/config.toml`, else `~/.config/vox/config.toml`.
@@ -32,6 +32,65 @@ pub fn load(path: &Path) -> Result<Option<Value>, String> {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
         Err(e) => Err(format!("{}: {e}", path.display())),
     }
+}
+
+/// Load the config at `path` and apply it to `editor` (replacing earlier config
+/// mappings). Logs what happened; problems also become a notification. Returns whether a
+/// file was found and read.
+pub fn load_and_apply(editor: &mut Editor, path: &Path) -> bool {
+    let value = match load(path) {
+        Ok(Some(v)) => v,
+        Ok(None) => {
+            editor.log(
+                Level::Debug,
+                owner::CONFIG,
+                format!("no config at {}", path.display()),
+            );
+            return false;
+        }
+        Err(e) => {
+            editor.log(Level::Error, owner::CONFIG, &e);
+            editor.notify(Level::Error, format!("config: {e}"));
+            return false;
+        }
+    };
+    let (config, errors) = Config::from_value(&value);
+    editor.apply_config(&config);
+    editor.log(
+        Level::Info,
+        owner::CONFIG,
+        format!("loaded {}", path.display()),
+    );
+    for e in &errors {
+        editor.log(Level::Warn, owner::CONFIG, e);
+    }
+    if let Some(first) = errors.first() {
+        let more = match errors.len() {
+            1 => String::new(),
+            n => format!(" ({} more, see :log)", n - 1),
+        };
+        editor.notify(
+            Level::Warn,
+            format!("config {}: {first}{more}", path.display()),
+        );
+    }
+    true
+}
+
+/// Register `:reload-config` (owner `builtin`): re-read `path` and apply it.
+pub fn register_commands(editor: &mut Editor, path: PathBuf) {
+    editor.with_owner(owner::BUILTIN, |ed| {
+        ed.commands_mut().register(
+            "reload-config",
+            "Re-read the config file and apply it.",
+            move |ed, _| {
+                if load_and_apply(ed, &path) {
+                    ed.notify(Level::Info, format!("reloaded {}", path.display()));
+                }
+                Ok(())
+            },
+        );
+    });
 }
 
 /// Parse TOML text into a [`Value::Table`].
@@ -115,6 +174,41 @@ mod tests {
         let e = parse("leader = \n").unwrap_err();
         assert!(!e.contains('\n'), "{e}");
         assert!(e.contains("line 1"), "{e}");
+    }
+
+    #[test]
+    fn reload_replaces_config_mappings() {
+        use vox_core::Document;
+        let p = std::env::temp_dir().join(format!("vox-reload-{}.toml", std::process::id()));
+        std::fs::write(&p, "[keymap.normal]\nH = \"^\"\nL = \"$\"\n").unwrap();
+        let mut ed = Editor::new(Document::from_text("x"));
+        register_commands(&mut ed, p.clone());
+        assert!(load_and_apply(&mut ed, &p));
+        assert_eq!(ed.keymap().len(), 2);
+        std::fs::write(
+            &p,
+            "developer_mode = true\nbogus = 1\n[keymap.normal]\nH = \"0\"\n",
+        )
+        .unwrap();
+        ed.run_command("reload-config");
+        std::fs::remove_file(&p).unwrap();
+        let config_maps: Vec<_> = ed
+            .keymap()
+            .iter()
+            .filter(|m| m.3 == owner::CONFIG)
+            .collect();
+        assert_eq!(config_maps.len(), 1, "old L mapping removed");
+        assert!(ed.developer_mode());
+        assert!(
+            ed.notifications()
+                .iter()
+                .any(|n| n.text.contains("unknown setting `bogus`"))
+        );
+        assert!(
+            ed.log_entries()
+                .entries()
+                .any(|e| e.source == "config" && e.message.starts_with("loaded"))
+        );
     }
 
     #[test]

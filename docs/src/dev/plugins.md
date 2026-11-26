@@ -76,12 +76,22 @@ Build: `cargo build --release --target wasm32-wasip2`, then copy
 | `map_key(mode, keys, binding)` | key mapping, same notation as the config file |
 | `subscribe(kind)` | receive `BufOpen`, `BufWrite`, `TextChanged`, `ModeChanged` in `on_event` |
 | `message(text)` | show text on the bottom line |
+| `notify(level, text)` | notification in the corner (`Level::Info`/`Warn`/`Error`) |
+| `log(level, text)` | developer log line, source `plugin:NAME` (also `Level::Debug`) |
 | `run_command(line)` | run any command, e.g. `"w"` |
 | `file_path()`, `line_count()`, `line(i)` | read the buffer |
 | `insert_text(at, text)`, `delete_text(start, end)` | edit; one command's edits undo together |
 | `cursor()`, `set_cursor(pos)`, `current_mode()` | cursor and mode |
 
 Positions are `Position { line, col }`, zero-based, `col` in characters.
+
+## Development loop
+
+1. Turn on [developer mode](../user/developer-mode.md) and open the log (`<leader>dl`).
+2. Rebuild: `cargo build --release --target wasm32-wasip2`, copy the `.wasm` into the plugin
+   folder.
+3. `:reload-plugins NAME` (or `<leader>dr` for all). Your `log(...)` lines and any load
+   error appear in the log.
 
 ## Rules and limits
 - Each call (`init`, `run_command`, `on_event`) has about 1 s and the plugin 64 MiB of memory.

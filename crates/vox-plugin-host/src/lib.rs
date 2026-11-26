@@ -11,8 +11,10 @@ use std::path::Path;
 use std::rc::Rc;
 use std::time::Duration;
 
+use std::path::PathBuf;
 use vox_core::Position;
-use vox_editor::{Editor, Event, EventKind, MapMode, ModeKind};
+
+use vox_editor::{Editor, Event, EventKind, Level, MapMode, ModeKind, owner};
 use wasmtime::component::{Component, HasSelf, Linker, ResourceTable};
 use wasmtime::{Config, Engine, Store, StoreLimits, StoreLimitsBuilder};
 use wasmtime_wasi::{WasiCtx, WasiCtxView, WasiView};
@@ -40,6 +42,8 @@ const MEMORY_LIMIT: usize = 64 << 20;
 pub struct PluginHost {
     engine: Engine,
     linker: Linker<HostState>,
+    /// Plugins loaded (or tried) so far: (name, path), for reloading.
+    loaded: RefCell<Vec<(String, PathBuf)>>,
 }
 
 impl PluginHost {
@@ -58,7 +62,11 @@ impl PluginHost {
         let mut linker = Linker::new(&engine);
         wasmtime_wasi::p2::add_to_linker_sync(&mut linker).map_err(|e| e.to_string())?;
         Plugin::add_to_linker::<_, HasSelf<_>>(&mut linker, |s| s).map_err(|e| e.to_string())?;
-        Ok(Self { engine, linker })
+        Ok(Self {
+            engine,
+            linker,
+            loaded: RefCell::new(Vec::new()),
+        })
     }
 
     /// Load the plugin at `path` into `editor`: compile it, call its `init`, and install the
@@ -69,11 +77,88 @@ impl PluginHost {
             .file_stem()
             .map(|s| s.to_string_lossy().into_owned())
             .unwrap_or_else(|| "plugin".into());
+        {
+            let mut loaded = self.loaded.borrow_mut();
+            loaded.retain(|(n, _)| *n != name);
+            loaded.push((name.clone(), path.to_path_buf()));
+        }
+        let source = owner::plugin(&name);
+        let result = self.load_inner(editor, path, &name);
+        match &result {
+            Ok(_) => editor.log(Level::Info, &source, format!("loaded {}", path.display())),
+            Err(e) => editor.log(Level::Error, &source, e),
+        }
+        result
+    }
+
+    /// Unload plugin `name` (remove everything it registered) and load it again from the
+    /// same file.
+    pub fn reload(&self, editor: &mut Editor, name: &str) -> Result<String, String> {
+        let path = self
+            .loaded
+            .borrow()
+            .iter()
+            .find(|(n, _)| n == name)
+            .map(|(_, p)| p.clone())
+            .ok_or_else(|| format!("no plugin named {name}"))?;
+        editor.remove_owned(&owner::plugin(name));
+        self.load(editor, &path)
+    }
+
+    /// Unload every plugin and load all `*.wasm` files in `dir` again.
+    pub fn reload_all(&self, editor: &mut Editor, dir: &Path) -> Vec<Result<String, String>> {
+        let names: Vec<String> = self.loaded.borrow_mut().drain(..).map(|(n, _)| n).collect();
+        for n in names {
+            editor.remove_owned(&owner::plugin(&n));
+        }
+        self.load_dir(editor, dir)
+    }
+
+    /// Names of loaded plugins (including ones that failed), in load order.
+    pub fn names(&self) -> Vec<String> {
+        self.loaded
+            .borrow()
+            .iter()
+            .map(|(n, _)| n.clone())
+            .collect()
+    }
+
+    /// Register `:reload-plugins [NAME]` (owner `builtin`): reload one plugin, or all from
+    /// `dir`. Results are logged and shown as a notification.
+    pub fn register_commands(host: Rc<PluginHost>, editor: &mut Editor, dir: PathBuf) {
+        editor.with_owner(owner::BUILTIN, |ed| {
+            ed.commands_mut().register(
+                "reload-plugins",
+                "Reload one plugin (`:reload-plugins NAME`) or all plugins.",
+                move |ed, args| {
+                    let results = match args.arg {
+                        Some(name) => vec![host.reload(ed, name)],
+                        None => host.reload_all(ed, &dir),
+                    };
+                    let ok = results.iter().filter(|r| r.is_ok()).count();
+                    let errors: Vec<String> = results.into_iter().filter_map(Result::err).collect();
+                    match errors.first() {
+                        None => ed.notify(Level::Info, format!("reloaded {ok} plugin(s)")),
+                        Some(e) => ed.notify(
+                            Level::Error,
+                            format!("reloaded {ok}, failed {}: {e}", errors.len()),
+                        ),
+                    }
+                    Ok(())
+                },
+            );
+        });
+    }
+
+    /// Compile, instantiate, and `init` one plugin.
+    fn load_inner(&self, editor: &mut Editor, path: &Path, name: &str) -> Result<String, String> {
+        let name = name.to_string();
         let fail = |e: wasmtime::Error| format!("plugin {name}: {e}");
         let component = Component::from_file(&self.engine, path).map_err(fail)?;
         let mut store = Store::new(
             &self.engine,
             HostState {
+                name: name.clone(),
                 editor: EditorPtr(std::ptr::null_mut()),
                 requests: Vec::new(),
                 limits: StoreLimitsBuilder::new().memory_size(MEMORY_LIMIT).build(),
@@ -134,6 +219,8 @@ enum Request {
 
 /// Per-plugin state seen by the host functions.
 struct HostState {
+    /// Plugin name, used as the log source.
+    name: String,
     editor: EditorPtr,
     requests: Vec<Request>,
     limits: StoreLimits,
@@ -171,6 +258,19 @@ fn call<R>(
     editor: &mut Editor,
     f: impl FnOnce(&Plugin, &mut Store<HostState>) -> wasmtime::Result<R>,
 ) -> Result<R, String> {
+    let owner = match plugin.try_borrow() {
+        Ok(inst) => owner::plugin(&inst.name),
+        Err(_) => return Err("plugin is already running (it called itself)".to_string()),
+    };
+    editor.with_owner(&owner, |editor| call_owned(plugin, editor, f))
+}
+
+/// [`call`] with the plugin already set as owner of anything registered.
+fn call_owned<R>(
+    plugin: &Rc<RefCell<Instance>>,
+    editor: &mut Editor,
+    f: impl FnOnce(&Plugin, &mut Store<HostState>) -> wasmtime::Result<R>,
+) -> Result<R, String> {
     let (result, requests, name) = {
         let mut guard = plugin
             .try_borrow_mut()
@@ -195,7 +295,11 @@ fn call<R>(
     for req in requests {
         install(plugin, editor, req);
     }
-    result.map_err(|e| describe(&name, &e))
+    result.map_err(|e| {
+        let msg = describe(&name, &e);
+        editor.log(Level::Error, &owner::plugin(&name), &msg);
+        msg
+    })
 }
 
 /// A readable message for a failed call.
@@ -233,6 +337,16 @@ fn install(plugin: &Rc<RefCell<Instance>>, editor: &mut Editor, req: Request) {
                 }
             });
         }
+    }
+}
+
+/// WIT level → core level.
+fn to_level(l: wit::Level) -> Level {
+    match l {
+        wit::Level::Debug => Level::Debug,
+        wit::Level::Info => Level::Info,
+        wit::Level::Warn => Level::Warn,
+        wit::Level::Error => Level::Error,
     }
 }
 
@@ -302,6 +416,17 @@ impl bindings::vox::plugin::editor::Host for HostState {
     /// WIT `message`: show text on the bottom line.
     fn message(&mut self, text: String) {
         self.editor().set_message(text);
+    }
+
+    /// WIT `notify`: show a notification.
+    fn notify(&mut self, level: wit::Level, text: String) {
+        self.editor().notify(to_level(level), text);
+    }
+
+    /// WIT `log`: add a log line with this plugin as the source.
+    fn log(&mut self, level: wit::Level, text: String) {
+        let source = owner::plugin(&self.name);
+        self.editor().log(to_level(level), &source, text);
     }
 
     /// WIT `run-command`: run a command line in the editor.

@@ -177,3 +177,18 @@ fn errors() {
             .starts_with("E474")
     );
 }
+
+#[test]
+fn after_install_check_says_restart_not_update() {
+    let dir = repo("installed", &["v0.9.0", "v1.0.0"]);
+    let mut ed = editor(&dir, "0.9.0");
+    ed.set_update_installed(Version::parse("1.0.0").unwrap());
+    ed.run_command("update check");
+    wait(&mut ed);
+    assert!(ed.modal_title().is_none(), "no offer to install it again");
+    assert_eq!(
+        notes(&ed).last().unwrap(),
+        "vox 1.0.0 is installed — restart vox to use it"
+    );
+    std::fs::remove_dir_all(dir).ok();
+}

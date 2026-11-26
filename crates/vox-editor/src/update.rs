@@ -132,20 +132,51 @@ pub fn cargo_progress(line: &str, compiled: &Cell<usize>) -> String {
     }
 }
 
+/// What a check found.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Decision {
+    /// A version newer than the running and the installed one: offer it.
+    Offer(Version),
+    /// The newest version was installed since start; it runs after a restart.
+    Restart(Version),
+    /// Nothing newer.
+    UpToDate,
+}
+
+/// Compare the `newest` release with the `running` version and the one `installed` since
+/// start (by `:update install`).
+pub fn decide(running: Version, installed: Option<Version>, newest: Option<Version>) -> Decision {
+    let have = installed.map_or(running, |i| i.max(running));
+    match newest {
+        Some(n) if n > have => Decision::Offer(n),
+        _ => match installed {
+            Some(i) if i > running => Decision::Restart(i),
+            _ => Decision::UpToDate,
+        },
+    }
+}
+
 /// Check in the background. `quiet` (start-up): no "checking" notification, and errors
 /// and "up to date" only go to the log.
 fn spawn_check(ed: &mut Editor, src: UpdateSource, quiet: bool) {
     let work = move |_: &dyn Fn(&str)| -> crate::JobDone {
         let result = latest(&src.repo);
         Box::new(move |ed: &mut Editor| match result {
-            Ok(Some(v)) if v > src.current => offer(ed, src.current, v),
-            Ok(_) => {
-                let text = format!("vox {} is up to date", src.current);
-                ed.log(Level::Info, "update", &text);
-                if !quiet {
+            Ok(newest) => match decide(src.current, ed.update_installed(), newest) {
+                Decision::Offer(v) => offer(ed, src.current, v),
+                Decision::Restart(v) => {
+                    let text = format!("vox {v} is installed — restart vox to use it");
+                    ed.log(Level::Info, "update", &text);
                     ed.notify(Level::Info, text);
                 }
-            }
+                Decision::UpToDate => {
+                    let text = format!("vox {} is up to date", src.current);
+                    ed.log(Level::Info, "update", &text);
+                    if !quiet {
+                        ed.notify(Level::Info, text);
+                    }
+                }
+            },
             Err(e) => {
                 ed.log(Level::Warn, "update", format!("update check failed: {e}"));
                 if !quiet {
@@ -212,6 +243,7 @@ fn install_cmd(ed: &mut Editor, a: Args<'_>) -> CommandResult {
         })();
         Box::new(move |ed: &mut Editor| match result {
             Ok(v) => {
+                ed.set_update_installed(v);
                 ed.log(Level::Info, "update", format!("installed vox {v}"));
                 ed.notify(
                     Level::Info,
@@ -265,6 +297,21 @@ mod tests {
             None
         );
         assert_eq!(install_root_of(Path::new("vox")), None);
+    }
+
+    #[test]
+    fn decide_after_install() {
+        let (old, new, newer) = (v("0.16.1"), v("0.16.2"), v("0.17.0"));
+        assert_eq!(decide(old, None, Some(new)), Decision::Offer(new));
+        assert_eq!(decide(old, None, Some(old)), Decision::UpToDate);
+        assert_eq!(decide(old, None, None), Decision::UpToDate);
+        assert_eq!(decide(old, Some(new), Some(new)), Decision::Restart(new));
+        assert_eq!(decide(old, Some(new), Some(newer)), Decision::Offer(newer));
+        assert_eq!(
+            decide(old, Some(old), Some(old)),
+            Decision::UpToDate,
+            "reinstalled same"
+        );
     }
 
     #[test]

@@ -5,6 +5,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Fixed
+- `:update check` after `:update install` no longer offers the version just installed; it
+  says `vox X is installed — restart vox to use it` (`Editor::update_installed`).
+
 ### Added
 - Docs website at <https://csgn.github.io/vox/>, deployed by CI from `master` (GitHub Pages).
 

@@ -171,6 +171,8 @@ pub struct Editor {
     view_refused: bool,
     /// Where vox updates come from (set by the binary).
     update_source: Option<crate::update::UpdateSource>,
+    /// vox version installed by `:update install` since start (runs after a restart).
+    update_installed: Option<crate::plugin::Version>,
 }
 
 impl std::fmt::Debug for Editor {
@@ -257,6 +259,7 @@ impl Editor {
             reply: None,
             view_refused: false,
             update_source: None,
+            update_installed: None,
         };
         ed.default_mappings();
         ed
@@ -698,6 +701,17 @@ impl Editor {
     /// Set where vox updates come from (the binary does this).
     pub fn set_update_source(&mut self, source: crate::update::UpdateSource) {
         self.update_source = Some(source);
+    }
+
+    /// The vox version `:update install` installed since start, if any; it runs once vox
+    /// is restarted.
+    pub fn update_installed(&self) -> Option<crate::plugin::Version> {
+        self.update_installed
+    }
+
+    /// Record that vox `version` was installed (done by `:update install`).
+    pub fn set_update_installed(&mut self, version: crate::plugin::Version) {
+        self.update_installed = Some(version);
     }
 
     /// Number of background jobs still running.

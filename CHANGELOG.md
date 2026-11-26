@@ -5,6 +5,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Added
+- Docs website at <https://csgn.github.io/vox/>, deployed by CI from `master` (GitHub Pages).
+
 ## [0.16.2] - 2026-11-27 — test release
 
 No changes. Released to test the updater (`:update install`, progress box).

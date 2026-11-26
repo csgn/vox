@@ -49,6 +49,7 @@ Full list: `docs/src/user/keybindings.md`.
 
 ## Docs
 
-- User guide, developer guide, and an interactive **code tour** (crate map, function explorer,
-  walkthroughs): `./scripts/build-docs.sh`, then `python3 -m http.server -d docs/book 3000`
+- Website: <https://csgn.github.io/vox/>: user guide, developer guide, an interactive
+  **code tour** (crate map, function explorer, walkthroughs), and the API reference.
+- Build locally: `./scripts/build-docs.sh`, then `python3 -m http.server -d docs/book 3000`
 - [ARCHITECTURE.md](ARCHITECTURE.md), [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md)

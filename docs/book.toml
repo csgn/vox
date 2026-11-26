@@ -2,3 +2,7 @@
 title = "vox"
 language = "en"
 src = "src"
+
+[output.html]
+site-url = "/vox/"
+git-repository-url = "https://github.com/csgn/vox"

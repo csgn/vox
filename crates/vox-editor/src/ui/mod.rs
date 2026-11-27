@@ -7,12 +7,15 @@
 mod form;
 mod layout;
 mod notify;
+mod tree;
 mod views;
 
 pub use form::Form;
 pub(crate) use layout::{Layout, compute};
 pub use layout::{ManagerPlace, NotifyPosition, SidePosition, UiConfig};
 pub use notify::{JobStatus, Level, Notification};
+pub use tree::{TreeNode, TreeView};
+pub(crate) use views::wrap;
 pub use views::{CheckList, Confirm, Input, ListItem, ListView, TextView};
 
 use vox_view::CharWidth;

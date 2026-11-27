@@ -48,7 +48,8 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
 ## UI layer (`vox-editor/src/ui/`)
 - `layout::compute(size, &UiConfig, side, bottom, modal) -> Layout`: text area, side panel,
   bottom panel, modal, and the area notifications may use.
-- `View` trait + `ListView`, `TextView`, `Confirm`, `Input`. Views return `Outcome`s that name
+- `View` trait + `ListView`, `TextView`, `Confirm`, `Input`, `TreeView` (drill-down columns
+  with breadcrumb and filter; `help::command_tree` feeds it for `:commands`). Views return `Outcome`s that name
   command lines; the editor runs them.
 - Key routing in `Editor::handle_key`: modal first, then a focused panel (`<C-w>` and `:`
   still work), then mappings and the Vim grammar.

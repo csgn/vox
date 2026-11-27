@@ -22,7 +22,8 @@ pub enum NotifyPosition {
     BottomRight,
 }
 
-/// Where the plugin manager opens.
+/// Where a dialog that can live in either place opens (the plugin manager, the command
+/// browser).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ManagerPlace {
     /// Centered modal.
@@ -51,6 +52,8 @@ pub struct UiConfig {
     pub notify_position: NotifyPosition,
     /// Where `:plugins` opens.
     pub plugin_manager: ManagerPlace,
+    /// Where `:commands` opens.
+    pub commands: ManagerPlace,
 }
 
 impl Default for UiConfig {
@@ -64,6 +67,7 @@ impl Default for UiConfig {
             notify_timeout_ms: 4000,
             notify_position: NotifyPosition::TopRight,
             plugin_manager: ManagerPlace::Modal,
+            commands: ManagerPlace::Modal,
         }
     }
 }

@@ -75,8 +75,12 @@ pub(crate) fn register(c: &mut Commands) {
     )
     .category(INTERFACE);
     c.alias("mes", "messages");
-    c.register("commands", "List all commands; Enter runs one.", commands)
-        .category(HELP);
+    c.register(
+        "commands",
+        "Browse all commands by category; Enter runs one, ? shows its help.",
+        commands,
+    )
+    .category(HELP);
     c.register(
         "commands list",
         "Return every command as data: name, description, owner, aliases.",
@@ -251,22 +255,9 @@ fn messages(ed: &mut Editor, _: Args<'_>) -> CommandResult {
     Ok(())
 }
 
-/// `:commands`: every command with its aliases and description, in the modal.
+/// `:commands`: the command browser.
 fn commands(ed: &mut Editor, _: Args<'_>) -> CommandResult {
-    let items = ed
-        .commands()
-        .iter()
-        .map(|c| {
-            let aliases: Vec<&str> = ed.commands().aliases_of(&c.name).collect();
-            let label = if aliases.is_empty() {
-                c.name.clone()
-            } else {
-                format!("{} ({})", c.name, aliases.join(", "))
-            };
-            ListItem::new(label).detail(&c.description).command(&c.name)
-        })
-        .collect();
-    ed.open_modal(Box::new(ListView::new("Commands", items)));
+    crate::help::open_browser(ed);
     Ok(())
 }
 

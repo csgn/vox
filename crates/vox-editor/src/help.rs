@@ -1,6 +1,7 @@
 //! Command help: `:help CMD` (also `:?CMD`) opens a dialog with a command's description,
 //! usage, parameters, result, and examples, and lists its subcommands; `:commands info CMD`
 //! returns the same as data; `:commands run CMD` runs a command, asking for its arguments.
+//! `:commands` opens the command browser: categories → commands → subcommands.
 
 use std::cell::Cell;
 
@@ -12,7 +13,7 @@ use crate::command::{Args, Command, CommandResult, Commands, Complete, Param};
 use crate::config::Value;
 use crate::keys::{Key, KeyCode};
 use crate::surface::{Color, Rect, Style, Surface};
-use crate::ui::{Input, Outcome, View};
+use crate::ui::{Input, ManagerPlace, Outcome, PanelSlot, TreeNode, TreeView, View, wrap};
 
 /// Register `:help`, `:commands info`, and `:commands run`.
 pub(crate) fn register(c: &mut Commands) {
@@ -85,7 +86,9 @@ pub fn resolve(commands: &Commands, topic: &str) -> Option<Topic> {
     {
         return Some(Topic::Command(sub.name.clone()));
     }
-    commands.has_subcommands(&name).then_some(Topic::Group(name))
+    commands
+        .has_subcommands(&name)
+        .then_some(Topic::Group(name))
 }
 
 /// The error for a topic that names nothing.
@@ -139,6 +142,115 @@ fn run(ed: &mut Editor, a: Args<'_>) -> CommandResult {
     );
     ed.open_modal(Box::new(input));
     Ok(())
+}
+
+/// `:commands`: the command browser, as a modal or in the side panel (`[ui] commands`).
+pub(crate) fn open_browser(ed: &mut Editor) {
+    let nodes = command_tree(ed.commands());
+    let view = TreeView::new("Commands", "Commands", nodes);
+    match ed.ui_config().commands {
+        ManagerPlace::Modal => ed.open_modal(Box::new(view)),
+        ManagerPlace::Side => ed.open_panel(PanelSlot::Side, Box::new(view.in_panel())),
+    }
+}
+
+/// Sort key of a category: built-in categories first, then plugins, then the user's.
+fn category_rank(name: &str) -> (u8, &str) {
+    let rank = if name.starts_with("Plugin: ") {
+        1
+    } else if name == crate::command::category::USER {
+        2
+    } else if name == crate::command::category::OTHER {
+        3
+    } else {
+        0
+    };
+    (rank, name)
+}
+
+/// A command as a browser entry labelled `label`: runs it on `Enter`, help on `?`.
+fn command_node(commands: &Commands, c: &Command, label: &str) -> TreeNode {
+    let aliases: Vec<&str> = commands.aliases_of(&c.name).collect();
+    let label = if aliases.is_empty() {
+        label.to_string()
+    } else {
+        format!("{label} ({})", aliases.join(", "))
+    };
+    TreeNode {
+        label,
+        detail: c.description.clone(),
+        info: vec![c.description.clone(), format!("Usage  :{}", c.usage())],
+        run: Some(format!("commands run {}", c.name)),
+        help: Some(format!("help {}", c.name)),
+        children: Vec::new(),
+    }
+}
+
+/// The command browser's tree: categories → root commands → subcommands. A root that is a
+/// command and has subcommands lists itself first. Within a category only the commands of
+/// that category are shown, so one root can appear in several categories.
+pub fn command_tree(commands: &Commands) -> Vec<TreeNode> {
+    use std::collections::BTreeMap;
+    // category → root → commands (in name order, the root itself first).
+    let mut groups: BTreeMap<(u8, String), BTreeMap<String, Vec<&Command>>> = BTreeMap::new();
+    for c in commands.iter() {
+        let (rank, _) = category_rank(&c.category);
+        let root = c.name.split(' ').next().unwrap_or_default().to_string();
+        groups
+            .entry((rank, c.category.clone()))
+            .or_default()
+            .entry(root)
+            .or_default()
+            .push(c);
+    }
+    groups
+        .into_iter()
+        .map(|((_, category), roots)| {
+            let count: usize = roots.values().map(Vec::len).sum();
+            let children = roots
+                .into_iter()
+                .map(|(root, cmds)| {
+                    if let [only] = cmds.as_slice()
+                        && only.name == root
+                    {
+                        return command_node(commands, only, &root);
+                    }
+                    let own = cmds.iter().find(|c| c.name == root);
+                    let detail = own.map_or_else(
+                        || format!("{} commands", cmds.len()),
+                        |c| c.description.clone(),
+                    );
+                    let info = vec![match own {
+                        Some(c) => c.description.clone(),
+                        None => format!("Commands under :{root}."),
+                    }];
+                    let children = cmds
+                        .iter()
+                        .map(|c| {
+                            let label = c.name.strip_prefix(&format!("{root} ")).unwrap_or(&root);
+                            command_node(commands, c, label)
+                        })
+                        .collect();
+                    TreeNode {
+                        label: root.clone(),
+                        detail,
+                        info,
+                        run: None,
+                        help: Some(format!("help {root}")),
+                        children,
+                    }
+                })
+                .collect();
+            TreeNode {
+                label: category.clone(),
+                detail: format!("{count} commands"),
+                info: vec![format!("{category}: {count} commands")],
+                run: None,
+                help: None,
+                children,
+            }
+        })
+        .collect()
 }
 
 /// Category of a group: that of its first subcommand.
@@ -441,32 +553,6 @@ fn command_body(commands: &Commands, c: &Command) -> Vec<Line> {
     out
 }
 
-/// Split `text` into rows of at most `width` cells, breaking at spaces; continuation rows
-/// start with `indent` spaces.
-fn wrap(text: &str, width: usize, indent: usize, cw: &dyn CharWidth) -> Vec<String> {
-    let cells = |s: &str| s.chars().map(|c| cw.width(c).unwrap_or(0)).sum::<usize>();
-    if width == 0 || cells(text) <= width {
-        return vec![text.to_string()];
-    }
-    let indent = if indent + 10 > width { 0 } else { indent };
-    let mut rows = Vec::new();
-    let mut cur = String::new();
-    // Keep leading spaces of the first row.
-    let lead = text.len() - text.trim_start().len();
-    cur.push_str(&text[..lead]);
-    for word in text[lead..].split(' ') {
-        let sep = usize::from(!cur.trim().is_empty());
-        if !cur.trim().is_empty() && cells(&cur) + sep + cells(word) > width {
-            rows.push(std::mem::replace(&mut cur, " ".repeat(indent)));
-        } else if sep == 1 {
-            cur.push(' ');
-        }
-        cur.push_str(word);
-    }
-    rows.push(cur);
-    rows
-}
-
 impl View for HelpView {
     fn title(&self) -> String {
         self.title.clone()
@@ -551,7 +637,6 @@ impl View for HelpView {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vox_view::Monospace;
 
     fn key(s: &str) -> Key {
         crate::keys::parse_keys(s)[0]
@@ -607,13 +692,5 @@ mod tests {
             v.handle_key(key("r")),
             Outcome::RunAndClose("commands run plugin add".into())
         );
-    }
-
-    #[test]
-    fn wrap_keeps_indent() {
-        let rows = wrap("  NAME  required  one two three four", 30, 18, &Monospace);
-        assert_eq!(rows[0], "  NAME  required  one two");
-        assert!(rows[1..].iter().all(|r| r.starts_with("  ")));
-        assert_eq!(wrap("short", 20, 4, &Monospace), ["short"]);
     }
 }

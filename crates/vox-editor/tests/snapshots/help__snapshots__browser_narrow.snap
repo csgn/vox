@@ -1,0 +1,28 @@
+---
+source: crates/vox-editor/tests/help.rs
+expression: ed.render().to_string()
+---
+"  1 hello                               "
+"~                                       "
+"~                                       "
+"~                                       "
+"~                                       "
+"~     ┌─ Commands ───────────────┐      "
+"~     │Commands › Developer      │      "
+"~     │                          │      "
+"~     │ Developer ›  4 commands  │      "
+"~     │ File ›       5 commands  │      "
+"~     │ Help ›       5 commands  │      "
+"~     │ Interface ›  5 commands  │      "
+"~     │ Plugins ›    10 commands │      "
+"~     │──────────────────────────│      "
+"~     │Developer: 4 commands     │      "
+"~     │                          │      "
+"~     │                          │      "
+"~     │j/k move · l/Enter open · │      "
+"~     └──────────────────────────┘      "
+"~                                       "
+"~                                       "
+"~                                       "
+" NORMAL  [No Name]                  1:1 "
+"                                        "

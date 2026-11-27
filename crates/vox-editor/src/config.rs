@@ -347,13 +347,12 @@ fn parse_ui(t: &BTreeMap<String, Value>, ui: &mut UiConfig, errors: &mut Vec<Str
             .ok_or_else(|| {
                 "`ui.notify_position` must be \"top-right\" or \"bottom-right\"".to_string()
             }),
-            "plugin_manager" => match v {
-                Value::String(s) if s == "modal" => Some(ManagerPlace::Modal),
-                Value::String(s) if s == "side" => Some(ManagerPlace::Side),
-                _ => None,
-            }
-            .map(|p| ui.plugin_manager = p)
-            .ok_or_else(|| "`ui.plugin_manager` must be \"modal\" or \"side\"".to_string()),
+            "plugin_manager" => place(v)
+                .map(|p| ui.plugin_manager = p)
+                .ok_or_else(|| "`ui.plugin_manager` must be \"modal\" or \"side\"".to_string()),
+            "commands" => place(v)
+                .map(|p| ui.commands = p)
+                .ok_or_else(|| "`ui.commands` must be \"modal\" or \"side\"".to_string()),
             "side_width" => int(10, 500).map(|n| ui.side_width = n as u16),
             "bottom_height" => int(3, 200).map(|n| ui.bottom_height = n as u16),
             "modal_width" => int(10, 100).map(|n| ui.modal_width = n as u16),
@@ -364,6 +363,15 @@ fn parse_ui(t: &BTreeMap<String, Value>, ui: &mut UiConfig, errors: &mut Vec<Str
         if let Err(e) = result {
             errors.push(e);
         }
+    }
+}
+
+/// `"modal"` or `"side"`.
+fn place(v: &Value) -> Option<ManagerPlace> {
+    match v {
+        Value::String(s) if s == "modal" => Some(ManagerPlace::Modal),
+        Value::String(s) if s == "side" => Some(ManagerPlace::Side),
+        _ => None,
     }
 }
 

@@ -119,7 +119,10 @@ into a `Value`. A new setting means: a field in `Config`, a case in `from_value`
 
 A **view** is anything that implements `vox_editor::View`: a title, `render` into an area,
 `handle_key` returning an `Outcome`, and optionally a cursor. Built-in views: `ListView`,
-`TextView`, `Confirm`, `Input` (`vox_editor::ui`).
+`TextView`, `Confirm`, `Input`, `TreeView` (`vox_editor::ui`). `TreeView` browses
+`TreeNode`s one level at a time (columns, breadcrumb, filter); each node can name a command
+line for `Enter` and one for `?`. The command browser is built with it
+(`vox_editor::help::command_tree`).
 
 ```rust
 use vox_editor::ui::{Confirm, ListItem, ListView};

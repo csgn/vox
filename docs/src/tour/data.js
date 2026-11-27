@@ -119,7 +119,7 @@ window.VOX_TOUR = {
    "files": [
     {
      "path": "crates/vox-editor/src/builtin.rs",
-     "lines": 596
+     "lines": 587
     },
     {
      "path": "crates/vox-editor/src/command.rs",
@@ -127,7 +127,7 @@ window.VOX_TOUR = {
     },
     {
      "path": "crates/vox-editor/src/config.rs",
-     "lines": 542
+     "lines": 550
     },
     {
      "path": "crates/vox-editor/src/editor.rs",
@@ -139,7 +139,7 @@ window.VOX_TOUR = {
     },
     {
      "path": "crates/vox-editor/src/help.rs",
-     "lines": 619
+     "lines": 696
     },
     {
      "path": "crates/vox-editor/src/keymap.rs",
@@ -231,7 +231,7 @@ window.VOX_TOUR = {
     },
     {
      "path": "crates/vox-editor/src/settings/mod.rs",
-     "lines": 378
+     "lines": 389
     },
     {
      "path": "crates/vox-editor/src/surface.rs",
@@ -243,19 +243,23 @@ window.VOX_TOUR = {
     },
     {
      "path": "crates/vox-editor/src/ui/layout.rs",
-     "lines": 172
+     "lines": 176
     },
     {
      "path": "crates/vox-editor/src/ui/mod.rs",
-     "lines": 85
+     "lines": 88
     },
     {
      "path": "crates/vox-editor/src/ui/notify.rs",
      "lines": 74
     },
     {
+     "path": "crates/vox-editor/src/ui/tree.rs",
+     "lines": 520
+    },
+    {
      "path": "crates/vox-editor/src/ui/views.rs",
-     "lines": 542
+     "lines": 576
     },
     {
      "path": "crates/vox-editor/src/update.rs",
@@ -2236,7 +2240,7 @@ window.VOX_TOUR = {
    "qual": "builtin::write",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 186,
+   "line": 190,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2252,7 +2256,7 @@ window.VOX_TOUR = {
    "qual": "builtin::quit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 191,
+   "line": 195,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2268,7 +2272,7 @@ window.VOX_TOUR = {
    "qual": "builtin::write_quit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 200,
+   "line": 204,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2284,7 +2288,7 @@ window.VOX_TOUR = {
    "qual": "builtin::xit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 207,
+   "line": 211,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2300,7 +2304,7 @@ window.VOX_TOUR = {
    "qual": "builtin::edit",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 216,
+   "line": 220,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2316,7 +2320,7 @@ window.VOX_TOUR = {
    "qual": "builtin::notify",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 224,
+   "line": 228,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2334,7 +2338,7 @@ window.VOX_TOUR = {
    "qual": "builtin::messages",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 235,
+   "line": 239,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2352,16 +2356,15 @@ window.VOX_TOUR = {
    "qual": "builtin::commands",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 255,
+   "line": 259,
    "public": false,
    "owner": null,
    "trait": null,
    "decl_only": false,
    "sig": "fn commands(ed: &mut Editor, _: Args<'_>) -> CommandResult",
-   "doc": "`:commands`: every command with its aliases and description, in the modal.",
+   "doc": "`:commands`: the command browser.",
    "calls": [
-    "vox-editor::ListItem::new",
-    "vox-editor::ListView::new"
+    "vox-editor::help::open_browser"
    ],
    "called_by": []
   },
@@ -2371,7 +2374,7 @@ window.VOX_TOUR = {
    "qual": "builtin::commands_list",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 274,
+   "line": 265,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2389,7 +2392,7 @@ window.VOX_TOUR = {
    "qual": "builtin::keymaps",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 285,
+   "line": 276,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2409,7 +2412,7 @@ window.VOX_TOUR = {
    "qual": "builtin::close",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 312,
+   "line": 303,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2425,7 +2428,7 @@ window.VOX_TOUR = {
    "qual": "builtin::focus",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 318,
+   "line": 309,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2441,7 +2444,7 @@ window.VOX_TOUR = {
    "qual": "builtin::log",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 330,
+   "line": 321,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2460,7 +2463,7 @@ window.VOX_TOUR = {
    "qual": "builtin::devmode",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 346,
+   "line": 337,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2476,7 +2479,7 @@ window.VOX_TOUR = {
    "qual": "builtin::scope",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 362,
+   "line": 353,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2494,7 +2497,7 @@ window.VOX_TOUR = {
    "qual": "builtin::scope_show",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 410,
+   "line": 401,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2512,7 +2515,7 @@ window.VOX_TOUR = {
    "qual": "builtin::require_local",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 426,
+   "line": 417,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2532,7 +2535,7 @@ window.VOX_TOUR = {
    "qual": "builtin::open_setup",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 434,
+   "line": 425,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2556,7 +2559,7 @@ window.VOX_TOUR = {
    "qual": "builtin::scope_pick",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 485,
+   "line": 476,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2576,7 +2579,7 @@ window.VOX_TOUR = {
    "qual": "builtin::scope_init",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 511,
+   "line": 502,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2597,7 +2600,7 @@ window.VOX_TOUR = {
    "qual": "builtin::copy_lock_entries",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/builtin.rs",
-   "line": 560,
+   "line": 551,
    "public": false,
    "owner": null,
    "trait": null,
@@ -3304,10 +3307,29 @@ window.VOX_TOUR = {
    "sig": "fn parse_ui(t: &BTreeMap<String, Value>, ui: &mut UiConfig, errors: &mut Vec<String>)",
    "doc": "Read `[ui]` settings into `ui`, collecting errors.",
    "calls": [
+    "vox-editor::config::place",
     "vox-editor::settings::int"
    ],
    "called_by": [
     "vox-editor::Config::from_value"
+   ]
+  },
+  {
+   "id": "vox-editor::config::place",
+   "name": "place",
+   "qual": "config::place",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/config.rs",
+   "line": 370,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn place(v: &Value) -> Option<ManagerPlace>",
+   "doc": "`\"modal\"` or `\"side\"`.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::config::parse_ui"
    ]
   },
   {
@@ -5871,7 +5893,7 @@ window.VOX_TOUR = {
    "qual": "help::register",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 18,
+   "line": 19,
    "public": false,
    "owner": null,
    "trait": null,
@@ -5892,7 +5914,7 @@ window.VOX_TOUR = {
    "qual": "help::resolve",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 67,
+   "line": 68,
    "public": true,
    "owner": null,
    "trait": null,
@@ -5912,7 +5934,7 @@ window.VOX_TOUR = {
    "qual": "help::no_help",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 92,
+   "line": 95,
    "public": false,
    "owner": null,
    "trait": null,
@@ -5931,7 +5953,7 @@ window.VOX_TOUR = {
    "qual": "help::help",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 97,
+   "line": 100,
    "public": false,
    "owner": null,
    "trait": null,
@@ -5952,7 +5974,7 @@ window.VOX_TOUR = {
    "qual": "help::info",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 113,
+   "line": 116,
    "public": false,
    "owner": null,
    "trait": null,
@@ -5972,7 +5994,7 @@ window.VOX_TOUR = {
    "qual": "help::run",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 121,
+   "line": 124,
    "public": false,
    "owner": null,
    "trait": null,
@@ -5986,12 +6008,90 @@ window.VOX_TOUR = {
    "called_by": []
   },
   {
+   "id": "vox-editor::help::open_browser",
+   "name": "open_browser",
+   "qual": "help::open_browser",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/help.rs",
+   "line": 148,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub(crate) fn open_browser(ed: &mut Editor)",
+   "doc": "`:commands`: the command browser, as a modal or in the side panel (`[ui] commands`).",
+   "calls": [
+    "vox-editor::TreeView::new",
+    "vox-editor::help::command_tree"
+   ],
+   "called_by": [
+    "vox-editor::builtin::commands"
+   ]
+  },
+  {
+   "id": "vox-editor::help::category_rank",
+   "name": "category_rank",
+   "qual": "help::category_rank",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/help.rs",
+   "line": 158,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn category_rank(name: &str) -> (u8, &str)",
+   "doc": "Sort key of a category: built-in categories first, then plugins, then the user's.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::help::command_tree"
+   ]
+  },
+  {
+   "id": "vox-editor::help::command_node",
+   "name": "command_node",
+   "qual": "help::command_node",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/help.rs",
+   "line": 172,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn command_node(commands: &Commands, c: &Command, label: &str) -> TreeNode",
+   "doc": "A command as a browser entry labelled `label`: runs it on `Enter`, help on `?`.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::help::command_tree"
+   ]
+  },
+  {
+   "id": "vox-editor::help::command_tree",
+   "name": "command_tree",
+   "qual": "help::command_tree",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/help.rs",
+   "line": 192,
+   "public": true,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn command_tree(commands: &Commands) -> Vec<TreeNode>",
+   "doc": "The command browser's tree: categories → root commands → subcommands. A root that is a command and has subcommands lists itself first. Within a category only the commands of that category are shown, so one root can appear in several categories.",
+   "calls": [
+    "vox-editor::help::category_rank",
+    "vox-editor::help::command_node"
+   ],
+   "called_by": [
+    "vox-editor::help::open_browser"
+   ]
+  },
+  {
    "id": "vox-editor::help::group_category",
    "name": "group_category",
    "qual": "help::group_category",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 145,
+   "line": 257,
    "public": false,
    "owner": null,
    "trait": null,
@@ -6010,7 +6110,7 @@ window.VOX_TOUR = {
    "qual": "help::subcommands",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 154,
+   "line": 266,
    "public": false,
    "owner": null,
    "trait": null,
@@ -6028,7 +6128,7 @@ window.VOX_TOUR = {
    "qual": "help::complete_name",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 162,
+   "line": 274,
    "public": false,
    "owner": null,
    "trait": null,
@@ -6046,7 +6146,7 @@ window.VOX_TOUR = {
    "qual": "help::param_value",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 176,
+   "line": 288,
    "public": false,
    "owner": null,
    "trait": null,
@@ -6065,7 +6165,7 @@ window.VOX_TOUR = {
    "qual": "help::command_value",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 194,
+   "line": 306,
    "public": false,
    "owner": null,
    "trait": null,
@@ -6086,7 +6186,7 @@ window.VOX_TOUR = {
    "qual": "help::topic_value",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 234,
+   "line": 346,
    "public": false,
    "owner": null,
    "trait": null,
@@ -6109,7 +6209,7 @@ window.VOX_TOUR = {
    "qual": "HelpView::new",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 283,
+   "line": 395,
    "public": true,
    "owner": "HelpView",
    "trait": null,
@@ -6131,7 +6231,7 @@ window.VOX_TOUR = {
    "qual": "HelpView::path",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 319,
+   "line": 431,
    "public": true,
    "owner": "HelpView",
    "trait": null,
@@ -6147,7 +6247,7 @@ window.VOX_TOUR = {
    "qual": "HelpView::selected",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 324,
+   "line": 436,
    "public": true,
    "owner": "HelpView",
    "trait": null,
@@ -6165,7 +6265,7 @@ window.VOX_TOUR = {
    "qual": "HelpView::hint",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 331,
+   "line": 443,
    "public": false,
    "owner": "HelpView",
    "trait": null,
@@ -6183,7 +6283,7 @@ window.VOX_TOUR = {
    "qual": "HelpView::lines",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 347,
+   "line": 459,
    "public": false,
    "owner": "HelpView",
    "trait": null,
@@ -6201,7 +6301,7 @@ window.VOX_TOUR = {
    "qual": "help::command_body",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 370,
+   "line": 482,
    "public": false,
    "owner": null,
    "trait": null,
@@ -6214,30 +6314,12 @@ window.VOX_TOUR = {
    ]
   },
   {
-   "id": "vox-editor::help::wrap",
-   "name": "wrap",
-   "qual": "help::wrap",
-   "crate": "vox-editor",
-   "file": "crates/vox-editor/src/help.rs",
-   "line": 446,
-   "public": false,
-   "owner": null,
-   "trait": null,
-   "decl_only": false,
-   "sig": "fn wrap(text: &str, width: usize, indent: usize, cw: &dyn CharWidth) -> Vec<String>",
-   "doc": "Split `text` into rows of at most `width` cells, breaking at spaces; continuation rows start with `indent` spaces.",
-   "calls": [],
-   "called_by": [
-    "vox-editor::HelpView::render"
-   ]
-  },
-  {
    "id": "vox-editor::HelpView::title",
    "name": "title",
    "qual": "HelpView::title",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 471,
+   "line": 557,
    "public": true,
    "owner": "HelpView",
    "trait": "View",
@@ -6253,7 +6335,7 @@ window.VOX_TOUR = {
    "qual": "HelpView::render",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 475,
+   "line": 561,
    "public": true,
    "owner": "HelpView",
    "trait": "View",
@@ -6265,8 +6347,7 @@ window.VOX_TOUR = {
     "vox-editor::HelpView::hint",
     "vox-editor::Surface::put_in",
     "vox-editor::Surface::clear",
-    "vox-editor::Rect::new",
-    "vox-editor::help::wrap"
+    "vox-editor::Rect::new"
    ],
    "called_by": []
   },
@@ -6276,7 +6357,7 @@ window.VOX_TOUR = {
    "qual": "HelpView::handle_key",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 513,
+   "line": 599,
    "public": true,
    "owner": "HelpView",
    "trait": "View",
@@ -9808,7 +9889,7 @@ window.VOX_TOUR = {
    "qual": "settings::mode_name",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/settings/mod.rs",
-   "line": 176,
+   "line": 182,
    "public": true,
    "owner": null,
    "trait": null,
@@ -9829,7 +9910,7 @@ window.VOX_TOUR = {
    "qual": "settings::parse_mode",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/settings/mod.rs",
-   "line": 185,
+   "line": 191,
    "public": true,
    "owner": null,
    "trait": null,
@@ -9848,7 +9929,7 @@ window.VOX_TOUR = {
    "qual": "Config::to_value",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/settings/mod.rs",
-   "line": 196,
+   "line": 202,
    "public": true,
    "owner": "Config",
    "trait": null,
@@ -9866,7 +9947,7 @@ window.VOX_TOUR = {
    "qual": "settings::get",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/settings/mod.rs",
-   "line": 265,
+   "line": 276,
    "public": true,
    "owner": null,
    "trait": null,
@@ -9882,7 +9963,7 @@ window.VOX_TOUR = {
    "qual": "settings::to_config_value",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/settings/mod.rs",
-   "line": 273,
+   "line": 284,
    "public": true,
    "owner": null,
    "trait": null,
@@ -9936,6 +10017,8 @@ window.VOX_TOUR = {
     "vox-editor::Rect::inner",
     "vox-editor::Form::render",
     "vox-editor::layout::compute",
+    "vox-editor::TreeView::draw_column",
+    "vox-editor::TreeView::render",
     "vox-editor::ListView::render",
     "vox-editor::CheckList::render"
    ]
@@ -10134,7 +10217,8 @@ window.VOX_TOUR = {
     "vox-editor::Editor::render_status",
     "vox-editor::Editor::render_cmdline",
     "vox-editor::Surface::draw_box",
-    "vox-editor::Surface::put_in"
+    "vox-editor::Surface::put_in",
+    "vox-editor::TreeView::render"
    ]
   },
   {
@@ -10199,6 +10283,7 @@ window.VOX_TOUR = {
     "vox-editor::KeymapView::render",
     "vox-editor::Surface::draw_box",
     "vox-editor::Form::render",
+    "vox-editor::TreeView::draw_column",
     "vox-editor::ListView::render",
     "vox-editor::CheckList::render"
    ]
@@ -10251,6 +10336,8 @@ window.VOX_TOUR = {
     "vox-editor::Editor::render_notifications",
     "vox-editor::KeymapView::render",
     "vox-editor::Form::render",
+    "vox-editor::TreeView::draw_column",
+    "vox-editor::TreeView::render",
     "vox-editor::ListView::render",
     "vox-editor::CheckList::render",
     "vox-editor::TextView::render",
@@ -10486,7 +10573,7 @@ window.VOX_TOUR = {
    "qual": "UiConfig::default",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/layout.rs",
-   "line": 57,
+   "line": 60,
    "public": true,
    "owner": "UiConfig",
    "trait": "Default",
@@ -10505,7 +10592,7 @@ window.VOX_TOUR = {
    "qual": "layout::compute",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/layout.rs",
-   "line": 92,
+   "line": 96,
    "public": false,
    "owner": null,
    "trait": null,
@@ -10523,7 +10610,7 @@ window.VOX_TOUR = {
    "qual": "View::title",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/mod.rs",
-   "line": 49,
+   "line": 52,
    "public": true,
    "owner": "View",
    "trait": null,
@@ -10538,6 +10625,7 @@ window.VOX_TOUR = {
     "vox-editor::ManagerView::title",
     "vox-editor::KeymapView::title",
     "vox-editor::Form::title",
+    "vox-editor::TreeView::title",
     "vox-editor::ListView::title",
     "vox-editor::CheckList::title",
     "vox-editor::TextView::title",
@@ -10551,7 +10639,7 @@ window.VOX_TOUR = {
    "qual": "View::render",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/mod.rs",
-   "line": 51,
+   "line": 54,
    "public": true,
    "owner": "View",
    "trait": null,
@@ -10566,6 +10654,7 @@ window.VOX_TOUR = {
     "vox-editor::ManagerView::render",
     "vox-editor::KeymapView::render",
     "vox-editor::Form::render",
+    "vox-editor::TreeView::render",
     "vox-editor::ListView::render",
     "vox-editor::CheckList::render",
     "vox-editor::TextView::render",
@@ -10579,7 +10668,7 @@ window.VOX_TOUR = {
    "qual": "View::handle_key",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/mod.rs",
-   "line": 53,
+   "line": 56,
    "public": true,
    "owner": "View",
    "trait": null,
@@ -10594,6 +10683,7 @@ window.VOX_TOUR = {
     "vox-editor::ManagerView::handle_key",
     "vox-editor::KeymapView::handle_key",
     "vox-editor::Form::handle_key",
+    "vox-editor::TreeView::handle_key",
     "vox-editor::ListView::handle_key",
     "vox-editor::CheckList::handle_key",
     "vox-editor::TextView::handle_key",
@@ -10607,7 +10697,7 @@ window.VOX_TOUR = {
    "qual": "View::cursor",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/mod.rs",
-   "line": 55,
+   "line": 58,
    "public": true,
    "owner": "View",
    "trait": null,
@@ -10618,6 +10708,7 @@ window.VOX_TOUR = {
    "called_by": [],
    "implemented_by": [
     "vox-editor::Form::cursor",
+    "vox-editor::TreeView::cursor",
     "vox-editor::Input::cursor"
    ]
   },
@@ -10627,7 +10718,7 @@ window.VOX_TOUR = {
    "qual": "View::as_log_view",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/mod.rs",
-   "line": 59,
+   "line": 62,
    "public": true,
    "owner": "View",
    "trait": null,
@@ -10646,7 +10737,7 @@ window.VOX_TOUR = {
    "qual": "View::refresh",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/mod.rs",
-   "line": 63,
+   "line": 66,
    "public": true,
    "owner": "View",
    "trait": null,
@@ -10711,6 +10802,334 @@ window.VOX_TOUR = {
    "called_by": []
   },
   {
+   "id": "vox-editor::TreeNode::new",
+   "name": "new",
+   "qual": "TreeNode::new",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 36,
+   "public": true,
+   "owner": "TreeNode",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn new(label: impl Into<String>) -> Self",
+   "doc": "An entry with a label only.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::TreeView::new",
+   "name": "new",
+   "qual": "TreeView::new",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 70,
+   "public": true,
+   "owner": "TreeView",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn new(title: impl Into<String>, root: impl Into<String>, nodes: Vec<TreeNode>) -> Self",
+   "doc": "A tree titled `title` whose breadcrumb starts with `root`.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::help::open_browser"
+   ]
+  },
+  {
+   "id": "vox-editor::TreeView::in_panel",
+   "name": "in_panel",
+   "qual": "TreeView::in_panel",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 84,
+   "public": true,
+   "owner": "TreeView",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn in_panel(mut self) -> Self",
+   "doc": "Shown in a panel: commands run with the view kept open.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::TreeView::level",
+   "name": "level",
+   "qual": "TreeView::level",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 90,
+   "public": false,
+   "owner": "TreeView",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn level(&self, level: usize) -> &[TreeNode]",
+   "doc": "Entries at `level` (children of the selection one level up).",
+   "calls": [],
+   "called_by": [
+    "vox-editor::TreeView::current",
+    "vox-editor::TreeView::selected_path",
+    "vox-editor::TreeView::render",
+    "vox-editor::TreeView::handle_key"
+   ]
+  },
+  {
+   "id": "vox-editor::TreeView::current",
+   "name": "current",
+   "qual": "TreeView::current",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 102,
+   "public": true,
+   "owner": "TreeView",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn current(&self) -> Option<&TreeNode>",
+   "doc": "The selected entry of the active column.",
+   "calls": [
+    "vox-editor::TreeView::level"
+   ],
+   "called_by": [
+    "vox-editor::TreeView::render",
+    "vox-editor::TreeView::handle_key"
+   ]
+  },
+  {
+   "id": "vox-editor::TreeView::selected_path",
+   "name": "selected_path",
+   "qual": "TreeView::selected_path",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 108,
+   "public": true,
+   "owner": "TreeView",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn selected_path(&self) -> Vec<&str>",
+   "doc": "Labels from the top level down to the selection, e.g. `[\"Plugins\", \"plugin\", \"add\"]`.",
+   "calls": [
+    "vox-editor::TreeView::level"
+   ],
+   "called_by": [
+    "vox-editor::TreeView::breadcrumb"
+   ]
+  },
+  {
+   "id": "vox-editor::TreeView::breadcrumb",
+   "name": "breadcrumb",
+   "qual": "TreeView::breadcrumb",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 116,
+   "public": true,
+   "owner": "TreeView",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn breadcrumb(&self) -> String",
+   "doc": "Breadcrumb: `Commands › Plugins › plugin › add`.",
+   "calls": [
+    "vox-editor::TreeView::selected_path"
+   ],
+   "called_by": [
+    "vox-editor::TreeView::render"
+   ]
+  },
+  {
+   "id": "vox-editor::TreeView::matches",
+   "name": "matches",
+   "qual": "TreeView::matches",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 125,
+   "public": true,
+   "owner": "TreeView",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn matches(&self) -> Vec<Match>",
+   "doc": "Matches of the filter text at all levels, case-insensitive: entries whose path (joined labels) contains it, then entries whose detail does.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::TreeView::filter_key",
+    "vox-editor::TreeView::render"
+   ]
+  },
+  {
+   "id": "vox-editor::TreeView::node_at",
+   "name": "node_at",
+   "qual": "TreeView::node_at",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 151,
+   "public": false,
+   "owner": "TreeView",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn node_at(&self, indices: &[usize]) -> Option<&TreeNode>",
+   "doc": "The node at `indices` from the top level.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::TreeView::render"
+   ]
+  },
+  {
+   "id": "vox-editor::TreeView::run",
+   "name": "run",
+   "qual": "TreeView::run",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 163,
+   "public": false,
+   "owner": "TreeView",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn run(&self, line: &str) -> Outcome",
+   "doc": "Run a command line, keeping the view (panel) or remembering it (modal).",
+   "calls": [],
+   "called_by": [
+    "vox-editor::TreeView::handle_key"
+   ]
+  },
+  {
+   "id": "vox-editor::TreeView::filter_key",
+   "name": "filter_key",
+   "qual": "TreeView::filter_key",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 172,
+   "public": false,
+   "owner": "TreeView",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn filter_key(&mut self, key: Key) -> Outcome",
+   "doc": "Keys while typing a filter.",
+   "calls": [
+    "vox-editor::TreeView::matches"
+   ],
+   "called_by": [
+    "vox-editor::TreeView::handle_key"
+   ]
+  },
+  {
+   "id": "vox-editor::TreeView::hint",
+   "name": "hint",
+   "qual": "TreeView::hint",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 208,
+   "public": false,
+   "owner": "TreeView",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn hint(&self) -> &'static str",
+   "doc": "Footer with the keys that work now.",
+   "calls": [],
+   "called_by": [
+    "vox-editor::TreeView::render"
+   ]
+  },
+  {
+   "id": "vox-editor::TreeView::draw_column",
+   "name": "draw_column",
+   "qual": "TreeView::draw_column",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 220,
+   "public": false,
+   "owner": "TreeView",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn draw_column(&self, s: &mut Surface, area: Rect, nodes: &[TreeNode], selected: Option<usize>, active: bool, details: bool, width: &dyn CharWidth)",
+   "doc": "Draw one column of entries.",
+   "calls": [
+    "vox-editor::Surface::clear",
+    "vox-editor::Surface::put_in",
+    "vox-view::display_col",
+    "vox-editor::Rect::new"
+   ],
+   "called_by": [
+    "vox-editor::TreeView::render"
+   ]
+  },
+  {
+   "id": "vox-editor::TreeView::title",
+   "name": "title",
+   "qual": "TreeView::title",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 268,
+   "public": true,
+   "owner": "TreeView",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn title(&self) -> String",
+   "doc": "Title shown in the border.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::TreeView::render",
+   "name": "render",
+   "qual": "TreeView::render",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 272,
+   "public": true,
+   "owner": "TreeView",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn render(&self, area: Rect, s: &mut Surface, width: &dyn CharWidth)",
+   "doc": "Draw the content inside `area` (the border is already drawn).",
+   "calls": [
+    "vox-editor::TreeView::breadcrumb",
+    "vox-editor::TreeView::matches",
+    "vox-editor::TreeView::draw_column",
+    "vox-editor::TreeView::node_at",
+    "vox-editor::TreeView::current",
+    "vox-editor::TreeView::level",
+    "vox-editor::TreeView::hint",
+    "vox-editor::Surface::put_in",
+    "vox-editor::Surface::put_str",
+    "vox-editor::Rect::new"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::TreeView::handle_key",
+   "name": "handle_key",
+   "qual": "TreeView::handle_key",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 387,
+   "public": true,
+   "owner": "TreeView",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn handle_key(&mut self, key: Key) -> Outcome",
+   "doc": "Handle a key while this view has focus.",
+   "calls": [
+    "vox-editor::TreeView::filter_key",
+    "vox-editor::TreeView::level",
+    "vox-editor::TreeView::current",
+    "vox-editor::TreeView::run"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-editor::TreeView::cursor",
+   "name": "cursor",
+   "qual": "TreeView::cursor",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 434,
+   "public": true,
+   "owner": "TreeView",
+   "trait": "View",
+   "decl_only": false,
+   "sig": "fn cursor(&self, area: Rect) -> Option<(u16, u16)>",
+   "doc": "",
+   "calls": [],
+   "called_by": []
+  },
+  {
    "id": "vox-editor::views::keep_visible",
    "name": "keep_visible",
    "qual": "views::keep_visible",
@@ -10730,12 +11149,28 @@ window.VOX_TOUR = {
    ]
   },
   {
+   "id": "vox-editor::views::wrap",
+   "name": "wrap",
+   "qual": "views::wrap",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/views.rs",
+   "line": 22,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub(crate) fn wrap(text: &str, width: usize, indent: usize, cw: &dyn CharWidth) -> Vec<String>",
+   "doc": "Split `text` into rows of at most `width` cells, breaking at spaces; continuation rows start with `indent` spaces.",
+   "calls": [],
+   "called_by": []
+  },
+  {
    "id": "vox-editor::ListItem::new",
    "name": "new",
    "qual": "ListItem::new",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 33,
+   "line": 59,
    "public": true,
    "owner": "ListItem",
    "trait": null,
@@ -10744,7 +11179,6 @@ window.VOX_TOUR = {
    "doc": "A row with a label only.",
    "calls": [],
    "called_by": [
-    "vox-editor::builtin::commands",
     "vox-editor::builtin::keymaps",
     "vox-editor::builtin::open_setup",
     "vox-editor::dialog::settings"
@@ -10756,7 +11190,7 @@ window.VOX_TOUR = {
    "qual": "ListItem::detail",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 42,
+   "line": 68,
    "public": true,
    "owner": "ListItem",
    "trait": null,
@@ -10772,7 +11206,7 @@ window.VOX_TOUR = {
    "qual": "ListItem::command",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 48,
+   "line": 74,
    "public": true,
    "owner": "ListItem",
    "trait": null,
@@ -10788,7 +11222,7 @@ window.VOX_TOUR = {
    "qual": "ListView::new",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 68,
+   "line": 94,
    "public": true,
    "owner": "ListView",
    "trait": null,
@@ -10797,7 +11231,6 @@ window.VOX_TOUR = {
    "doc": "A list with `items`.",
    "calls": [],
    "called_by": [
-    "vox-editor::builtin::commands",
     "vox-editor::builtin::keymaps",
     "vox-editor::builtin::open_setup",
     "vox-editor::dialog::settings"
@@ -10809,7 +11242,7 @@ window.VOX_TOUR = {
    "qual": "ListView::selected",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 79,
+   "line": 105,
    "public": true,
    "owner": "ListView",
    "trait": null,
@@ -10825,7 +11258,7 @@ window.VOX_TOUR = {
    "qual": "ListView::title",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 85,
+   "line": 111,
    "public": true,
    "owner": "ListView",
    "trait": "View",
@@ -10841,7 +11274,7 @@ window.VOX_TOUR = {
    "qual": "ListView::render",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 89,
+   "line": 115,
    "public": true,
    "owner": "ListView",
    "trait": "View",
@@ -10863,7 +11296,7 @@ window.VOX_TOUR = {
    "qual": "ListView::handle_key",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 128,
+   "line": 154,
    "public": true,
    "owner": "ListView",
    "trait": "View",
@@ -10879,7 +11312,7 @@ window.VOX_TOUR = {
    "qual": "CheckList::new",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 167,
+   "line": 193,
    "public": true,
    "owner": "CheckList",
    "trait": null,
@@ -10897,7 +11330,7 @@ window.VOX_TOUR = {
    "qual": "CheckList::checked",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 181,
+   "line": 207,
    "public": true,
    "owner": "CheckList",
    "trait": null,
@@ -10915,7 +11348,7 @@ window.VOX_TOUR = {
    "qual": "CheckList::title",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 191,
+   "line": 217,
    "public": true,
    "owner": "CheckList",
    "trait": "View",
@@ -10931,7 +11364,7 @@ window.VOX_TOUR = {
    "qual": "CheckList::render",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 195,
+   "line": 221,
    "public": true,
    "owner": "CheckList",
    "trait": "View",
@@ -10952,7 +11385,7 @@ window.VOX_TOUR = {
    "qual": "CheckList::handle_key",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 216,
+   "line": 242,
    "public": true,
    "owner": "CheckList",
    "trait": "View",
@@ -10970,7 +11403,7 @@ window.VOX_TOUR = {
    "qual": "TextView::new",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 252,
+   "line": 278,
    "public": true,
    "owner": "TextView",
    "trait": null,
@@ -10992,7 +11425,7 @@ window.VOX_TOUR = {
    "qual": "TextView::at_end",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 261,
+   "line": 287,
    "public": true,
    "owner": "TextView",
    "trait": null,
@@ -11008,7 +11441,7 @@ window.VOX_TOUR = {
    "qual": "TextView::title",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 268,
+   "line": 294,
    "public": true,
    "owner": "TextView",
    "trait": "View",
@@ -11024,7 +11457,7 @@ window.VOX_TOUR = {
    "qual": "TextView::render",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 272,
+   "line": 298,
    "public": true,
    "owner": "TextView",
    "trait": "View",
@@ -11042,7 +11475,7 @@ window.VOX_TOUR = {
    "qual": "TextView::handle_key",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 286,
+   "line": 312,
    "public": true,
    "owner": "TextView",
    "trait": "View",
@@ -11058,7 +11491,7 @@ window.VOX_TOUR = {
    "qual": "Confirm::new",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 313,
+   "line": 339,
    "public": true,
    "owner": "Confirm",
    "trait": null,
@@ -11078,7 +11511,7 @@ window.VOX_TOUR = {
    "qual": "Confirm::returning",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 328,
+   "line": 354,
    "public": true,
    "owner": "Confirm",
    "trait": null,
@@ -11094,7 +11527,7 @@ window.VOX_TOUR = {
    "qual": "Confirm::title",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 335,
+   "line": 361,
    "public": true,
    "owner": "Confirm",
    "trait": "View",
@@ -11110,7 +11543,7 @@ window.VOX_TOUR = {
    "qual": "Confirm::render",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 339,
+   "line": 365,
    "public": true,
    "owner": "Confirm",
    "trait": "View",
@@ -11128,7 +11561,7 @@ window.VOX_TOUR = {
    "qual": "Confirm::handle_key",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 351,
+   "line": 377,
    "public": true,
    "owner": "Confirm",
    "trait": "View",
@@ -11144,7 +11577,7 @@ window.VOX_TOUR = {
    "qual": "Input::new",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 377,
+   "line": 403,
    "public": true,
    "owner": "Input",
    "trait": null,
@@ -11164,7 +11597,7 @@ window.VOX_TOUR = {
    "qual": "Input::returning",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 392,
+   "line": 418,
    "public": true,
    "owner": "Input",
    "trait": null,
@@ -11180,7 +11613,7 @@ window.VOX_TOUR = {
    "qual": "Input::with_text",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 398,
+   "line": 424,
    "public": true,
    "owner": "Input",
    "trait": null,
@@ -11196,7 +11629,7 @@ window.VOX_TOUR = {
    "qual": "Input::line",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 404,
+   "line": 430,
    "public": false,
    "owner": "Input",
    "trait": null,
@@ -11215,7 +11648,7 @@ window.VOX_TOUR = {
    "qual": "Input::title",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 410,
+   "line": 436,
    "public": true,
    "owner": "Input",
    "trait": "View",
@@ -11231,7 +11664,7 @@ window.VOX_TOUR = {
    "qual": "Input::render",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 414,
+   "line": 440,
    "public": true,
    "owner": "Input",
    "trait": "View",
@@ -11250,7 +11683,7 @@ window.VOX_TOUR = {
    "qual": "Input::handle_key",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 418,
+   "line": 444,
    "public": true,
    "owner": "Input",
    "trait": "View",
@@ -11266,7 +11699,7 @@ window.VOX_TOUR = {
    "qual": "Input::cursor",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 439,
+   "line": 465,
    "public": true,
    "owner": "Input",
    "trait": "View",
@@ -13298,6 +13731,7 @@ window.VOX_TOUR = {
     "vox-editor::Editor::cursor_dcol",
     "vox-editor::Editor::str_width",
     "vox-editor::Editor::render_selection",
+    "vox-editor::TreeView::draw_column",
     "vox-editor::ListView::render"
    ]
   },
@@ -13735,7 +14169,7 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 58,
+   "line": 59,
    "public": true,
    "doc": "What a help topic names."
   },
@@ -13745,7 +14179,7 @@ window.VOX_TOUR = {
    "kind": "type",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 256,
+   "line": 368,
    "public": false,
    "doc": "One line of the help text: style, text, and the indent of wrapped continuation rows."
   },
@@ -13755,7 +14189,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/help.rs",
-   "line": 262,
+   "line": 374,
    "public": true,
    "doc": "The help dialog of one command or command group. Keys: `j`/`k` move through the subcommands (or scroll), `Enter` opens the selected subcommand's help, `r` runs the command, `Esc`/`q` go back."
   },
@@ -14395,9 +14829,9 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/layout.rs",
-   "line": 27,
+   "line": 28,
    "public": true,
-   "doc": "Where the plugin manager opens."
+   "doc": "Where a dialog that can live in either place opens (the plugin manager, the command browser)."
   },
   {
    "id": "vox-editor::UiConfig",
@@ -14405,7 +14839,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/layout.rs",
-   "line": 37,
+   "line": 38,
    "public": true,
    "doc": "UI settings (`[ui]` in the config file)."
   },
@@ -14415,7 +14849,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/layout.rs",
-   "line": 73,
+   "line": 77,
    "public": false,
    "doc": "Computed screen areas."
   },
@@ -14425,7 +14859,7 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/mod.rs",
-   "line": 25,
+   "line": 28,
    "public": true,
    "doc": "What a view wants after handling a key."
   },
@@ -14435,7 +14869,7 @@ window.VOX_TOUR = {
    "kind": "trait",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/mod.rs",
-   "line": 47,
+   "line": 50,
    "public": true,
    "doc": "Something shown in a panel or the modal."
   },
@@ -14445,7 +14879,7 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/mod.rs",
-   "line": 68,
+   "line": 71,
    "public": true,
    "doc": "Where a panel is shown."
   },
@@ -14455,7 +14889,7 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/mod.rs",
-   "line": 77,
+   "line": 80,
    "public": true,
    "doc": "Which part of the screen receives keys (when no modal is open)."
   },
@@ -14490,12 +14924,42 @@ window.VOX_TOUR = {
    "doc": "A notification on screen."
   },
   {
+   "id": "vox-editor::TreeNode",
+   "name": "TreeNode",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 19,
+   "public": true,
+   "doc": "One entry of a [`TreeView`]."
+  },
+  {
+   "id": "vox-editor::Match",
+   "name": "Match",
+   "kind": "type",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 45,
+   "public": false,
+   "doc": "A filter match: the indices from the top level down, and the joined labels."
+  },
+  {
+   "id": "vox-editor::TreeView",
+   "name": "TreeView",
+   "kind": "struct",
+   "crate": "vox-editor",
+   "file": "crates/vox-editor/src/ui/tree.rs",
+   "line": 51,
+   "public": true,
+   "doc": "A tree browsed one level at a time. Keys: `j`/`k` move, `l`/`Enter` go in, `Enter` on an entry without children runs it, `h`/`Backspace` go back up, `?` help, `/` filter, `q`/`Esc` close."
+  },
+  {
    "id": "vox-editor::ListItem",
    "name": "ListItem",
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 22,
+   "line": 48,
    "public": true,
    "doc": "One row of a [`ListView`]."
   },
@@ -14505,7 +14969,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 57,
+   "line": 83,
    "public": true,
    "doc": "A selectable list. Keys: `j`/`k`/arrows move, `g`/`G` first/last, `Enter` runs the row's command, `q`/`Esc` close."
   },
@@ -14515,7 +14979,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 157,
+   "line": 183,
    "public": true,
    "doc": "A list of checkboxes. Keys: `j`/`k` move, `Space` toggles, `a` toggles all, `Enter` runs `template` with `{}` replaced by the checked values (space-separated), `q`/`Esc` cancel."
   },
@@ -14525,7 +14989,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 243,
+   "line": 269,
    "public": true,
    "doc": "Scrollable read-only text. Keys: `j`/`k` scroll, `g`/`G` top/bottom, `q`/`Esc` close."
   },
@@ -14535,7 +14999,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 303,
+   "line": 329,
    "public": true,
    "doc": "A yes/no question. `y`/`Enter` runs the command, `n`/`q`/`Esc` cancels."
   },
@@ -14545,7 +15009,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/ui/views.rs",
-   "line": 366,
+   "line": 392,
    "public": true,
    "doc": "A one-line text prompt. `Enter` runs `template` with `{}` replaced by the input."
   },
@@ -15686,6 +16150,33 @@ window.VOX_TOUR = {
     {
      "fn": "vox-editor::help::run",
      "text": "Runs the command at once, or opens an `Input` for its arguments when a parameter is required."
+    }
+   ]
+  },
+  {
+   "id": "browser",
+   "title": "Finding a command in the browser",
+   "summary": "`:commands`, `/plugin add`, `Enter`, `?`.",
+   "steps": [
+    {
+     "fn": "vox-editor::help::open_browser",
+     "text": "`:commands` builds the tree and opens it in the modal or the side panel, per `[ui] commands`."
+    },
+    {
+     "fn": "vox-editor::help::command_tree",
+     "text": "Groups commands by category, then by root word; a root that is also a command lists itself first among its subcommands."
+    },
+    {
+     "fn": "vox-editor::TreeView::matches",
+     "text": "`/` filters every level: entries whose path matches come first, then entries whose description does. `Enter` jumps there."
+    },
+    {
+     "fn": "vox-editor::TreeView::handle_key",
+     "text": "`l` goes in, `h` goes back; `Enter` on a command returns `commands run NAME`, `?` returns `help NAME` — as `RunAndClose` in the modal so `Esc` comes back, as `Run` in a panel so it stays open."
+    },
+    {
+     "fn": "vox-editor::TreeView::render",
+     "text": "Shows as many columns as fit (parent, current, preview of the selection's children), the breadcrumb, and the selection's description and usage."
     }
    ]
   }

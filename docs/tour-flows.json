@@ -986,5 +986,32 @@
         "text": "Runs the command at once, or opens an `Input` for its arguments when a parameter is required."
       }
     ]
+  },
+  {
+    "id": "browser",
+    "title": "Finding a command in the browser",
+    "summary": "`:commands`, `/plugin add`, `Enter`, `?`.",
+    "steps": [
+      {
+        "fn": "vox-editor::help::open_browser",
+        "text": "`:commands` builds the tree and opens it in the modal or the side panel, per `[ui] commands`."
+      },
+      {
+        "fn": "vox-editor::help::command_tree",
+        "text": "Groups commands by category, then by root word; a root that is also a command lists itself first among its subcommands."
+      },
+      {
+        "fn": "vox-editor::TreeView::matches",
+        "text": "`/` filters every level: entries whose path matches come first, then entries whose description does. `Enter` jumps there."
+      },
+      {
+        "fn": "vox-editor::TreeView::handle_key",
+        "text": "`l` goes in, `h` goes back; `Enter` on a command returns `commands run NAME`, `?` returns `help NAME` — as `RunAndClose` in the modal so `Esc` comes back, as `Run` in a panel so it stays open."
+      },
+      {
+        "fn": "vox-editor::TreeView::render",
+        "text": "Shows as many columns as fit (parent, current, preview of the selection's children), the breadcrumb, and the selection's description and usage."
+      }
+    ]
   }
 ]

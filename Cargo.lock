@@ -1930,7 +1930,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "vox"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "vox-clipboard",
  "vox-config-file",
@@ -1944,7 +1944,7 @@ dependencies = [
 
 [[package]]
 name = "vox-clipboard"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "arboard",
  "vox-editor",
@@ -1952,7 +1952,7 @@ dependencies = [
 
 [[package]]
 name = "vox-config-file"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "toml",
  "toml_edit",
@@ -1962,11 +1962,11 @@ dependencies = [
 
 [[package]]
 name = "vox-core"
-version = "0.17.0"
+version = "0.18.0"
 
 [[package]]
 name = "vox-editor"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "insta",
  "vox-core",
@@ -1975,7 +1975,7 @@ dependencies = [
 
 [[package]]
 name = "vox-plugin-host"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "vox-config-file",
  "vox-core",
@@ -1986,14 +1986,14 @@ dependencies = [
 
 [[package]]
 name = "vox-plugin-sdk"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "wit-bindgen",
 ]
 
 [[package]]
 name = "vox-storage"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "ropey",
  "vox-core",
@@ -2001,7 +2001,7 @@ dependencies = [
 
 [[package]]
 name = "vox-term"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "crossterm",
  "vox-editor",
@@ -2009,11 +2009,11 @@ dependencies = [
 
 [[package]]
 name = "vox-view"
-version = "0.17.0"
+version = "0.18.0"
 
 [[package]]
 name = "vox-width"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "unicode-width",
  "vox-view",

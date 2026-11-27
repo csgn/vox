@@ -164,6 +164,12 @@ pub fn vox_settings() -> Vec<SettingSpec> {
             "Where :plugins opens",
         ),
         spec(
+            "ui.commands",
+            choice(&["modal", "side"]),
+            Text("modal".into()),
+            "Where :commands (the command browser) opens",
+        ),
+        spec(
             "check_updates",
             SettingKind::Bool,
             Bool(d.check_updates),
@@ -231,6 +237,11 @@ impl Config {
             ManagerPlace::Side => "side",
         };
         ui.insert("plugin_manager".into(), s(manager));
+        let commands = match self.ui.commands {
+            ManagerPlace::Modal => "modal",
+            ManagerPlace::Side => "side",
+        };
+        ui.insert("commands".into(), s(commands));
         let mut keymap: BTreeMap<String, Value> = BTreeMap::new();
         for (mode, lhs, rhs) in &self.keymaps {
             let table = keymap

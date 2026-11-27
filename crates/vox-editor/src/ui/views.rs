@@ -17,6 +17,32 @@ fn keep_visible(selected: usize, scroll: usize, height: usize) -> usize {
     }
 }
 
+/// Split `text` into rows of at most `width` cells, breaking at spaces; continuation rows
+/// start with `indent` spaces.
+pub(crate) fn wrap(text: &str, width: usize, indent: usize, cw: &dyn CharWidth) -> Vec<String> {
+    let cells = |s: &str| s.chars().map(|c| cw.width(c).unwrap_or(0)).sum::<usize>();
+    if width == 0 || cells(text) <= width {
+        return vec![text.to_string()];
+    }
+    let indent = if indent + 10 > width { 0 } else { indent };
+    let mut rows = Vec::new();
+    let mut cur = String::new();
+    // Keep leading spaces of the first row.
+    let lead = text.len() - text.trim_start().len();
+    cur.push_str(&text[..lead]);
+    for word in text[lead..].split(' ') {
+        let sep = usize::from(!cur.trim().is_empty());
+        if !cur.trim().is_empty() && cells(&cur) + sep + cells(word) > width {
+            rows.push(std::mem::replace(&mut cur, " ".repeat(indent)));
+        } else if sep == 1 {
+            cur.push(' ');
+        }
+        cur.push_str(word);
+    }
+    rows.push(cur);
+    rows
+}
+
 /// One row of a [`ListView`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListItem {
@@ -459,6 +485,14 @@ mod tests {
         let mut s = Surface::new(w, h);
         v.render(Rect::new(0, 0, w, h), &mut s, &Monospace);
         s.to_string()
+    }
+
+    #[test]
+    fn wrap_keeps_indent() {
+        let rows = wrap("  NAME  required  one two three four", 30, 18, &Monospace);
+        assert_eq!(rows[0], "  NAME  required  one two");
+        assert!(rows[1..].iter().all(|r| r.starts_with("  ")));
+        assert_eq!(wrap("short", 20, 4, &Monospace), ["short"]);
     }
 
     #[test]

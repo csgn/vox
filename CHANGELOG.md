@@ -5,6 +5,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-27 — M16 command browser
+
+### Added
+- Command browser: `:commands` (and `:help` alone) shows commands by category → command →
+  subcommand, one column per level (side by side when wide), with a breadcrumb path
+  (`Commands › Plugins › plugin › add`) and the selection's description and usage. `l`/`Enter`
+  go in, `h` goes back, `Enter` on a command runs it (asking for arguments), `?` opens its
+  help (`Esc` returns), `/` filters all levels.
+- `[ui] commands = "modal" | "side"` (also in `:settings`).
+- `TreeView` / `TreeNode`: a reusable drill-down view; `help::command_tree`.
+
+### Changed
+- `:commands` no longer shows one flat list.
+
 ## [0.17.0] - 2026-11-27 — M15 command help
 
 ### Added

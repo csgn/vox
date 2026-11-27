@@ -42,12 +42,8 @@ fn commands_modal_takes_all_keys_and_runs_selection() {
     assert_eq!(ed.document().to_string(), "abc");
     feed(&mut ed, "<Esc>");
     assert!(!ed.has_modal());
-    // Select `messages` and run it: the modal closes, the bottom panel opens.
-    feed(&mut ed, ":commands<CR>");
-    let names: Vec<String> = ed.commands().iter().map(|c| c.name.clone()).collect();
-    let idx = names.iter().position(|n| n == "messages").unwrap();
-    feed(&mut ed, &"j".repeat(idx));
-    feed(&mut ed, "<CR>");
+    // Find `messages` with the filter, then run it: the modal closes, the bottom panel opens.
+    feed(&mut ed, ":commands<CR>/messages<CR><CR>");
     assert!(!ed.has_modal());
     assert!(ed.has_panel(PanelSlot::Bottom));
     assert_eq!(ed.focused(), Focus::Bottom);

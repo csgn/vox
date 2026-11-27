@@ -21,7 +21,7 @@ none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
 | `:notify [info\|warn\|error] TEXT` | show a notification |
 | `:messages`, `:mes` | message history in the bottom panel |
 | `:help [COMMAND]`, `:h`, `:?COMMAND` | [help](#help) for a command or group; no argument lists all commands |
-| `:commands` | list all commands in a modal; `Enter` runs one |
+| `:commands` | [command browser](#command-browser): all commands by category |
 | `:commands list` | all commands as data, with their help (category, usage, params, …) |
 | `:commands info COMMAND` | one command's help as data |
 | `:commands run COMMAND` | run a command; asks for its arguments first if it needs some |
@@ -59,6 +59,29 @@ none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
 | `:scope setup` | open the project set-up dialog (local mode) |
 | `:scope pick` | checklist of global config and plugins to copy into the project |
 | `:scope init empty\|all\|[config] [PLUGIN...]` | create `.vox/` and copy from the global setup |
+
+## Command browser
+
+`:commands` (also `:help` with no argument) shows every command, grouped:
+**category → command → subcommand**. Each level is a column; on a wide screen the parent,
+the current level, and the selection's children are side by side, on a narrow one only the
+current level. The top line shows where you are: `Commands › Plugins › plugin › add`. Below
+the columns, the selected command's description and usage.
+
+| Key | Action |
+|---|---|
+| `j` / `k`, `g` / `G`, `<C-d>` / `<C-u>` | move |
+| `l` / `Enter` | go into a category or group |
+| `Enter` on a command | run it; asks for its arguments if it needs some |
+| `h` / `Backspace` | back up one level |
+| `?` | the selected command's [help](#help); `Esc` comes back here |
+| `/` | filter all levels by name (then by description); `Enter` jumps to the match |
+| `Esc` / `q` | close |
+
+A command that has subcommands (`:settings`, `:log`) lists itself first in its group. Plugin
+commands are under their own category (`Plugin: NAME`) unless the plugin names one. The
+browser opens as a modal, or in the side panel with `[ui] commands = "side"` (there it
+stays open while commands run).
 
 ## Help
 

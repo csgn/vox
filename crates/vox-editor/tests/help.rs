@@ -134,6 +134,73 @@ fn without_ui_help_replies_and_run_needs_arguments() {
     );
 }
 
+/// The screen as text.
+fn screen(ed: &Editor) -> String {
+    ed.render().to_string()
+}
+
+#[test]
+fn browser_drills_down_and_back() {
+    let mut ed = editor();
+    ed.resize(110, 34);
+    feed(&mut ed, ":commands<CR>");
+    assert_eq!(ed.modal_title().as_deref(), Some("Commands"));
+    // Categories in name order: Developer is first.
+    assert!(screen(&ed).contains("Commands › Developer"));
+    feed(&mut ed, "/plugin add<CR>");
+    assert!(screen(&ed).contains("Commands › Plugins › plugin › add"));
+    // `?` opens the help on top; Esc comes back to the browser where it was.
+    feed(&mut ed, "?");
+    assert_eq!(ed.modal_title().as_deref(), Some(":help plugin add"));
+    feed(&mut ed, "<Esc>");
+    assert_eq!(ed.modal_title().as_deref(), Some("Commands"));
+    assert!(screen(&ed).contains("Commands › Plugins › plugin › add"));
+    // `h` goes up a level; Enter on a command asks for its arguments.
+    feed(&mut ed, "h");
+    assert!(screen(&ed).contains("Commands › Plugins › plugin"));
+    feed(&mut ed, "l<CR>");
+    assert_eq!(ed.modal_title().as_deref(), Some("Run :plugin add SOURCE"));
+}
+
+#[test]
+fn browser_tree_groups_by_category_and_root() {
+    let ed = editor();
+    let tree = vox_editor::help::command_tree(ed.commands());
+    let names: Vec<&str> = tree.iter().map(|n| n.label.as_str()).collect();
+    assert_eq!(names.first(), Some(&"Developer"));
+    let plugins = tree.iter().find(|n| n.label == "Plugins").unwrap();
+    // `plugins` is a command with subcommands: it lists itself first.
+    let p = plugins
+        .children
+        .iter()
+        .find(|n| n.label == "plugins")
+        .unwrap();
+    assert_eq!(p.children[0].label, "plugins");
+    assert_eq!(p.children[0].run.as_deref(), Some("commands run plugins"));
+    assert!(p.children.iter().any(|n| n.label == "sync"));
+    // A command without subcommands is a leaf, with its aliases.
+    let file = tree.iter().find(|n| n.label == "File").unwrap();
+    assert!(
+        file.children
+            .iter()
+            .any(|n| n.label == "write (w)" && n.children.is_empty())
+    );
+}
+
+#[test]
+fn browser_in_side_panel_stays_open() {
+    let mut ed = editor();
+    let mut cfg = vox_editor::Config::default();
+    cfg.ui.commands = vox_editor::ui::ManagerPlace::Side;
+    ed.apply_config(&cfg);
+    feed(&mut ed, ":commands<CR>");
+    assert!(ed.has_panel(PanelSlot::Side));
+    assert!(!ed.has_modal());
+    feed(&mut ed, "/messages<CR><CR>");
+    assert!(ed.has_panel(PanelSlot::Side), "panel stays open");
+    assert!(ed.has_panel(PanelSlot::Bottom));
+}
+
 mod snapshots {
     use super::*;
 
@@ -142,6 +209,30 @@ mod snapshots {
         let mut ed = editor();
         ed.resize(110, 34);
         feed(&mut ed, ":help plugin remove<CR>");
+        insta::assert_snapshot!(ed.render().to_string());
+    }
+
+    #[test]
+    fn browser_wide() {
+        let mut ed = editor();
+        ed.resize(120, 30);
+        feed(&mut ed, ":commands<CR>jjjjll");
+        insta::assert_snapshot!(ed.render().to_string());
+    }
+
+    #[test]
+    fn browser_narrow() {
+        let mut ed = editor();
+        ed.resize(40, 24);
+        feed(&mut ed, ":commands<CR>");
+        insta::assert_snapshot!(ed.render().to_string());
+    }
+
+    #[test]
+    fn browser_filter() {
+        let mut ed = editor();
+        ed.resize(100, 26);
+        feed(&mut ed, ":commands<CR>/set");
         insta::assert_snapshot!(ed.render().to_string());
     }
 

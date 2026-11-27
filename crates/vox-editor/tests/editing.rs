@@ -187,14 +187,19 @@ fn edit_other_file() {
     fs::write(&path, "one\ntwo\n").unwrap();
     let mut a = app("a");
     feed(&mut a, "x");
+    // The changed buffer stays open (in the background); the file opens in a new one.
     feed(&mut a, &format!(":e {}<CR>", path.display()));
+    assert_eq!(a.document().line(1).as_deref(), Some("two"));
+    assert_eq!(a.cursor(), Position::new(0, 0));
+    assert!(a.buffers().iter().any(|b| b.modified && !b.active));
+    // Reloading the current file still refuses unsaved changes.
+    feed(&mut a, "x:e<CR>");
     assert_eq!(
         a.message(),
         Some("E37: No write since last change (add ! to override)")
     );
-    feed(&mut a, &format!(":e! {}<CR>", path.display()));
-    assert_eq!(a.document().line(1).as_deref(), Some("two"));
-    assert_eq!(a.cursor(), Position::new(0, 0));
+    feed(&mut a, ":e!<CR>");
+    assert_eq!(a.document().line(0).as_deref(), Some("one"));
     fs::remove_file(&path).unwrap();
 }
 

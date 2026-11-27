@@ -100,6 +100,11 @@ fn main() -> ExitCode {
         editor.run_command("scope setup");
     }
     editor.start();
+    for path in &cli.more {
+        if let Err(e) = editor.add_buffer(path) {
+            editor.set_message(e);
+        }
+    }
     if let Err(e) = vox_term::run(&mut editor) {
         eprintln!("vox: terminal error: {e}");
         return ExitCode::FAILURE;

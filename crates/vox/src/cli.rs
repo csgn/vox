@@ -19,8 +19,10 @@ pub enum Mode {
 pub struct Cli {
     /// Setup to use.
     pub mode: Mode,
-    /// File to open.
+    /// File to open (shown first).
     pub file: Option<PathBuf>,
+    /// More files, opened as buffers behind the first.
+    pub more: Vec<PathBuf>,
     /// `vox run`: run commands without a terminal instead of starting the editor.
     pub run: Option<Run>,
 }
@@ -52,7 +54,7 @@ pub enum Exit {
 pub const HELP: &str = "\
 vox — a Vim-like terminal editor
 
-Usage: vox [OPTIONS] [FILE]
+Usage: vox [OPTIONS] [FILE]...
 
 Options:
   --local-config [DIR]  Use the project's .vox/ config and plugins only (not the global ones).
@@ -62,6 +64,7 @@ Options:
   -h, --help            Print this help.
   -V, --version         Print the version.
 
+More than one FILE opens each in a buffer (:ls, :bn); the first is shown.
 Without options, vox uses ~/.config/vox/config.toml and ~/.config/vox/plugins/.
 Run commands without the editor: vox run --help";
 
@@ -90,6 +93,7 @@ Exit status: 0 success, 1 a command failed, 2 bad arguments.";
 pub fn parse(args: Vec<OsString>, is_dir: impl Fn(&Path) -> bool) -> Result<Cli, Exit> {
     let mut mode = Mode::Global;
     let mut file = None;
+    let mut more = Vec::new();
     let mut it = args.into_iter().peekable();
     let mut run = None;
     if it.peek().and_then(|a| a.to_str()) == Some("run") {
@@ -144,7 +148,7 @@ pub fn parse(args: Vec<OsString>, is_dir: impl Fn(&Path) -> bool) -> Result<Cli,
                 return Err(Exit::Error(format!("unknown option {s} (see --help)")));
             }
             _ if file.is_none() => file = Some(PathBuf::from(arg)),
-            _ => return Err(Exit::Error("only one FILE can be opened".into())),
+            _ => more.push(PathBuf::from(arg)),
         }
     }
     if run
@@ -155,7 +159,12 @@ pub fn parse(args: Vec<OsString>, is_dir: impl Fn(&Path) -> bool) -> Result<Cli,
             "vox run needs a COMMAND or - (see vox run --help)".into(),
         ));
     }
-    Ok(Cli { mode, file, run })
+    Ok(Cli {
+        mode,
+        file,
+        more,
+        run,
+    })
 }
 
 #[cfg(test)]
@@ -172,6 +181,7 @@ mod tests {
         Ok(Cli {
             mode,
             file: file.map(PathBuf::from),
+            more: Vec::new(),
             run: None,
         })
     }
@@ -186,6 +196,7 @@ mod tests {
         Ok(Cli {
             mode,
             file: file.map(PathBuf::from),
+            more: Vec::new(),
             run: Some(Run {
                 commands: commands.iter().map(|c| c.to_string()).collect(),
                 stdin,
@@ -227,7 +238,7 @@ mod tests {
             matches!(p(&["run", "--nope", "x"]), Err(Exit::Error(e)) if e.contains("vox run --help"))
         );
         assert!(
-            matches!(p(&["a.txt", "run"]), Err(Exit::Error(_))),
+            p(&["a.txt", "run"]).is_ok_and(|c| c.run.is_none() && c.more == [PathBuf::from("run")]),
             "run only counts as the first argument"
         );
     }
@@ -255,6 +266,12 @@ mod tests {
             cli(Mode::Local(Some("proj".into())), Some("a.txt"))
         );
         assert_eq!(p(&["-"]), cli(Mode::Global, Some("-")));
+        let several = p(&["a.txt", "--vanilla", "b.txt", "c.txt"]).unwrap();
+        assert_eq!(several.file, Some("a.txt".into()));
+        assert_eq!(
+            several.more,
+            [PathBuf::from("b.txt"), PathBuf::from("c.txt")]
+        );
     }
 
     #[test]
@@ -266,6 +283,5 @@ mod tests {
             Err(Exit::Error(_))
         ));
         assert!(matches!(p(&["--nope"]), Err(Exit::Error(e)) if e.contains("--nope")));
-        assert!(matches!(p(&["a", "b"]), Err(Exit::Error(_))));
     }
 }

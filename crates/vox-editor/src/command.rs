@@ -64,6 +64,8 @@ pub enum Complete {
     SettingKey,
     /// A vox version (`0.17.0`).
     Version,
+    /// An open buffer (number or file name).
+    Buffer,
     /// One of these words.
     Values(Vec<String>),
 }

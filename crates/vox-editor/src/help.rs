@@ -280,6 +280,7 @@ fn complete_name(c: &Complete) -> &'static str {
         Complete::Plugin => "plugin",
         Complete::SettingKey => "setting-key",
         Complete::Version => "version",
+        Complete::Buffer => "buffer",
         Complete::Values(_) => "values",
     }
 }

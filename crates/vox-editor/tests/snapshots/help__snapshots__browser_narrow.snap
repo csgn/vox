@@ -11,7 +11,7 @@ expression: ed.render().to_string()
 "~     │Commands › Developer      │      "
 "~     │                          │      "
 "~     │ Developer ›  4 commands  │      "
-"~     │ File ›       5 commands  │      "
+"~     │ File ›       11 commands │      "
 "~     │ Help ›       5 commands  │      "
 "~     │ Interface ›  5 commands  │      "
 "~     │ Plugins ›    10 commands │      "

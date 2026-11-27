@@ -38,6 +38,9 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
   Each `Command` also carries metadata: category, `Param`s (with a `Complete` source),
   returns, force, examples. `help.rs` turns it into the `:help` dialog (`HelpView`) and data
   (`:commands info`); `:?TOPIC` is rewritten to `:help TOPIC` in `exec_command`.
+- `buffer.rs`: open files. The active buffer is the editor's own `doc` / `cursor` / `view`;
+  the others are parked (`Buffer`) and swapped in by `switch_buffer`, so the rest of the
+  editor only ever sees one document. `open_buffer`, `add_buffer`, `close_buffer`, `buffers()`.
 - `complete.rs`: `Editor::complete(line) -> Completion` (pure): command names, subcommands,
   then the current parameter's `Complete` source (files via `std::fs`, plugins, setting
   keys, values). `prompt.rs`: the `:`/`/` prompt's keys — `Tab` cycling, the menu, history —

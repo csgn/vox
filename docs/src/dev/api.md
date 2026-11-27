@@ -42,6 +42,11 @@ the `:` prompt finds completions: `Complete::File`, `Dir`, `Command`, `Plugin`, 
 `Version`, or `Values`. `Command::usage()` builds the usage line (`upper[!] [WHAT]`). `:help
 NAME` shows all of it; `:commands info NAME` returns it as data.
 
+**Buffers:** `editor.open_buffer(path)` opens a file in a new buffer (or shows it if open),
+`add_buffer` opens one without showing it, `switch_buffer(id)`, `close_buffer(id, force)`,
+`buffers()` lists `BufferInfo { id, name, modified, active, lines }`. `document()` and the
+cursor always refer to the buffer shown; plugins see that one.
+
 **Completion:** `editor.complete(line)` returns what can follow a command line: the start
 of the word to replace, the candidates (text and description), and the usage and current
 parameter of the command. The `:` prompt uses it; so can anything that needs completion

@@ -5,6 +5,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-27 — M18 buffers
+
+### Added
+- Buffers: every opened file stays open with its cursor, scroll position, and undo history.
+  `:e FILE` opens it in a new buffer, or shows it if it is open. `:buffer` / `:ls` /
+  `:buffers` list them (`Enter` shows one); `:b N|NAME`, `:bn`, `:bp`, `:bd[!] [N|NAME]`,
+  `:wall` / `:wa`; `:buffer list` returns them as data. Completion for buffer names.
+- `vox a.txt b.txt` opens several files; the status line shows `[2/3]`.
+- `Editor::open_buffer`, `add_buffer`, `switch_buffer`, `close_buffer`, `buffers`
+  (`BufferInfo`); `Complete::Buffer`.
+
+### Changed
+- `:e FILE` no longer refuses when the current file has unsaved changes: it stays open in
+  its buffer. `:e` (reload) still refuses without `!`.
+- `:q`, `:wq`, `:x` check every buffer: `E162` names an unsaved one; `!` quits anyway.
+
 ## [0.19.0] - 2026-11-27 — M17 prompt and completion
 
 ### Added

@@ -2,7 +2,7 @@
 
 Vim-like modal terminal editor written in Rust. Planned: built-in Claude integration (via the `claude` CLI) and Rust plugins compiled to WASM.
 
-Status: **v0.19.0** — completion at the `:` prompt (menu, `Tab`, history; prompt in the status line, a float, or a modal); command browser (`:commands`: categories, breadcrumb, filter); command help (`:help CMD`, `:?CMD`, metadata for every command); `vox run` (editor commands from a shell, `--json`); updater (`:update check|install`, asks at start-up); command API (`:settings set|get`, `:plugin list|info`, data replies); plugin manager (`:plugins`, `<leader>p`); plugin installer and `vox.lock` (`:plugin add PATH|GIT_URL`,
+Status: **v0.20.0** — buffers (`:e`, `:ls`, `:b`, `:bn`, `:bd`, `:wa`, `vox a b`); completion at the `:` prompt (menu, `Tab`, history; prompt in the status line, a float, or a modal); command browser (`:commands`: categories, breadcrumb, filter); command help (`:help CMD`, `:?CMD`, metadata for every command); `vox run` (editor commands from a shell, `--json`); updater (`:update check|install`, asks at start-up); command API (`:settings set|get`, `:plugin list|info`, data replies); plugin manager (`:plugins`, `<leader>p`); plugin installer and `vox.lock` (`:plugin add PATH|GIT_URL`,
 `:plugins sync`); `:settings` dialog (edits config.toml, keeps comments); plugin packages
 with manifests, settings, and health checks; project
 setups (`--local-config`, `--vanilla`); Vim editing, panels / modal / notifications, developer mode (log, reload), a developer API (commands,

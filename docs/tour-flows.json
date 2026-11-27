@@ -1040,5 +1040,28 @@
         "text": "Draws the prompt where `[ui] cmdline` says (bottom line, float, or modal) with the menu and the usage title, the current parameter highlighted."
       }
     ]
+  },
+  {
+    "id": "buffers",
+    "title": "Opening a second file",
+    "summary": "`:e b.txt`, then `:bp`.",
+    "steps": [
+      {
+        "fn": "vox-editor::builtin::edit",
+        "text": "`:e FILE` no longer replaces the document: it opens a buffer (only `:e` alone reloads the current file)."
+      },
+      {
+        "fn": "vox-editor::Editor::open_buffer",
+        "text": "Shows an already open file, or loads it, parks the current document with its cursor and view, and gives the new one the next number (an empty start buffer is replaced)."
+      },
+      {
+        "fn": "vox-editor::Editor::switch_buffer",
+        "text": "`:bp` swaps the parked buffer back into `doc` / `cursor` / `view`, so the rest of the editor only ever sees one document."
+      },
+      {
+        "fn": "vox-editor::builtin::check_quit",
+        "text": "`:q` looks at every buffer: E37 for this one, E162 naming another with unsaved changes."
+      }
+    ]
   }
 ]

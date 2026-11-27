@@ -27,7 +27,7 @@ Built one milestone at a time; each ships with tests, docs, and a changelog entr
 | M15 | 0.17.0 | Command metadata and help: commands declare category, parameters, result, examples; `:help CMD` / `:?CMD` dialog; `help` in `vox run` | done |
 | M16 | 0.18.0 | Command browser: `:commands` as a tree (category → command → subcommand) with sub-panels, breadcrumb path, filter, run, help | done |
 | M17 | 0.19.0 | Prompt and completion: `:` and `/` prompt in the status line, a floating box, or a modal (configurable); completion menu while typing, `Tab` completes; argument hints; prompt history | done |
-| M18 | 0.20.0 | Buffers: several open files (`:e`, `:ls`, `:b`, `:bn`/`:bp`, `:bd`, `:wa`), `vox a b`; `:q` checks every buffer | planned |
+| M18 | 0.20.0 | Buffers: several open files (`:e`, `:ls`, `:b`, `:bn`/`:bp`, `:bd`, `:wa`), `vox a b`; `:q` checks every buffer | done |
 | M19 | 0.21.0 | Editor modes and focus: `text` / `agent` mode (`:mode`, key, `vox --agent`, `editor_mode`); focus on one unit (selection, block, function, class, file), the rest dimmed | planned |
 | M20 | 0.22.0 | Asking the AI: `<leader>a` / `:ai` dialog on the focused unit; the reply shown as an inline diff to accept or decline (or applied directly, per scope); backend trait with a test backend | planned |
 | M21 | 0.23.0 | Claude backend: an adapter implementing the assistant trait with the Claude API | planned |

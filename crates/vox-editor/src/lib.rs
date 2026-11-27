@@ -2,6 +2,7 @@
 //! configuration, and rendering to a [`Surface`]. `std` only: terminal, clipboard, text
 //! storage, char widths, and config file parsing are provided by adapter crates.
 
+mod buffer;
 mod builtin;
 pub mod command;
 pub mod complete;
@@ -24,6 +25,7 @@ mod surface;
 pub mod ui;
 pub mod update;
 
+pub use buffer::BufferInfo;
 pub use command::{Args, Command, CommandResult, Commands, Complete, Example, Param};
 pub use config::{Config, Value};
 pub use editor::{Editor, JobDone, Mode, Services};

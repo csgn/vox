@@ -187,6 +187,15 @@ impl Editor {
             .map(|p| p.display().to_string())
             .unwrap_or_else(|| "[No Name]".into());
         let modified = if self.doc.is_modified() { " [+]" } else { "" };
+        // Which buffer, when more than one is open: `[2/3]`.
+        let count = self.parked.len() + 1;
+        let which = if count > 1 {
+            let buffers = self.buffers();
+            let n = buffers.iter().position(|b| b.active).unwrap_or(0) + 1;
+            format!(" [{n}/{count}]")
+        } else {
+            String::new()
+        };
         let pos = format!("{}:{} ", self.cursor.line + 1, self.cursor.col + 1);
         let dev = if self.developer_mode() { " DEV " } else { "" };
         let scope = match self.scope().kind {
@@ -194,7 +203,7 @@ impl Editor {
             crate::scope::ScopeKind::Local => " LOCAL ",
             crate::scope::ScopeKind::Vanilla => " VANILLA ",
         };
-        let left = format!(" {mode}{dev}{scope}  {name}{modified}");
+        let left = format!(" {mode}{dev}{scope}  {name}{modified}{which}");
         let pad = (s.width() as usize).saturating_sub(self.str_width(&left) + self.str_width(&pos));
         let text = format!("{left}{}{pos}", " ".repeat(pad));
         s.fill_row(row, Style::REVERSED);

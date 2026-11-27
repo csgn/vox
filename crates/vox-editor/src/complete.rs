@@ -196,6 +196,11 @@ fn source(ed: &Editor, complete: &Complete, typed: &str) -> Vec<Candidate> {
             .map(|(k, d)| plain(&k, &d))
             .collect(),
         Complete::Values(v) => v.iter().map(|s| plain(s, "")).collect(),
+        Complete::Buffer => ed
+            .buffers()
+            .into_iter()
+            .map(|b| plain(&b.name, &format!("buffer {}", b.id)))
+            .collect(),
     }
 }
 

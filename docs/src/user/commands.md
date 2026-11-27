@@ -11,13 +11,19 @@ none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
 |---|---|
 | `:write`, `:w` | write to the current file |
 | `:w FILE` | write to `FILE` and make it the current file |
-| `:q`, `:quit`, `:qa` | quit; refuses with `E37` if there are unsaved changes |
+| `:q`, `:quit`, `:qa` | quit; refuses with `E37` (this buffer) or `E162` (another buffer) if there are unsaved changes |
 | `:q!` | quit, discarding changes |
 | `:wq [FILE]` | write, then quit |
 | `:xit`, `:x [FILE]` | write if modified, then quit |
-| `:edit`, `:e FILE` | open `FILE`; refuses with `E37` if there are unsaved changes |
-| `:e` | reload the current file |
-| `:e! [FILE]` | open/reload, discarding changes |
+| `:edit`, `:e FILE` | open `FILE` in a [buffer](#buffers), or show it if it is open |
+| `:e` | reload the current file; refuses with `E37` if it has unsaved changes |
+| `:e!` | reload, discarding changes |
+| `:buffer`, `:b`, `:ls`, `:buffers` | list the open buffers; `Enter` shows one |
+| `:b N`, `:b NAME` | show buffer `N`, or the one whose name contains `NAME` |
+| `:bn`, `:bp` (`:buffer next`, `:buffer prev`) | next / previous buffer |
+| `:bd [N\|NAME]`, `:bd!` (`:buffer delete`) | close a buffer (default: this one); `!` drops unsaved changes |
+| `:buffer list` | the open buffers as data (id, name, modified, active, lines) |
+| `:wall`, `:wa` | save every buffer with unsaved changes |
 | `:notify [info\|warn\|error] TEXT` | show a notification |
 | `:messages`, `:mes` | message history in the bottom panel |
 | `:help [COMMAND]`, `:h`, `:?COMMAND` | [help](#help) for a command or group; no argument lists all commands |
@@ -59,6 +65,17 @@ none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
 | `:scope setup` | open the project set-up dialog (local mode) |
 | `:scope pick` | checklist of global config and plugins to copy into the project |
 | `:scope init empty\|all\|[config] [PLUGIN...]` | create `.vox/` and copy from the global setup |
+
+## Buffers
+
+Every file you open stays open in a **buffer** until you close it: `:e other.txt` keeps the
+current file (with its unsaved changes, cursor, and undo history) and shows `other.txt`.
+`vox a.txt b.txt` opens both and shows the first. The status line shows `[2/3]` when more
+than one buffer is open.
+
+Buffers have numbers that do not change (`:ls`). `:q` refuses while any buffer has unsaved
+changes and names it; save them all with `:wa`, or quit anyway with `:q!`. Closing the last
+buffer leaves an empty one.
 
 ## Typing commands
 

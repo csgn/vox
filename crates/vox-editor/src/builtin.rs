@@ -12,6 +12,24 @@ use crate::ui::{CheckList, Focus, Level, ListItem, ListView, PanelSlot, TextView
 
 const E37: &str = "E37: No write since last change (add ! to override)";
 
+/// Error unless every buffer is saved (or `force`): the current one first (E37), then the
+/// others (E162).
+fn check_quit(ed: &Editor, force: bool, current: bool) -> CommandResult {
+    if force {
+        return Ok(());
+    }
+    if current && ed.document().is_modified() {
+        return Err(E37.into());
+    }
+    match ed.other_unsaved_buffer() {
+        Some(b) => Err(format!(
+            "E162: No write since last change for buffer \"{}\" (add ! to override)",
+            b.name
+        )),
+        None => Ok(()),
+    }
+}
+
 /// Register all built-in commands and their Vim-style short names.
 pub(crate) fn register(c: &mut Commands) {
     use crate::command::category::{DEVELOPER, FILE, HELP, INTERFACE, SCOPE};
@@ -27,7 +45,7 @@ pub(crate) fn register(c: &mut Commands) {
     c.alias("w", "write");
     c.register(
         "quit",
-        "Quit. Refuses if there are unsaved changes; `:q!` discards them.",
+        "Quit. Refuses while any buffer has unsaved changes; `:q!` discards them.",
         quit,
     )
     .category(FILE)
@@ -37,14 +55,16 @@ pub(crate) fn register(c: &mut Commands) {
     }
     c.register("wq", "Save, then quit.", write_quit)
         .category(FILE)
-        .param(Param::optional("FILE", "Save to this file.").complete(Complete::File));
+        .param(Param::optional("FILE", "Save to this file.").complete(Complete::File))
+        .force("Quit even if other buffers have unsaved changes.");
     c.register("xit", "Save if modified, then quit.", xit)
         .category(FILE)
-        .param(Param::optional("FILE", "Save to this file.").complete(Complete::File));
+        .param(Param::optional("FILE", "Save to this file.").complete(Complete::File))
+        .force("Quit even if other buffers have unsaved changes.");
     c.alias("x", "xit");
     c.register(
         "edit",
-        "Open FILE, or reload the current file. `:e!` discards changes.",
+        "Open FILE in a buffer (or show it if open), or reload the current file. `:e!` discards changes.",
         edit,
     )
     .category(FILE)
@@ -89,6 +109,7 @@ pub(crate) fn register(c: &mut Commands) {
     .category(HELP)
     .returns("A list, one table per command: name, description, owner, aliases, category, usage, params, returns, force, examples.");
     crate::help::register(c);
+    crate::buffer::register(c);
     c.register(
         "keymaps",
         "List your key mappings in the side panel.",
@@ -193,9 +214,7 @@ fn write(ed: &mut Editor, a: Args<'_>) -> CommandResult {
 
 /// `:quit` / `:q`; `:q!` discards changes.
 fn quit(ed: &mut Editor, a: Args<'_>) -> CommandResult {
-    if ed.document().is_modified() && !a.force {
-        return Err(E37.into());
-    }
+    check_quit(ed, a.force, true)?;
     ed.quit();
     Ok(())
 }
@@ -203,6 +222,7 @@ fn quit(ed: &mut Editor, a: Args<'_>) -> CommandResult {
 /// `:wq [FILE]`.
 fn write_quit(ed: &mut Editor, a: Args<'_>) -> CommandResult {
     ed.write(a.arg)?;
+    check_quit(ed, a.force, false)?;
     ed.quit();
     Ok(())
 }
@@ -212,13 +232,15 @@ fn xit(ed: &mut Editor, a: Args<'_>) -> CommandResult {
     if ed.document().is_modified() || a.arg.is_some() {
         ed.write(a.arg)?;
     }
+    check_quit(ed, a.force, false)?;
     ed.quit();
     Ok(())
 }
 
-/// `:edit [FILE]` / `:e`; `:e!` discards changes.
+/// `:edit [FILE]` / `:e`: open FILE in a buffer; without FILE reload the current file
+/// (`:e!` discards changes).
 fn edit(ed: &mut Editor, a: Args<'_>) -> CommandResult {
-    if ed.document().is_modified() && !a.force {
+    if a.arg.is_none() && ed.document().is_modified() && !a.force {
         return Err(E37.into());
     }
     ed.edit(a.arg)

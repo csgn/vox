@@ -101,7 +101,13 @@ pub struct Editor {
     last_search: Option<String>,
     pub(crate) message: Option<String>,
     quit: bool,
-    storage: StorageFactory,
+    pub(crate) storage: StorageFactory,
+    /// Number of the active buffer (see `buffer.rs`).
+    pub(crate) buffer_id: usize,
+    /// Number for the next buffer opened.
+    pub(crate) next_buffer_id: usize,
+    /// Open buffers other than the active one.
+    pub(crate) parked: Vec<crate::buffer::Buffer>,
     pub(crate) width: Box<dyn CharWidth>,
     commands: Commands,
     keymap: Keymap,
@@ -245,6 +251,9 @@ impl Editor {
             global_scope: None,
             ui: UiConfig::default(),
             prompt: Default::default(),
+            buffer_id: 1,
+            next_buffer_id: 2,
+            parked: Vec::new(),
             side: None,
             bottom: None,
             modal: None,
@@ -961,7 +970,7 @@ impl Editor {
     }
 
     /// Send `event` to its subscribers, in subscription order.
-    fn emit(&mut self, event: &Event) {
+    pub(crate) fn emit(&mut self, event: &Event) {
         let handlers: Vec<EventHandler> = self
             .subscribers
             .iter()
@@ -1839,9 +1848,13 @@ impl Editor {
         }
     }
 
-    /// Open `path`, or reload the current file when `path` is `None`. Discards changes;
-    /// callers check [`Document::is_modified`] first.
+    /// Open `path` in a buffer (see [`Editor::open_buffer`]), or reload the current file
+    /// when `path` is `None`. Reloading discards changes; callers check
+    /// [`Document::is_modified`] first.
     pub(crate) fn edit(&mut self, path: Option<&str>) -> Result<(), String> {
+        if let Some(p) = path {
+            return self.open_buffer(std::path::Path::new(p)).map(|_| ());
+        }
         let path = match path.map(std::path::PathBuf::from) {
             Some(p) => p,
             None => match self.doc.path() {

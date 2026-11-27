@@ -12,6 +12,7 @@ use crate::plugin::{SettingKind, SettingSpec, SettingValue};
 use crate::ui::{ManagerPlace, NotifyPosition, SidePosition};
 
 mod commands;
+pub(crate) use commands::setting_keys;
 mod dialog;
 
 /// Register the settings commands (dialog and data).
@@ -170,6 +171,24 @@ pub fn vox_settings() -> Vec<SettingSpec> {
             "Where :commands (the command browser) opens",
         ),
         spec(
+            "ui.cmdline",
+            choice(&["statusline", "float", "modal"]),
+            Text("statusline".into()),
+            "Where the : prompt is typed",
+        ),
+        spec(
+            "ui.searchline",
+            choice(&["statusline", "float", "modal"]),
+            Text("statusline".into()),
+            "Where the / prompt is typed",
+        ),
+        spec(
+            "ui.completion",
+            choice(&["auto", "tab", "off"]),
+            Text("auto".into()),
+            "When the : prompt shows completions (while typing, after Tab, never)",
+        ),
+        spec(
             "check_updates",
             SettingKind::Bool,
             Bool(d.check_updates),
@@ -242,6 +261,9 @@ impl Config {
             ManagerPlace::Side => "side",
         };
         ui.insert("commands".into(), s(commands));
+        ui.insert("cmdline".into(), s(self.ui.cmdline.name()));
+        ui.insert("searchline".into(), s(self.ui.searchline.name()));
+        ui.insert("completion".into(), s(self.ui.completion.name()));
         let mut keymap: BTreeMap<String, Value> = BTreeMap::new();
         for (mode, lhs, rhs) in &self.keymaps {
             let table = keymap

@@ -33,6 +33,66 @@ pub enum ManagerPlace {
     Side,
 }
 
+/// Where the `:` or `/` prompt is typed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PromptPlace {
+    /// The bottom line, like Vim.
+    #[default]
+    Statusline,
+    /// A one-line box near the top of the screen.
+    Float,
+    /// A centered box with the input and the completion list.
+    Modal,
+}
+
+impl PromptPlace {
+    /// Config name: `statusline`, `float`, `modal`.
+    pub fn name(self) -> &'static str {
+        match self {
+            PromptPlace::Statusline => "statusline",
+            PromptPlace::Float => "float",
+            PromptPlace::Modal => "modal",
+        }
+    }
+
+    /// Parse a config name.
+    pub fn parse(s: &str) -> Option<Self> {
+        [Self::Statusline, Self::Float, Self::Modal]
+            .into_iter()
+            .find(|p| p.name() == s)
+    }
+}
+
+/// When the `:` prompt shows completions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CompletionMode {
+    /// While typing.
+    #[default]
+    Auto,
+    /// Only after `Tab`.
+    Tab,
+    /// Never.
+    Off,
+}
+
+impl CompletionMode {
+    /// Config name: `auto`, `tab`, `off`.
+    pub fn name(self) -> &'static str {
+        match self {
+            CompletionMode::Auto => "auto",
+            CompletionMode::Tab => "tab",
+            CompletionMode::Off => "off",
+        }
+    }
+
+    /// Parse a config name.
+    pub fn parse(s: &str) -> Option<Self> {
+        [Self::Auto, Self::Tab, Self::Off]
+            .into_iter()
+            .find(|p| p.name() == s)
+    }
+}
+
 /// UI settings (`[ui]` in the config file).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UiConfig {
@@ -54,6 +114,12 @@ pub struct UiConfig {
     pub plugin_manager: ManagerPlace,
     /// Where `:commands` opens.
     pub commands: ManagerPlace,
+    /// Where the `:` prompt is typed.
+    pub cmdline: PromptPlace,
+    /// Where the `/` prompt is typed.
+    pub searchline: PromptPlace,
+    /// When the `:` prompt shows completions.
+    pub completion: CompletionMode,
 }
 
 impl Default for UiConfig {
@@ -68,6 +134,9 @@ impl Default for UiConfig {
             notify_position: NotifyPosition::TopRight,
             plugin_manager: ManagerPlace::Modal,
             commands: ManagerPlace::Modal,
+            cmdline: PromptPlace::Statusline,
+            searchline: PromptPlace::Statusline,
+            completion: CompletionMode::Auto,
         }
     }
 }

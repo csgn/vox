@@ -1013,5 +1013,32 @@
         "text": "Shows as many columns as fit (parent, current, preview of the selection's children), the breadcrumb, and the selection's description and usage."
       }
     ]
+  },
+  {
+    "id": "complete",
+    "title": "Completing a command with Tab",
+    "summary": "`:plugin a`, `Tab`, `Enter`.",
+    "steps": [
+      {
+        "fn": "vox-editor::Editor::open_prompt",
+        "text": "`:` starts the prompt and resets the menu and history position (the typed text lives in `Mode::Command`)."
+      },
+      {
+        "fn": "vox-editor::Editor::prompt_menu",
+        "text": "With `completion = \"auto\"`, every render asks for completions of the line typed so far."
+      },
+      {
+        "fn": "vox-editor::Editor::complete",
+        "text": "Splits the line into words: the first is a command or alias, the second may name a subcommand, then the parameter at that position says where values come from (`Complete`)."
+      },
+      {
+        "fn": "vox-editor::Editor::handle_prompt",
+        "text": "`Tab` takes the only match, the common part, or starts cycling; arrows move in the menu or, without one, walk the history; `Enter` remembers the line and runs it."
+      },
+      {
+        "fn": "vox-editor::Editor::render_prompt",
+        "text": "Draws the prompt where `[ui] cmdline` says (bottom line, float, or modal) with the menu and the usage title, the current parameter highlighted."
+      }
+    ]
   }
 ]

@@ -60,6 +60,30 @@ none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
 | `:scope pick` | checklist of global config and plugins to copy into the project |
 | `:scope init empty\|all\|[config] [PLUGIN...]` | create `.vox/` and copy from the global setup |
 
+## Typing commands
+
+While you type after `:`, a menu shows what can come next: command names (and aliases),
+then subcommands, then the argument's values — files and folders, plugins, setting keys,
+or a fixed list such as `info|warn|error`. Its title is the command's usage
+(`:plugin add SOURCE`) with the argument you are typing highlighted. Names that start with
+what you typed are shown; if none do, names that contain its letters in order (`stg` →
+`settings`).
+
+- `Tab` takes the only match (and adds a space), or fills in the part all matches share, or
+  selects the first; `Tab` / `Shift-Tab` / arrows then move through the menu, putting the
+  selection in the line. `Esc` goes back to what you typed.
+- `Up` / `Down` with no menu open walk the history of `:` lines (and `/` patterns, kept
+  separately) of this session.
+
+Settings (`[ui]` in `config.toml`, or `:settings`):
+
+```toml
+[ui]
+cmdline = "statusline"   # or "float" (a box near the top) or "modal" (a centered box)
+searchline = "statusline"
+completion = "auto"      # show the menu while typing; "tab": only after Tab; "off"
+```
+
 ## Command browser
 
 `:commands` (also `:help` with no argument) shows every command, grouped:

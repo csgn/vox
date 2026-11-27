@@ -4,6 +4,7 @@
 
 mod builtin;
 pub mod command;
+pub mod complete;
 pub mod config;
 mod editor;
 pub mod event;
@@ -14,6 +15,7 @@ pub mod log;
 mod normal;
 pub mod owner;
 pub mod plugin;
+mod prompt;
 mod register;
 mod render;
 pub mod scope;

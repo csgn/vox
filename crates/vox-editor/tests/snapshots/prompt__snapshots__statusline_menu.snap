@@ -1,0 +1,28 @@
+---
+source: crates/vox-editor/tests/prompt.rs
+expression: s.to_string()
+---
+"  1 hello                                                                       "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~      ┌──────────────────────────────────────────────────────────────┐         "
+"~      │ add      Install a plugin into the active scope: `:plugin add│         "
+"~      │ disable  Turn a plugin off (`enabled = false` in config.toml)│         "
+"~      │ enable   Turn a plugin on (removes `enabled = false` from con│         "
+"~      │ files    Open a plugin's plugin.toml: `:plugin files NAME`.  │         "
+"~      │ info     Return one plugin as data: `:plugin info NAME` (mani│         "
+"~      │ list     Return the active scope's plugins as data: name, ver│         "
+"~      │ remove   Uninstall a plugin from the active scope: asks first│         "
+"~      └──────────────────────────────────────────────────────────────┘         "
+" COMMAND  [No Name]                                                         1:1 "
+":plugin disable                                                                 "

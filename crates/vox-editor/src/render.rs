@@ -4,12 +4,16 @@ use vox_view::{display_col, visible_slice};
 
 use crate::editor::{Editor, Mode};
 use crate::surface::{Color, CursorShape, Rect, Style, Surface};
-use crate::ui::{Focus, NotifyPosition, View};
+use crate::ui::{Focus, NotifyPosition, PromptPlace, View};
 
 /// Widest a notification box gets.
 const NOTIFY_WIDTH: u16 = 48;
 /// Most text lines in one notification.
 const NOTIFY_LINES: usize = 3;
+/// Most completion entries shown at once.
+const MENU_ROWS: usize = 10;
+/// Widest the statusline completion box gets.
+const MENU_WIDTH: u16 = 64;
 
 impl Editor {
     /// Render the whole screen at the size last given to [`Editor::resize`].
@@ -50,8 +54,10 @@ impl Editor {
             }
         }
         self.render_notifications(&mut s, layout.body);
+        let prompt_cursor = self.render_prompt(&mut s);
         self.place_cursor(
             &mut s,
+            prompt_cursor,
             layout.editor,
             &[
                 (layout.modal, modal),
@@ -83,6 +89,7 @@ impl Editor {
     fn place_cursor(
         &self,
         s: &mut Surface,
+        prompt_cursor: Option<(u16, u16)>,
         editor: Rect,
         views: &[(Option<Rect>, Option<&dyn View>)],
     ) {
@@ -90,9 +97,8 @@ impl Editor {
             Mode::Insert => CursorShape::Bar,
             _ => CursorShape::Block,
         };
-        if let Mode::Command(input) | Mode::Search(input) = &self.mode {
-            let row = self.size.1.saturating_sub(1);
-            s.cursor = (1 + self.str_width(input) as u16, row);
+        if let Some(pos) = prompt_cursor {
+            s.cursor = pos;
             return;
         }
         for (rect, view) in views {
@@ -197,13 +203,201 @@ impl Editor {
 
     /// Draw the bottom line: the `:`/`/` prompt being typed, or the last message.
     fn render_cmdline(&self, s: &mut Surface, row: u16) {
+        let on_line = |p: PromptPlace| p == PromptPlace::Statusline;
         let text = match (&self.mode, &self.message) {
-            (Mode::Command(input), _) => format!(":{input}"),
-            (Mode::Search(input), _) => format!("/{input}"),
+            (Mode::Command(input), _) if on_line(self.ui_config().cmdline) => format!(":{input}"),
+            (Mode::Search(input), _) if on_line(self.ui_config().searchline) => {
+                format!("/{input}")
+            }
+            (Mode::Command(_) | Mode::Search(_), _) => String::new(),
             (_, Some(msg)) => msg.clone(),
             _ => String::new(),
         };
         s.put_str(0, row, &text, Style::default(), self.width.as_ref());
+    }
+
+    /// Draw the open prompt where `[ui] cmdline` / `searchline` say, with the completion
+    /// menu. Returns where the terminal cursor goes.
+    fn render_prompt(&self, s: &mut Surface) -> Option<(u16, u16)> {
+        let (prefix, input, place) = match &self.mode {
+            Mode::Command(i) => (':', i, self.ui_config().cmdline),
+            Mode::Search(i) => ('/', i, self.ui_config().searchline),
+            _ => return None,
+        };
+        let (w, h) = self.size;
+        let menu = self.prompt_menu();
+        let line = format!("{prefix}{input}");
+        let line_w = self.str_width(&line) as u16;
+        let title = if prefix == ':' { "Command" } else { "Search" };
+        let accent = Style::BOLD.fg(Color::Blue);
+        match place {
+            PromptPlace::Statusline => {
+                let row = h.saturating_sub(1);
+                if let Some(menu) = &menu {
+                    let start_x =
+                        1 + self.str_width(&input[..menu.completion.start.min(input.len())]) as u16;
+                    let rows = menu.completion.items.len().min(MENU_ROWS) as u16;
+                    let bh = rows + 2;
+                    let bw = self.menu_width(menu, w);
+                    if h >= bh + 2 && bw >= 10 {
+                        let x = start_x.saturating_sub(1).min(w - bw);
+                        let rect = Rect::new(x, h - 2 - bh, bw, bh);
+                        self.draw_menu(s, rect, menu, accent);
+                    }
+                }
+                Some((line_w.min(w.saturating_sub(1)), row))
+            }
+            PromptPlace::Float | PromptPlace::Modal => {
+                let modal = place == PromptPlace::Modal;
+                let area = if modal {
+                    crate::ui::compute(self.size, self.ui_config(), false, false, true).modal?
+                } else {
+                    let fw = (w * 6 / 10).max(40.min(w));
+                    let rows = menu
+                        .as_ref()
+                        .map_or(0, |m| m.completion.items.len().min(MENU_ROWS) as u16);
+                    let fh = if menu.is_some() { rows + 4 } else { 3 };
+                    Rect::new((w - fw) / 2, h / 5, fw, fh.min(h.saturating_sub(h / 5)))
+                };
+                if area.w < 6 || area.h < 3 {
+                    return None;
+                }
+                let box_title = menu
+                    .as_ref()
+                    .and_then(|m| m.completion.usage.as_ref())
+                    .map_or(title.to_string(), |u| format!(":{u}"));
+                s.draw_box(area, &box_title, accent, self.width.as_ref());
+                if let Some(m) = &menu {
+                    self.highlight_param(s, area, m);
+                }
+                let inner = area.inner();
+                s.put_in(inner, 0, &line, Style::default(), self.width.as_ref());
+                if let Some(m) = &menu
+                    && inner.h > 2
+                {
+                    s.put_in(
+                        inner,
+                        1,
+                        &"─".repeat(inner.w as usize),
+                        Style::DIM,
+                        self.width.as_ref(),
+                    );
+                    let hint_rows = u16::from(modal);
+                    let list = Rect::new(inner.x, inner.y + 2, inner.w, inner.h - 2 - hint_rows);
+                    self.draw_menu_items(s, list, m);
+                }
+                if modal {
+                    let hint = "Tab complete · ↑/↓ select · Enter run · Esc close";
+                    s.put_in(inner, inner.h - 1, hint, accent, self.width.as_ref());
+                }
+                Some((inner.x + line_w.min(inner.w.saturating_sub(1)), inner.y))
+            }
+        }
+    }
+
+    /// Width of the statusline completion box: widest entry plus its detail, within `w`.
+    fn menu_width(&self, menu: &crate::prompt::Menu, w: u16) -> u16 {
+        let items = &menu.completion.items;
+        let text = items
+            .iter()
+            .map(|c| self.str_width(&c.text))
+            .max()
+            .unwrap_or(0);
+        let detail = items
+            .iter()
+            .map(|c| self.str_width(&c.detail))
+            .max()
+            .unwrap_or(0);
+        let usage = menu
+            .completion
+            .usage
+            .as_ref()
+            .map_or(0, |u| self.str_width(u) + 8);
+        let want = (text + if detail > 0 { detail + 3 } else { 0 } + 4)
+            .max(usage)
+            .max(20);
+        (want as u16).min(w.min(MENU_WIDTH))
+    }
+
+    /// A box with the completion entries; its title is the usage of the command.
+    fn draw_menu(&self, s: &mut Surface, rect: Rect, menu: &crate::prompt::Menu, style: Style) {
+        let title = menu
+            .completion
+            .usage
+            .as_ref()
+            .map(|u| format!(":{u}"))
+            .unwrap_or_default();
+        s.draw_box(rect, &title, style, self.width.as_ref());
+        self.highlight_param(s, rect, menu);
+        self.draw_menu_items(s, rect.inner(), menu);
+    }
+
+    /// Show the parameter being typed in the usage title (`SOURCE` in `:plugin add SOURCE`).
+    fn highlight_param(&self, s: &mut Surface, rect: Rect, menu: &crate::prompt::Menu) {
+        let (Some(usage), Some(param)) = (&menu.completion.usage, &menu.completion.param) else {
+            return;
+        };
+        let title = format!(":{usage}");
+        // The parameter after the command name: `[LEVEL]` and `LEVEL...` contain it too.
+        let name_end = title.find(' ').unwrap_or(title.len());
+        let Some(at) = title[name_end..].find(param.as_str()).map(|i| i + name_end) else {
+            return;
+        };
+        // The title starts after `┌ ` and a space (see `Surface::draw_box`).
+        let x = rect.x + 3 + self.str_width(&title[..at]) as u16;
+        let len = self.str_width(param) as u16;
+        if x + len < rect.x + rect.w - 1 {
+            s.set_style(x, rect.y, len, Style::REVERSED.fg(Color::Blue));
+        }
+    }
+
+    /// Completion entries in `area`: text, then the dimmed detail; the selected one reversed.
+    fn draw_menu_items(&self, s: &mut Surface, area: Rect, menu: &crate::prompt::Menu) {
+        let items = &menu.completion.items;
+        if area.h == 0 {
+            return;
+        }
+        let h = area.h as usize;
+        let top = menu.selected.map_or(0, |i| i.saturating_sub(h - 1));
+        let text_w = items
+            .iter()
+            .map(|c| self.str_width(&c.text))
+            .max()
+            .unwrap_or(0)
+            .min(area.w as usize / 2);
+        for (row, (i, c)) in items.iter().enumerate().skip(top).take(h).enumerate() {
+            let line = Rect::new(area.x, area.y + row as u16, area.w, 1);
+            let selected = menu.selected == Some(i);
+            let style = if selected {
+                Style::REVERSED
+            } else {
+                Style::default()
+            };
+            if selected {
+                s.clear(line, style);
+            }
+            s.put_in(line, 0, &format!(" {}", c.text), style, self.width.as_ref());
+            let dx = text_w as u16 + 3;
+            if !c.detail.is_empty() && dx < area.w {
+                let rest = Rect::new(area.x + dx, line.y, area.w - dx, 1);
+                let dim = Style {
+                    dim: !selected,
+                    ..style
+                };
+                s.put_in(rest, 0, &c.detail, dim, self.width.as_ref());
+            }
+        }
+        if items.len() > h {
+            let more = format!(" {}/{} ", menu.selected.map_or(0, |i| i + 1), items.len());
+            let x = area.x + area.w.saturating_sub(self.str_width(&more) as u16);
+            s.put_str(
+                x,
+                area.y + area.h - 1,
+                &more,
+                Style::DIM,
+                self.width.as_ref(),
+            );
+        }
     }
 
     /// Draw running jobs, then notifications, stacked in a corner of `body`, oldest first.

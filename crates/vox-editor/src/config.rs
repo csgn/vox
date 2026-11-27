@@ -4,7 +4,9 @@
 use std::collections::BTreeMap;
 
 use crate::keymap::MapMode;
-use crate::ui::{ManagerPlace, NotifyPosition, SidePosition, UiConfig};
+use crate::ui::{
+    CompletionMode, ManagerPlace, NotifyPosition, PromptPlace, SidePosition, UiConfig,
+};
 
 /// Parses a file's text (e.g. TOML) into a [`Value`]; provided by an adapter.
 pub type ValueParser = fn(&str) -> Result<Value, String>;
@@ -350,6 +352,24 @@ fn parse_ui(t: &BTreeMap<String, Value>, ui: &mut UiConfig, errors: &mut Vec<Str
             "plugin_manager" => place(v)
                 .map(|p| ui.plugin_manager = p)
                 .ok_or_else(|| "`ui.plugin_manager` must be \"modal\" or \"side\"".to_string()),
+            "cmdline" | "searchline" => match v {
+                Value::String(s) => PromptPlace::parse(s),
+                _ => None,
+            }
+            .map(|p| {
+                if key == "cmdline" {
+                    ui.cmdline = p
+                } else {
+                    ui.searchline = p
+                }
+            })
+            .ok_or_else(|| format!("`ui.{key}` must be \"statusline\", \"float\", or \"modal\"")),
+            "completion" => match v {
+                Value::String(s) => CompletionMode::parse(s),
+                _ => None,
+            }
+            .map(|m| ui.completion = m)
+            .ok_or_else(|| "`ui.completion` must be \"auto\", \"tab\", or \"off\"".to_string()),
             "commands" => place(v)
                 .map(|p| ui.commands = p)
                 .ok_or_else(|| "`ui.commands` must be \"modal\" or \"side\"".to_string()),

@@ -76,6 +76,9 @@ notify_timeout_ms = 4000
 notify_position = "top-right" # or "bottom-right"
 plugin_manager = "modal"      # or "side": where :plugins opens
 commands = "modal"            # or "side": where :commands opens
+cmdline = "statusline"        # or "float" / "modal": where the : prompt is typed
+searchline = "statusline"     # the same for the / prompt
+completion = "auto"           # or "tab" / "off": the : prompt's completion menu
 ```
 
 Panels shrink on small screens so the text stays usable.

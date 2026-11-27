@@ -26,7 +26,7 @@ Built one milestone at a time; each ships with tests, docs, and a changelog entr
 | M14 | 0.16.0 | Headless CLI: `vox run [--local-config [DIR] \| --vanilla] [--json] [--file FILE] CMD... \| -` runs commands without a terminal, waits for background jobs, prints replies as text or JSON (`Value::to_json`), messages to stderr; exit status 0 / 1 (a command failed) / 2 (bad arguments) | done |
 | M15 | 0.17.0 | Command metadata and help: commands declare category, parameters, result, examples; `:help CMD` / `:?CMD` dialog; `help` in `vox run` | done |
 | M16 | 0.18.0 | Command browser: `:commands` as a tree (category → command → subcommand) with sub-panels, breadcrumb path, filter, run, help | done |
-| M17 | 0.19.0 | Prompt and completion: `:` and `/` prompt in the status line, a floating box, or a modal (configurable); completion menu while typing, `Tab` completes; argument hints; prompt history | planned |
+| M17 | 0.19.0 | Prompt and completion: `:` and `/` prompt in the status line, a floating box, or a modal (configurable); completion menu while typing, `Tab` completes; argument hints; prompt history | done |
 
 ## Scopes
 
@@ -98,8 +98,8 @@ milestones, in this order, because the browser and completion both need the meta
     (`plugin add SOURCE [--global]`, current parameter highlighted);
   - prefix matches first, then fuzzy (subsequence) matches.
 - Keys: `Tab` completes the selection (or the common prefix), `Shift-Tab` goes back,
-  `Up`/`Down` (or `<C-n>`/`<C-p>`) move in the menu, `Enter` runs, `Esc` closes the menu
-  first, then the prompt. With the menu closed, `Up`/`Down` walk the prompt history
+  `Up`/`Down` (or `<C-n>`/`<C-p>`) move in the menu, `Enter` runs, `Esc` leaves the prompt
+  (with an entry selected, it first goes back to what was typed). With the menu closed, `Up`/`Down` walk the prompt history
   (kept per session).
 - `/` gets history only (no completion).
 - Completion is a pure function of the editor state (`Editor::complete(line, cursor)`),

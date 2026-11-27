@@ -5,6 +5,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-27 — M17 prompt and completion
+
+### Added
+- Completion at the `:` prompt: a menu of command names and aliases, subcommands, then the
+  argument's values (files and folders, plugins, setting keys, fixed values), each with its
+  description. The menu's title is the command's usage with the current argument
+  highlighted. Prefix matches, or fuzzy (letters in order) when there are none.
+- Keys: `Tab` takes the only match, the common part, or selects the first; `Shift-Tab`,
+  `Up`/`Down`, `<C-p>`/`<C-n>` move through the menu; `Esc` with a selection goes back to
+  what was typed.
+- History: `Up`/`Down` without a menu walk the `:` lines (and, separately, `/` patterns) of
+  the session. `Editor::command_history`.
+- `[ui] cmdline` and `[ui] searchline` = `"statusline"` (default) | `"float"` | `"modal"`;
+  `[ui] completion` = `"auto"` (default) | `"tab"` | `"off"`. Also in `:settings`.
+- `Editor::complete(line)` (`complete::Completion`, `Candidate`).
+- `<S-Tab>` in key notation; the terminal's Shift-Tab is read.
+
 ## [0.18.0] - 2026-11-27 — M16 command browser
 
 ### Added

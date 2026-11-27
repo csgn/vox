@@ -42,6 +42,11 @@ the `:` prompt finds completions: `Complete::File`, `Dir`, `Command`, `Plugin`, 
 `Version`, or `Values`. `Command::usage()` builds the usage line (`upper[!] [WHAT]`). `:help
 NAME` shows all of it; `:commands info NAME` returns it as data.
 
+**Completion:** `editor.complete(line)` returns what can follow a command line: the start
+of the word to replace, the candidates (text and description), and the usage and current
+parameter of the command. The `:` prompt uses it; so can anything that needs completion
+without the UI.
+
 **Subcommands:** a name with one space, e.g. `register("reload plugins", ...)`, makes `:reload
 plugins NAME` work (argument `NAME`). Different owners can add subcommands to the same root.
 If there is no command named just the root, `:reload` lists the subcommands. Do not use

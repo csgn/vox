@@ -143,6 +143,8 @@ pub struct Editor {
     scope: Scope,
     global_scope: Option<Scope>,
     ui: UiConfig,
+    /// Prompt menu, cycling, and history (see `prompt.rs`).
+    pub(crate) prompt: crate::prompt::PromptState,
     side: Option<Box<dyn View>>,
     bottom: Option<Box<dyn View>>,
     modal: Option<Box<dyn View>>,
@@ -242,6 +244,7 @@ impl Editor {
             },
             global_scope: None,
             ui: UiConfig::default(),
+            prompt: Default::default(),
             side: None,
             bottom: None,
             modal: None,
@@ -393,8 +396,7 @@ impl Editor {
             return;
         }
         if key.code == KeyCode::Char(':') && !key.mods.ctrl {
-            self.message = None;
-            self.mode = Mode::Command(String::new());
+            self.open_prompt(false);
             return;
         }
         self.view_key(Some(slot), key);
@@ -1213,14 +1215,8 @@ impl Editor {
                     self.mode = Mode::Visual { line };
                 }
             },
-            Action::CommandLine => {
-                self.message = None;
-                self.mode = Mode::Command(String::new());
-            }
-            Action::Search => {
-                self.message = None;
-                self.mode = Mode::Search(String::new());
-            }
+            Action::CommandLine => self.open_prompt(false),
+            Action::Search => self.open_prompt(true),
             Action::Window(c) => self.window_cmd(c),
         }
     }
@@ -1570,33 +1566,8 @@ impl Editor {
         }
     }
 
-    /// Key handling for the `:` and `/` prompts.
-    fn handle_prompt(&mut self, key: Key) {
-        let (Mode::Command(input) | Mode::Search(input)) = &mut self.mode else {
-            return;
-        };
-        match key.code {
-            KeyCode::Esc => self.mode = Mode::Normal,
-            KeyCode::Backspace => {
-                if input.pop().is_none() {
-                    self.mode = Mode::Normal;
-                }
-            }
-            KeyCode::Enter => {
-                let input = std::mem::take(input);
-                let mode = std::mem::replace(&mut self.mode, Mode::Normal);
-                match mode {
-                    Mode::Search(_) => self.search(input),
-                    _ => self.run_command(&input),
-                }
-            }
-            KeyCode::Char(c) => input.push(c),
-            _ => {}
-        }
-    }
-
     /// Run a `/` search for `pattern` (empty = repeat the last pattern).
-    fn search(&mut self, pattern: String) {
+    pub(crate) fn search(&mut self, pattern: String) {
         if !pattern.is_empty() {
             self.last_search = Some(pattern);
         }

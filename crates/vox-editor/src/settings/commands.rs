@@ -153,6 +153,22 @@ fn parse_value(spec: &SettingSpec, key: &str, text: &str) -> Result<Value, Strin
     })
 }
 
+/// Every setting key with its description: vox's settings, then each plugin's.
+pub(crate) fn setting_keys(ed: &Editor) -> Vec<(String, String)> {
+    let mut keys: Vec<(String, String)> = vox_settings()
+        .into_iter()
+        .map(|s| (s.key, s.description))
+        .collect();
+    for (name, specs) in ed.plugin_settings() {
+        keys.extend(
+            specs
+                .iter()
+                .map(|s| (format!("plugins.{name}.{}", s.key), s.description.clone())),
+        );
+    }
+    keys
+}
+
 /// `:settings list`: vox's settings, then each plugin's.
 fn list(ed: &mut Editor, _: Args<'_>) -> CommandResult {
     let mut keys: Vec<String> = vox_settings().into_iter().map(|s| s.key).collect();

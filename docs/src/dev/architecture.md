@@ -38,6 +38,10 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
   Each `Command` also carries metadata: category, `Param`s (with a `Complete` source),
   returns, force, examples. `help.rs` turns it into the `:help` dialog (`HelpView`) and data
   (`:commands info`); `:?TOPIC` is rewritten to `:help TOPIC` in `exec_command`.
+- `complete.rs`: `Editor::complete(line) -> Completion` (pure): command names, subcommands,
+  then the current parameter's `Complete` source (files via `std::fs`, plugins, setting
+  keys, values). `prompt.rs`: the `:`/`/` prompt's keys — `Tab` cycling, the menu, history —
+  with state in `PromptState`; `render.rs` draws it per `[ui] cmdline` / `searchline`.
 - `Config::from_value(&Value)`: validates settings from a format-neutral `Value` tree (the TOML
   file is parsed by the `vox-config-file` adapter); `Editor::apply_config` installs them.
 - `Editor::exec(Cmd)`: operators turn a motion into a range (exclusive / inclusive /

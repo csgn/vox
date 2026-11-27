@@ -1,0 +1,28 @@
+---
+source: crates/vox-editor/tests/prompt.rs
+expression: ed.render().to_string()
+---
+"  1 hello                                                                       "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~           ┌─ :settings [PLUGIN] ─────────────────────────────────┐            "
+"~           │:settings g                                           │            "
+"~           │──────────────────────────────────────────────────────│            "
+"~           │ get  Return a setting's value: `:settings get KEY` (e│            "
+"~           │                                                      │            "
+"~           │                                                      │            "
+"~           │                                                      │            "
+"~           │                                                      │            "
+"~           │                                                      │            "
+"~           │                                                      │            "
+"~           │                                                      │            "
+"~           │                                                      │            "
+"~           │Tab complete · ↑/↓ select · Enter run · Esc close     │            "
+"~           └──────────────────────────────────────────────────────┘            "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+" COMMAND  [No Name]                                                         1:1 "
+"                                                                                "

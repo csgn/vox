@@ -94,8 +94,14 @@ One insert session (including the delete of `c`) is one undo step.
 | Key | Action |
 |---|---|
 | `Enter` | execute |
-| `Esc` | cancel |
+| `Esc` | cancel; with a completion selected, back to what you typed |
 | `Backspace` | delete char; on empty input, cancel |
+| `Tab` | complete (`:` only): the only match, else the common part, else select the first |
+| `Shift-Tab` | select the previous completion |
+| `Up` / `Down`, `<C-p>` / `<C-n>` | move in the completion menu; without a menu, walk the history |
+
+See [Typing commands](commands.md#typing-commands) for completion and where the prompt is
+shown.
 
 ## Not supported (by design, for now)
 Dot-repeat (`.`), macros, marks, named registers, text objects (`iw`, `i(`…), block visual,

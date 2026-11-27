@@ -1,0 +1,28 @@
+---
+source: crates/vox-editor/tests/prompt.rs
+expression: ed.render().to_string()
+---
+"  1 hello                                                                       "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~                                                                               "
+"~      ┌─ :notify [LEVEL] TEXT ──┐                                              "
+"~      │ info                    │                                              "
+"~      │ warn                    │                                              "
+"~      │ error                   │                                              "
+"~      └─────────────────────────┘                                              "
+" COMMAND  [No Name]                                                         1:1 "
+":notify                                                                         "

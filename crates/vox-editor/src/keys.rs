@@ -84,8 +84,8 @@ impl Key {
 /// Parse Vim key notation into keys.
 ///
 /// Supported names (case-insensitive): `<Esc> <CR> <Enter> <BS> <Tab> <Space> <lt>
-/// <Up> <Down> <Left> <Right> <Home> <End> <PageUp> <PageDown> <Del>`, and `<C-x>` for
-/// Ctrl+char. A `<` that does not start a known name is a literal `<`.
+/// <Up> <Down> <Left> <Right> <Home> <End> <PageUp> <PageDown> <Del> <S-Tab>`, and `<C-x>`
+/// for Ctrl+char. A `<` that does not start a known name is a literal `<`.
 pub fn parse_keys(s: &str) -> Vec<Key> {
     let mut out = Vec::new();
     let mut rest = s;
@@ -117,6 +117,7 @@ pub fn format_keys(keys: &[Key]) -> String {
                     KeyCode::Esc => "Esc",
                     KeyCode::Enter => "CR",
                     KeyCode::Backspace => "BS",
+                    KeyCode::Tab if k.mods.shift => "S-Tab",
                     KeyCode::Tab => "Tab",
                     KeyCode::Up => "Up",
                     KeyCode::Down => "Down",
@@ -138,6 +139,11 @@ pub fn format_keys(keys: &[Key]) -> String {
 /// Parse the inside of `<...>` (e.g. `Esc`, `C-r`) into a key.
 fn parse_name(name: &str) -> Option<Key> {
     let lower = name.to_ascii_lowercase();
+    if lower == "s-tab" {
+        let mut key = Key::new(KeyCode::Tab);
+        key.mods.shift = true;
+        return Some(key);
+    }
     if let Some(ch) = lower.strip_prefix("c-") {
         let mut chars = ch.chars();
         return match (chars.next(), chars.next()) {
@@ -190,7 +196,12 @@ mod tests {
 
     #[test]
     fn format_round_trip() {
-        for s in ["ia<Esc><C-r><CR>", "<Space>w", "<lt>x<Up><Del>"] {
+        for s in [
+            "ia<Esc><C-r><CR>",
+            "<Space>w",
+            "<lt>x<Up><Del>",
+            "<Tab><S-Tab>",
+        ] {
             assert_eq!(format_keys(&parse_keys(s)), s);
         }
     }

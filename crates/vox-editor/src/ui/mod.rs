@@ -11,8 +11,10 @@ mod tree;
 mod views;
 
 pub use form::Form;
+pub use layout::{
+    CompletionMode, ManagerPlace, NotifyPosition, PromptPlace, SidePosition, UiConfig,
+};
 pub(crate) use layout::{Layout, compute};
-pub use layout::{ManagerPlace, NotifyPosition, SidePosition, UiConfig};
 pub use notify::{JobStatus, Level, Notification};
 pub use tree::{TreeNode, TreeView};
 pub(crate) use views::wrap;

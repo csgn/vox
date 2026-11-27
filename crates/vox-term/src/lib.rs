@@ -158,6 +158,15 @@ pub fn convert(k: event::KeyEvent) -> Option<Key> {
         C::Enter => KeyCode::Enter,
         C::Backspace => KeyCode::Backspace,
         C::Tab => KeyCode::Tab,
+        C::BackTab => {
+            return Some(Key {
+                code: KeyCode::Tab,
+                mods: Modifiers {
+                    shift: true,
+                    ..Modifiers::default()
+                },
+            });
+        }
         C::Up => KeyCode::Up,
         C::Down => KeyCode::Down,
         C::Left => KeyCode::Left,
@@ -231,6 +240,10 @@ mod tests {
         assert!(
             convert(KeyEvent::new(C::Up, M::SHIFT)).unwrap().mods.shift,
             "kept for other keys"
+        );
+        assert_eq!(
+            convert(KeyEvent::new(C::BackTab, M::SHIFT)).unwrap(),
+            vox_editor::parse_keys("<S-Tab>")[0]
         );
         assert_eq!(convert(KeyEvent::new(C::F(1), M::NONE)), None);
     }

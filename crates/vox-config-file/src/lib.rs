@@ -77,16 +77,18 @@ pub fn load_and_apply(editor: &mut Editor, path: &Path) -> bool {
 /// Register `:reload config` (owner `builtin`): re-read `path` and apply it.
 pub fn register_commands(editor: &mut Editor, path: PathBuf) {
     editor.with_owner(owner::BUILTIN, |ed| {
-        ed.commands_mut().register(
-            "reload config",
-            "Re-read the config file and apply it.",
-            move |ed, _| {
-                if load_and_apply(ed, &path) {
-                    ed.notify(Level::Info, format!("reloaded {}", path.display()));
-                }
-                Ok(())
-            },
-        );
+        ed.commands_mut()
+            .register(
+                "reload config",
+                "Re-read the config file and apply it.",
+                move |ed, _| {
+                    if load_and_apply(ed, &path) {
+                        ed.notify(Level::Info, format!("reloaded {}", path.display()));
+                    }
+                    Ok(())
+                },
+            )
+            .category(vox_editor::command::category::DEVELOPER);
     });
 }
 

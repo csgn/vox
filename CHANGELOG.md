@@ -5,6 +5,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-27 — M15 command help
+
+### Added
+- `:help COMMAND` (alias `:h`, short form `:?COMMAND` at the `:` prompt): a dialog with the
+  command's path (`Commands › Plugins › plugin › add`), description, usage, parameters,
+  what `!` does, result, examples, aliases, and subcommands. `Enter` opens a subcommand's
+  help and `Esc` goes back; `r` runs the command, asking for its arguments if it needs some.
+  `:help plugin` shows a group. `:help` alone lists all commands.
+- Command metadata: `register` returns the `Command`, with `.category()`, `.param(Param)`,
+  `.returns()`, `.force()`, `.example()`; `Command::usage()`. Parameters name where their
+  completions come from (`Complete::File`, `Plugin`, `SettingKey`, `Values`, …). Every
+  built-in command has it.
+- `:commands info COMMAND` (help as data), `:commands run COMMAND`. `vox run help COMMAND`
+  prints help as data.
+- Plugins: `describe-command` in the WIT API and `editor::describe_command(name,
+  &CommandInfo)` in the SDK (`CommandInfo`, `ParamInfo`, `Completion`). Plugin commands
+  without help are listed under `Plugin: NAME`.
+
+### Changed
+- `:commands list` includes each command's category, usage, params, returns, force,
+  examples, and subcommands.
+
 ## [0.16.3] - 2026-11-27 — update check fix
 
 ### Fixed

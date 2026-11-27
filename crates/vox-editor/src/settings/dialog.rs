@@ -18,19 +18,28 @@ const KEYS_TITLE: &str = "Key mappings";
 
 /// Register the `settings` commands.
 pub(crate) fn register(c: &mut Commands) {
+    use crate::command::category::SETTINGS;
+    use crate::command::{Complete, Param};
     c.register(
         "settings",
         "Edit settings: vox, key mappings, and plugins (`:settings NAME` for a plugin).",
         settings,
+    )
+    .category(SETTINGS)
+    .param(
+        Param::optional("PLUGIN", "Open this plugin's settings directly.")
+            .complete(Complete::Plugin),
     );
     c.register("settings vox", "Edit vox's own settings.", |ed, _| {
         open_vox_form(ed);
         Ok(())
-    });
+    })
+    .category(SETTINGS);
     c.register("settings keys", "Edit key mappings.", |ed, _| {
         open_keys(ed);
         Ok(())
-    });
+    })
+    .category(SETTINGS);
     c.register(
         "settings plugin",
         "Edit a plugin's settings: `:settings plugin NAME`.",
@@ -38,17 +47,32 @@ pub(crate) fn register(c: &mut Commands) {
             let name = a.arg.ok_or("E471: Use :settings plugin NAME")?;
             open_plugin_form(ed, name)
         },
-    );
+    )
+    .category(SETTINGS)
+    .param(Param::required("PLUGIN", "Plugin whose settings to edit.").complete(Complete::Plugin));
     c.register(
         "settings save",
         "Save a submitted settings form: `:settings save vox|plugin NAME`.",
         save,
-    );
+    )
+    .category(SETTINGS)
+    .param(Param::required("TARGET", "`vox`, or `plugin NAME`.").values(&["vox", "plugin"]));
     c.register(
         "settings key",
         "Key mappings: `:settings key add MODE KEYS TARGET`, `delete MODE KEYS`, `list`.",
         key,
-    );
+    )
+    .category(SETTINGS)
+    .param(Param::required("ACTION", "What to do.").values(&["add", "delete", "list"]))
+    .param(Param::optional("MODE", "n, i, or v.").values(&["n", "i", "v"]))
+    .param(Param::optional(
+        "KEYS",
+        "Keys in Vim notation, e.g. `<leader>w`.",
+    ))
+    .param(Param::optional("TARGET", "`:command` or keys (for add)."))
+    .returns("`list`: a list, one table per mapping: mode, keys, target, owner.")
+    .example("settings key add n <leader>w :w", "save with leader w")
+    .example("settings key delete n <leader>w", "remove that mapping");
 }
 
 /// Where changes go, for titles and messages.

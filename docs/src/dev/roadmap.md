@@ -24,7 +24,7 @@ Built one milestone at a time; each ships with tests, docs, and a changelog entr
 | M12 | 0.14.0 | Command API: `Editor::execute` returns a result, `Editor::reply` lets commands return data (`Value`); non-interactive mode (missing arguments and confirmations are errors, views are refused); data commands: `plugin list`, `plugin info`, `settings list/get/set/unset`, `settings key list`, `commands list`, `scope show` | done |
 | M13 | 0.15.0 | Updater: at start-up check the newest `vX.Y.Z` tag of vox's repository (`git ls-remote`, background job), ask to install it (`cargo install --git --tag`); `:update check`, `:update install [VERSION]`, `check_updates = false` | done |
 | M14 | 0.16.0 | Headless CLI: `vox run [--local-config [DIR] \| --vanilla] [--json] [--file FILE] CMD... \| -` runs commands without a terminal, waits for background jobs, prints replies as text or JSON (`Value::to_json`), messages to stderr; exit status 0 / 1 (a command failed) / 2 (bad arguments) | done |
-| M15 | 0.17.0 | Command metadata and help: commands declare category, parameters, result, examples; `:help CMD` / `:?CMD` dialog; `help` in `vox run` | planned |
+| M15 | 0.17.0 | Command metadata and help: commands declare category, parameters, result, examples; `:help CMD` / `:?CMD` dialog; `help` in `vox run` | done |
 | M16 | 0.18.0 | Command browser: `:commands` as a tree (category → command → subcommand) with sub-panels, breadcrumb path, filter, run, help | planned |
 | M17 | 0.19.0 | Prompt and completion: `:` and `/` prompt in the status line, a floating box, or a modal (configurable); completion menu while typing, `Tab` completes; argument hints; prompt history | planned |
 

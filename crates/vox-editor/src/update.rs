@@ -30,6 +30,8 @@ pub struct UpdateSource {
 
 /// Register `:update check` and `:update install`.
 pub(crate) fn register(c: &mut Commands) {
+    use crate::command::category::UPDATE;
+    use crate::command::{Complete, Param};
     c.register(
         "update check",
         "Look for a newer vox release and ask whether to install it.",
@@ -38,12 +40,22 @@ pub(crate) fn register(c: &mut Commands) {
             spawn_check(ed, src, false);
             Ok(())
         },
-    );
+    )
+    .category(UPDATE);
     c.register(
         "update install",
         "Install a vox release with cargo: `:update install [VERSION]` (default: the newest).",
         install_cmd,
-    );
+    )
+    .category(UPDATE)
+    .param(
+        Param::optional(
+            "VERSION",
+            "Release to install, e.g. `0.17.0` (default: the newest).",
+        )
+        .complete(Complete::Version),
+    )
+    .example("update install", "the newest release");
 }
 
 /// The update source, or why updates are not available.

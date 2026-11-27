@@ -20,8 +20,11 @@ none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
 | `:e! [FILE]` | open/reload, discarding changes |
 | `:notify [info\|warn\|error] TEXT` | show a notification |
 | `:messages`, `:mes` | message history in the bottom panel |
+| `:help [COMMAND]`, `:h`, `:?COMMAND` | [help](#help) for a command or group; no argument lists all commands |
 | `:commands` | list all commands in a modal; `Enter` runs one |
-| `:commands list` | all commands as data (name, description, owner, aliases) |
+| `:commands list` | all commands as data, with their help (category, usage, params, …) |
+| `:commands info COMMAND` | one command's help as data |
+| `:commands run COMMAND` | run a command; asks for its arguments first if it needs some |
 | `:keymaps` | your key mappings in the side panel |
 | `:close` | close the modal or the focused panel |
 | `:focus editor\|side\|bottom` | move focus |
@@ -56,6 +59,26 @@ none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
 | `:scope setup` | open the project set-up dialog (local mode) |
 | `:scope pick` | checklist of global config and plugins to copy into the project |
 | `:scope init empty\|all\|[config] [PLUGIN...]` | create `.vox/` and copy from the global setup |
+
+## Help
+
+`:help COMMAND` opens a dialog with everything about a command: where it sits
+(`Commands › Plugins › plugin › add`), what it does, its usage line, parameters (required or
+optional, allowed values), what `!` changes, what it returns, and examples. Aliases work
+(`:help w`), and so does the short form typed at the `:` prompt: `:?w`, `:?plugin add`.
+
+A group such as `:help plugin` lists its subcommands. Keys in the dialog:
+
+| Key | Action |
+|---|---|
+| `j` / `k` | select a subcommand (or scroll) |
+| `Enter` | open the selected subcommand's help; `Esc` comes back here |
+| `r` | run the command; asks for its arguments if it needs some |
+| `g` | back to the top |
+| `Esc` / `q` | back to the previous dialog, or close |
+
+Plugins add help to their commands too (see [Writing plugins](../dev/plugins.md#command-help)).
+`vox run help COMMAND` prints the same help as data.
 
 ## Commands that return data
 

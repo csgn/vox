@@ -955,5 +955,36 @@
         "text": "After the key is handled, open views refresh, so the row now reads `disabled`."
       }
     ]
+  },
+  {
+    "id": "help",
+    "title": "Asking for a command's help",
+    "summary": "`:?plugin add`, then `r` to run it.",
+    "steps": [
+      {
+        "fn": "vox-editor::Editor::exec_command",
+        "text": "`:?plugin add` is rewritten to `:help plugin add` before the command is looked up."
+      },
+      {
+        "fn": "vox-editor::help::resolve",
+        "text": "Finds what the topic names: a command or alias (`w` → `write`), or a group of subcommands (`plugin`)."
+      },
+      {
+        "fn": "vox-editor::Commands::register",
+        "text": "The help comes from metadata added when the command was registered: `.category()`, `.param()`, `.force()`, `.returns()`, `.example()`."
+      },
+      {
+        "fn": "vox-editor::HelpView::new",
+        "text": "Builds the page: breadcrumb path, description, usage (`Command::usage`), parameters, examples, subcommands."
+      },
+      {
+        "fn": "vox-editor::HelpView::handle_key",
+        "text": "`Enter` on a subcommand returns `Outcome::RunAndClose(\"help NAME\")`; the editor keeps this dialog in the modal history, so `Esc` comes back. `r` returns `commands run NAME`."
+      },
+      {
+        "fn": "vox-editor::help::run",
+        "text": "Runs the command at once, or opens an `Input` for its arguments when a parameter is required."
+      }
+    ]
   }
 ]

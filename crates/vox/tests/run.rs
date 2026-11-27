@@ -85,6 +85,17 @@ fn settings_are_saved_to_the_scope() {
 }
 
 #[test]
+fn help_prints_command_metadata() {
+    let (code, stdout, _) = out(&vox(&["run", "--vanilla", "--json", "help w"], None));
+    assert_eq!(code, 0);
+    assert!(stdout.contains(r#""name":"write""#), "{stdout}");
+    assert!(stdout.contains(r#""usage":"write [FILE]""#), "{stdout}");
+    let (code, _, stderr) = out(&vox(&["run", "--vanilla", "help nope"], None));
+    assert_eq!(code, 1);
+    assert!(stderr.contains("E149"), "{stderr}");
+}
+
+#[test]
 fn first_failure_stops_with_status_1() {
     let (code, stdout, stderr) = out(&vox(&["run", "--vanilla", "nope", "scope show"], None));
     assert_eq!((code, stdout.as_str()), (1, ""));

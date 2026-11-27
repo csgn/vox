@@ -1670,6 +1670,10 @@ impl Editor {
 
     /// Find and run the command for `line`; see [`Editor::execute`].
     fn exec_command(&mut self, line: &str) -> Result<Option<crate::config::Value>, String> {
+        // `:?plugin add` is short for `:help plugin add`.
+        if let Some(topic) = line.trim_start().strip_prefix('?') {
+            return self.exec_command(&format!("help {topic}"));
+        }
         let (root, args) = command::parse_line(line);
         if root.is_empty() {
             return Ok(None);

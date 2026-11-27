@@ -264,6 +264,13 @@ fn register_plugin_new(editor: &mut Editor) {
                 );
                 Ok(())
             },
-        );
+        )
+        .category(vox_editor::command::category::PLUGINS)
+        .param(vox_editor::Param::required("NAME", "Name of the new plugin."))
+        .param(
+            vox_editor::Param::optional("DIR", "Folder to create it in (default: the current folder).")
+                .complete(vox_editor::Complete::Dir),
+        )
+        .example("plugin new hello ~/code", "create ~/code/hello");
     });
 }

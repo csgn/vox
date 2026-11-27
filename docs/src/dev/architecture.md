@@ -35,6 +35,9 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
   mode handler. Mapped keys are dispatched without re-mapping.
 - `Commands`: name/alias → handler `Fn(&mut Editor, Args) -> Result<(), String>`. Built-ins
   live in `builtin.rs` and are registered like any other command. `run_command(line)` runs one.
+  Each `Command` also carries metadata: category, `Param`s (with a `Complete` source),
+  returns, force, examples. `help.rs` turns it into the `:help` dialog (`HelpView`) and data
+  (`:commands info`); `:?TOPIC` is rewritten to `:help TOPIC` in `exec_command`.
 - `Config::from_value(&Value)`: validates settings from a format-neutral `Value` tree (the TOML
   file is parsed by the `vox-config-file` adapter); `Editor::apply_config` installs them.
 - `Editor::exec(Cmd)`: operators turn a motion into a range (exclusive / inclusive /

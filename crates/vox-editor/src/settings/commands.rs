@@ -11,26 +11,47 @@ use crate::ui::Level;
 
 /// Register the commands.
 pub(super) fn register(c: &mut Commands) {
+    use crate::command::category::SETTINGS;
+    use crate::command::{Complete, Param};
     c.register(
         "settings list",
         "Return every setting as data: key, value, default, type, description.",
         list,
-    );
+    )
+    .category(SETTINGS)
+    .returns("A list, one table per setting: key, value, default, type, description.");
     c.register(
         "settings get",
         "Return a setting's value: `:settings get KEY` (e.g. `ui.side_width`, `plugins.NAME.KEY`).",
         get,
-    );
+    )
+    .category(SETTINGS)
+    .param(Param::required("KEY", "Dotted setting key.").complete(Complete::SettingKey))
+    .returns("The setting's current value.")
+    .example("settings get ui.side_width", "width of the side panel");
     c.register(
         "settings set",
         "Change a setting and save it to the scope's config: `:settings set KEY VALUE`.",
         set,
+    )
+    .category(SETTINGS)
+    .param(Param::required("KEY", "Dotted setting key.").complete(Complete::SettingKey))
+    .param(Param::required(
+        "VALUE",
+        "New value; checked against the setting's type and limits.",
+    ))
+    .example("settings set ui.side_width 50", "a wider side panel")
+    .example(
+        "settings set plugins.text-tools.case lower",
+        "a plugin's setting",
     );
     c.register(
         "settings unset",
         "Remove a setting from the scope's config (back to its default): `:settings unset KEY`.",
         unset,
-    );
+    )
+    .category(SETTINGS)
+    .param(Param::required("KEY", "Dotted setting key.").complete(Complete::SettingKey));
 }
 
 /// A setting found by its dotted key.

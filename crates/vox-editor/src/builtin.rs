@@ -14,72 +14,128 @@ const E37: &str = "E37: No write since last change (add ! to override)";
 
 /// Register all built-in commands and their Vim-style short names.
 pub(crate) fn register(c: &mut Commands) {
-    c.register("write", "Save the file. `:w FILE` saves as FILE.", write);
+    use crate::command::category::{DEVELOPER, FILE, HELP, INTERFACE, SCOPE};
+    use crate::command::{Complete, Param};
+    c.register("write", "Save the file. `:w FILE` saves as FILE.", write)
+        .category(FILE)
+        .param(
+            Param::optional("FILE", "Save to this file and make it the current one.")
+                .complete(Complete::File),
+        )
+        .example("w", "save the current file")
+        .example("w notes.txt", "save as notes.txt");
     c.alias("w", "write");
     c.register(
         "quit",
         "Quit. Refuses if there are unsaved changes; `:q!` discards them.",
         quit,
-    );
+    )
+    .category(FILE)
+    .force("Quit even if there are unsaved changes (they are lost).");
     for a in ["q", "qa", "qall"] {
         c.alias(a, "quit");
     }
-    c.register("wq", "Save, then quit.", write_quit);
-    c.register("xit", "Save if modified, then quit.", xit);
+    c.register("wq", "Save, then quit.", write_quit)
+        .category(FILE)
+        .param(Param::optional("FILE", "Save to this file.").complete(Complete::File));
+    c.register("xit", "Save if modified, then quit.", xit)
+        .category(FILE)
+        .param(Param::optional("FILE", "Save to this file.").complete(Complete::File));
     c.alias("x", "xit");
     c.register(
         "edit",
         "Open FILE, or reload the current file. `:e!` discards changes.",
         edit,
-    );
+    )
+    .category(FILE)
+    .param(
+        Param::optional("FILE", "File to open; none reloads the current file.")
+            .complete(Complete::File),
+    )
+    .force("Open or reload even if there are unsaved changes (they are lost).")
+    .example("e notes.txt", "open notes.txt")
+    .example("e!", "reload the current file, discarding changes");
     c.alias("e", "edit");
     c.register(
         "notify",
         "Show a notification: `:notify [info|warn|error] TEXT`.",
         notify,
-    );
+    )
+    .category(INTERFACE)
+    .param(
+        Param::optional("LEVEL", "How important it is (default info).")
+            .values(&["info", "warn", "error"]),
+    )
+    .param(Param::required("TEXT", "The text to show."))
+    .example("notify warn disk almost full", "a yellow notification");
     c.register(
         "messages",
         "Show message history in the bottom panel.",
         messages,
-    );
+    )
+    .category(INTERFACE);
     c.alias("mes", "messages");
-    c.register("commands", "List all commands; Enter runs one.", commands);
+    c.register("commands", "List all commands; Enter runs one.", commands)
+        .category(HELP);
     c.register(
         "commands list",
         "Return every command as data: name, description, owner, aliases.",
         commands_list,
-    );
+    )
+    .category(HELP)
+    .returns("A list, one table per command: name, description, owner, aliases, category, usage, params, returns, force, examples.");
+    crate::help::register(c);
     c.register(
         "keymaps",
         "List your key mappings in the side panel.",
         keymaps,
-    );
-    c.register("close", "Close the modal or the focused panel.", close);
-    c.register("focus", "Move focus: `:focus editor|side|bottom`.", focus);
+    )
+    .category(INTERFACE);
+    c.register("close", "Close the modal or the focused panel.", close)
+        .category(INTERFACE);
+    c.register("focus", "Move focus: `:focus editor|side|bottom`.", focus)
+        .category(INTERFACE)
+        .param(
+            Param::required("TARGET", "Where keys go next.").values(&["editor", "side", "bottom"]),
+        );
     c.register(
         "log",
         "Show the log in the bottom panel: `:log [debug|info|warn|error] [SOURCE]`.",
         log,
-    );
+    )
+    .category(DEVELOPER)
+    .param(
+        Param::optional("LEVEL", "Lowest level shown (default debug).")
+            .values(&["debug", "info", "warn", "error"]),
+    )
+    .param(Param::optional(
+        "SOURCE",
+        "Only entries from this source, e.g. `editor` or `plugin:NAME`.",
+    ))
+    .example("log warn", "warnings and errors only");
     c.register("log refresh", "Refresh open log views.", |ed, _| {
         ed.refresh_log_views();
         Ok(())
-    });
+    })
+    .category(DEVELOPER);
     c.register("log clear", "Clear the log.", |ed, _| {
         ed.clear_log();
         Ok(())
-    });
+    })
+    .category(DEVELOPER);
     c.register(
         "devmode",
         "Developer mode: `:devmode on|off`, no argument toggles.",
         devmode,
-    );
+    )
+    .category(DEVELOPER)
+    .param(Param::optional("STATE", "Turn it on or off; none toggles.").values(&["on", "off"]));
     c.register(
         "scope",
         "Show the active scope (global, local, vanilla) and its paths.",
         scope,
-    );
+    )
+    .category(SCOPE);
     crate::settings::register(c);
     crate::plugin::manage::register(c);
     crate::update::register(c);
@@ -87,22 +143,43 @@ pub(crate) fn register(c: &mut Commands) {
         "scope setup",
         "Open the project set-up dialog (local mode).",
         |ed, _| open_setup(ed),
-    );
+    )
+    .category(SCOPE);
     c.register(
         "scope show",
         "Return the active scope and its paths as data.",
         scope_show,
-    );
+    )
+    .category(SCOPE)
+    .returns("A table: kind (global, local, vanilla), config, plugins, lockfile (paths; left out in vanilla mode), exists.");
     c.register(
         "scope init",
         "Set up the project's .vox: `:scope init empty|all|[config] [PLUGIN...]`.",
         scope_init,
+    )
+    .category(SCOPE)
+    .param(
+        Param::optional(
+            "WHAT",
+            "`empty`, `all`, `config`, or names of global plugins to copy.",
+        )
+        .repeated()
+        .complete(Complete::Plugin),
+    )
+    .example(
+        "scope init all",
+        "copy the global config and all global plugins",
+    )
+    .example(
+        "scope init config text-tools",
+        "copy the config and one plugin",
     );
     c.register(
         "scope pick",
         "Choose global config/plugins to copy into the project.",
         scope_pick,
-    );
+    )
+    .category(SCOPE);
 }
 
 /// `:write [FILE]` / `:w`.
@@ -193,20 +270,12 @@ fn commands(ed: &mut Editor, _: Args<'_>) -> CommandResult {
     Ok(())
 }
 
-/// `:commands list`: every command as data.
+/// `:commands list`: every command with its metadata as data.
 fn commands_list(ed: &mut Editor, _: Args<'_>) -> CommandResult {
     let list = ed
         .commands()
         .iter()
-        .map(|c| {
-            let aliases = ed.commands().aliases_of(&c.name).map(Value::from).collect();
-            Value::table([
-                ("name", Value::from(c.name.as_str())),
-                ("description", c.description.as_str().into()),
-                ("owner", c.owner.as_str().into()),
-                ("aliases", Value::Array(aliases)),
-            ])
-        })
+        .map(|c| crate::help::command_value(ed.commands(), c))
         .collect();
     ed.reply(Value::Array(list));
     Ok(())

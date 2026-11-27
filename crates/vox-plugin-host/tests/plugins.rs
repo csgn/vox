@@ -73,6 +73,28 @@ fn text_tools_wordcount_command() {
 }
 
 #[test]
+fn plugin_describes_its_commands() {
+    let mut ed = editor("x");
+    host().load(&mut ed, &plugin("text-tools")).unwrap();
+    let wc = ed.commands().get("wordcount").unwrap();
+    assert_eq!(wc.category, "Text");
+    assert_eq!(wc.examples[0].line, "wordcount");
+    // A plugin command without help gets the default category.
+    let mut ed = editor("x");
+    host().load(&mut ed, &plugin("misbehave")).unwrap();
+    let c = ed
+        .commands()
+        .iter()
+        .find(|c| c.owner == "plugin:misbehave")
+        .unwrap();
+    assert_eq!(c.category, "Plugin: misbehave");
+    // :help works for plugin commands.
+    ed.resize(80, 24);
+    feed(&mut ed, ":help ok<CR>");
+    assert_eq!(ed.modal_title().as_deref(), Some(":help ok"));
+}
+
+#[test]
 fn text_tools_mapping_and_edit_with_undo() {
     let mut ed = editor("abc\nmixed Case");
     host().load(&mut ed, &plugin("text-tools")).unwrap();

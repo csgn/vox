@@ -7,6 +7,7 @@ pub mod command;
 pub mod config;
 mod editor;
 pub mod event;
+pub mod help;
 pub mod keymap;
 mod keys;
 pub mod log;
@@ -21,7 +22,7 @@ mod surface;
 pub mod ui;
 pub mod update;
 
-pub use command::{Args, CommandResult, Commands};
+pub use command::{Args, Command, CommandResult, Commands, Complete, Example, Param};
 pub use config::{Config, Value};
 pub use editor::{Editor, JobDone, Mode, Services};
 pub use event::{Event, EventKind, ModeKind};

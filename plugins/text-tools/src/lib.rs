@@ -4,7 +4,9 @@
 //! - `:upper` changes the case of the cursor line (setting `case`: upper, lower, title).
 //! - After every save, shows the word count (setting `count_on_save`).
 
-use vox_plugin_sdk::{Event, EventKind, Level, MapMode, Plugin, Position, editor, export_plugin};
+use vox_plugin_sdk::{
+    CommandInfo, Event, EventKind, Level, MapMode, Plugin, Position, editor, export_plugin,
+};
 
 struct TextTools;
 
@@ -44,6 +46,16 @@ impl Plugin for TextTools {
     fn init() -> Result<(), String> {
         editor::register_command("wordcount", "Count words, lines, and characters");
         editor::register_command("upper", "Change the case of the cursor line (setting `case`)");
+        editor::describe_command(
+            "wordcount",
+            &CommandInfo::new().category("Text").example("wordcount", "e.g. 12 words, 3 lines, 70 characters"),
+        );
+        editor::describe_command(
+            "upper",
+            &CommandInfo::new()
+                .category("Text")
+                .example("upper", "HELLO WORLD (or lower / Title, see the `case` setting)"),
+        );
         editor::map_key(MapMode::Normal, "<leader>c", ":wordcount");
         editor::subscribe(EventKind::BufWrite);
         editor::log(Level::Info, "text-tools ready: :wordcount, :upper, <leader>c");

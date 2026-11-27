@@ -52,6 +52,56 @@ interface types {
         message: string,
     }
 
+    /// Where completions of a command parameter come from (the `:` prompt's completion).
+    variant completion {
+        /// Free text.
+        none,
+        /// A file path.
+        file,
+        /// A directory path.
+        dir,
+        /// A command name.
+        command,
+        /// A plugin of the active scope.
+        plugin,
+        /// A setting key (`ui.side_width`, `plugins.NAME.KEY`).
+        setting-key,
+        /// A vox version.
+        version,
+        /// One of these words.
+        values(list<string>),
+    }
+
+    /// One parameter of a command.
+    record param-info {
+        /// Shown in usage, e.g. `FILE`.
+        name: string,
+        description: string,
+        /// Must be given.
+        required: bool,
+        /// May be given more than once.
+        repeated: bool,
+        complete: completion,
+    }
+
+    /// An example command line (without `:`) and what it does.
+    record example {
+        line: string,
+        note: string,
+    }
+
+    /// Help for a command, shown by `:help NAME` and used for completion.
+    record command-info {
+        /// Group it is listed under; `none` means `Plugin: NAME`.
+        category: option<string>,
+        params: list<param-info>,
+        /// What the command replies with, if it returns data.
+        returns: option<string>,
+        /// What `:name!` does differently; `none` if `!` means nothing.
+        force: option<string>,
+        examples: list<example>,
+    }
+
     /// Event categories a plugin can subscribe to.
     enum event-kind {
         buf-open,
@@ -75,10 +125,13 @@ interface types {
 
 /// What a plugin can ask the editor to do.
 interface editor {
-    use types.{position, mode, map-mode, event-kind, level, setting-value};
+    use types.{position, mode, map-mode, event-kind, level, setting-value, command-info};
 
     /// Add a `:` command. When the user runs it, vox calls the plugin's `run-command`.
     register-command: func(name: string, description: string);
+    /// Add help to a command this plugin registered (call after `register-command`).
+    /// Needs vox 0.17 or newer.
+    describe-command: func(name: string, info: command-info);
     /// Map keys (Vim notation, `<leader>` allowed). `binding` starting with `:` runs a
     /// command; anything else is keys.
     map-key: func(mode: map-mode, keys: string, binding: string);

@@ -32,7 +32,7 @@ See `ARCHITECTURE.md` for the crate table. Key points:
 - `vox` binary parses CLI, picks the scope, builds `Services` (`crates/vox-editor/src/editor.rs`) with adapter impls, loads config + plugins, runs the `vox-term` loop.
 - `Editor::handle_key` is independent of the event loop; `Editor::render() -> Surface` is pure. Both are tested without a terminal.
 - Background work (plugin install/sync) runs as jobs reporting via an mpsc channel on `Editor`.
-- Developer API in `vox-editor`: command registry (`command.rs`), key mappings (`keymap.rs`), events (`event.rs`), `Config` from a format-neutral `Value`. Built-ins in `builtin.rs`. Plugins use the same API through `vox-plugin-host`; things are tracked by owner (`owner.rs`) so a plugin's registrations can be removed on reload.
+- Developer API in `vox-editor`: command registry (`command.rs`; every command gets metadata via `register(..).category(..).param(..)`, shown by `:help` in `help.rs`), key mappings (`keymap.rs`), events (`event.rs`), `Config` from a format-neutral `Value`. Built-ins in `builtin.rs`. Plugins use the same API through `vox-plugin-host`; things are tracked by owner (`owner.rs`) so a plugin's registrations can be removed on reload.
 - Plugin contract: `wit/vox.wit`. Authors use `vox-plugin-sdk` (not linked into vox). Examples: `plugins/text-tools`, `plugins/misbehave` (misbehaving plugin for host limit tests).
 - Scopes: exactly one active — global (`~/.config/vox/`), local (`<project>/.vox/`, found upward like git), vanilla (none). Each has `config.toml`, `plugins/`, `vox.lock`.
 - UI layer (`vox-editor/src/ui`): panels, modal, notifications, forms/views; settings dialog in `settings/`, plugin manager in `plugin/manager.rs`.

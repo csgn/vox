@@ -5,13 +5,18 @@
 //! contract is `wit/vox.wit`. Start a new plugin with `:plugin new NAME DIR` in vox.
 //!
 //! ```ignore
-//! use vox_plugin_sdk::{Plugin, editor, export_plugin};
+//! use vox_plugin_sdk::{CommandInfo, Plugin, editor, export_plugin};
 //!
 //! struct Hello;
 //!
 //! impl Plugin for Hello {
 //!     fn init() -> Result<(), String> {
 //!         editor::register_command("hello", "Say hello");
+//!         // Optional: help for `:help hello` and completion.
+//!         editor::describe_command(
+//!             "hello",
+//!             &CommandInfo::new().example("hello", "show the greeting"),
+//!         );
 //!         Ok(())
 //!     }
 //!     fn run_command(name: String, _arg: Option<String>, _force: bool) -> Result<(), String> {
@@ -43,7 +48,8 @@ pub mod bindings {
 /// read settings, log.
 pub use bindings::vox::plugin::editor;
 pub use bindings::vox::plugin::types::{
-    Event, EventKind, HealthItem, Level, MapMode, Mode, Position, SettingValue,
+    CommandInfo, Completion, Event, EventKind, Example, HealthItem, Level, MapMode, Mode,
+    ParamInfo, Position, SettingValue,
 };
 
 /// What a plugin implements. `on_event` and `health` are optional.
@@ -84,6 +90,98 @@ impl SettingValue {
             SettingValue::Boolean(b) => Some(*b),
             _ => None,
         }
+    }
+}
+
+impl CommandInfo {
+    /// Help with nothing set: category `Plugin: NAME`, no parameters.
+    pub fn new() -> Self {
+        Self {
+            category: None,
+            params: Vec::new(),
+            returns: None,
+            force: None,
+            examples: Vec::new(),
+        }
+    }
+
+    /// Set the category the command is listed under.
+    pub fn category(mut self, category: &str) -> Self {
+        self.category = Some(category.into());
+        self
+    }
+
+    /// Add a parameter.
+    pub fn param(mut self, param: ParamInfo) -> Self {
+        self.params.push(param);
+        self
+    }
+
+    /// Describe what the command replies with.
+    pub fn returns(mut self, returns: &str) -> Self {
+        self.returns = Some(returns.into());
+        self
+    }
+
+    /// Describe what `:name!` does.
+    pub fn force(mut self, force: &str) -> Self {
+        self.force = Some(force.into());
+        self
+    }
+
+    /// Add an example command line (without `:`) and what it does.
+    pub fn example(mut self, line: &str, note: &str) -> Self {
+        self.examples.push(Example {
+            line: line.into(),
+            note: note.into(),
+        });
+        self
+    }
+}
+
+impl Default for CommandInfo {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ParamInfo {
+    /// A parameter that must be given.
+    pub fn required(name: &str, description: &str) -> Self {
+        Self {
+            name: name.into(),
+            description: description.into(),
+            required: true,
+            repeated: false,
+            complete: Completion::None,
+        }
+    }
+
+    /// A parameter that may be left out.
+    pub fn optional(name: &str, description: &str) -> Self {
+        Self {
+            required: false,
+            ..Self::required(name, description)
+        }
+    }
+
+    /// Allow the parameter more than once.
+    pub fn repeated(mut self) -> Self {
+        self.repeated = true;
+        self
+    }
+
+    /// Set where completions come from.
+    pub fn complete(mut self, complete: Completion) -> Self {
+        self.complete = complete;
+        self
+    }
+
+    /// Complete from a fixed set of words.
+    pub fn values(self, values: &[&str]) -> Self {
+        self.complete(Completion::Values(
+            values.iter().map(|v| v.to_string()).collect(),
+        ))
     }
 }
 

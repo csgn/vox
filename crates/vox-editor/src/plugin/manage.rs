@@ -13,6 +13,10 @@ use crate::ui::Level;
 
 /// Register the commands.
 pub(crate) fn register(c: &mut Commands) {
+    use crate::command::category::PLUGINS;
+    use crate::command::{Complete, Param};
+    let plugin =
+        || Param::required("NAME", "A plugin of the active scope.").complete(Complete::Plugin);
     c.register(
         "plugins",
         "Open the plugin manager (modal or side panel, see [ui] plugin_manager).",
@@ -20,7 +24,8 @@ pub(crate) fn register(c: &mut Commands) {
             open_manager(ed);
             Ok(())
         },
-    );
+    )
+    .category(PLUGINS);
     c.register("plugins help", "Keys of the plugin manager.", |ed, _| {
         let lines = super::manager::HELP
             .iter()
@@ -31,17 +36,22 @@ pub(crate) fn register(c: &mut Commands) {
             lines,
         )));
         Ok(())
-    });
+    })
+    .category(PLUGINS);
     c.register(
         "plugin enable",
         "Turn a plugin on (removes `enabled = false` from config.toml) and load it.",
         |ed, a| set_enabled(ed, a, true),
-    );
+    )
+    .category(PLUGINS)
+    .param(plugin());
     c.register(
         "plugin disable",
         "Turn a plugin off (`enabled = false` in config.toml) and unload it.",
         |ed, a| set_enabled(ed, a, false),
-    );
+    )
+    .category(PLUGINS)
+    .param(plugin());
     c.register(
         "plugin files",
         "Open a plugin's plugin.toml: `:plugin files NAME`.",
@@ -61,32 +71,51 @@ pub(crate) fn register(c: &mut Commands) {
             ed.run_command(&format!("e {}", path.display()));
             Ok(())
         },
-    );
+    )
+    .category(PLUGINS)
+    .param(plugin());
     c.register(
         "plugin list",
         "Return the active scope's plugins as data: name, version, status, path.",
         list,
-    );
+    )
+    .category(PLUGINS)
+    .returns("A list, one table per plugin: name, status, path, version.");
     c.register(
         "plugin info",
         "Return one plugin as data: `:plugin info NAME` (manifest, settings, health).",
         info,
-    );
+    )
+    .category(PLUGINS)
+    .param(plugin())
+    .returns("A table: name, version, status, path, description, authors, settings, health.");
     c.register(
         "plugin add",
         "Install a plugin into the active scope: `:plugin add PATH` or `:plugin add GIT_URL[@REF]`.",
         add,
-    );
+    )
+    .category(PLUGINS)
+    .param(
+        Param::required("SOURCE", "A plugin folder, or a git URL with an optional `@REF` (tag, branch, commit).")
+            .complete(Complete::Dir),
+    )
+    .example("plugin add ~/code/my-plugin", "install from a folder")
+    .example("plugin add https://github.com/USER/REPO.git@v1.0.0", "install a tag from git");
     c.register(
         "plugin remove",
         "Uninstall a plugin from the active scope: asks first; `:plugin remove! NAME` does not.",
         remove,
-    );
+    )
+    .category(PLUGINS)
+    .param(plugin())
+    .force("Remove without asking.")
+    .example("plugin remove! text-tools", "uninstall without a question");
     c.register(
         "plugins sync",
         "Install exactly what vox.lock lists (missing or changed plugins).",
         sync,
-    );
+    )
+    .category(PLUGINS);
 }
 
 /// Everything a job needs, owned (jobs run on another thread).

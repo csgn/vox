@@ -16,11 +16,14 @@ use std::time::Duration;
 use std::path::PathBuf;
 use vox_core::Position;
 
+use vox_editor::command::category;
 use vox_editor::config::{Value, ValueParser};
 use vox_editor::plugin::package::{self, AssessEnv, Package, PluginInfo};
 use vox_editor::plugin::{API_VERSION, HealthItem, HealthStatus, Version, health};
 use vox_editor::ui::TextView;
-use vox_editor::{Color, Editor, Event, EventKind, Level, MapMode, ModeKind, Style, owner};
+use vox_editor::{
+    Color, Complete, Editor, Event, EventKind, Level, MapMode, ModeKind, Param, Style, owner,
+};
 use wasmtime::component::{Component, HasSelf, Linker, ResourceTable};
 use wasmtime::{Config, Engine, Store, StoreLimits, StoreLimitsBuilder};
 use wasmtime_wasi::{WasiCtx, WasiCtxView, WasiView};
@@ -303,72 +306,80 @@ impl PluginHost {
     pub fn register_commands(host: Rc<PluginHost>, editor: &mut Editor, dir: PathBuf) {
         let h = host.clone();
         editor.with_owner(owner::BUILTIN, |ed| {
-            ed.commands_mut().register(
-                "reload plugins",
-                "Reload one plugin (`:reload plugins NAME`) or all plugins.",
-                move |ed, args| {
-                    let infos: Vec<Result<String, String>> = match args.arg {
-                        // A plugin the host does not know yet (just installed): load it.
-                        Some(name)
-                            if !h.names().iter().any(|n| n == name) && dir.join(name).exists() =>
-                        {
-                            vec![h.load(ed, &dir.join(name))]
+            ed.commands_mut()
+                .register(
+                    "reload plugins",
+                    "Reload one plugin (`:reload plugins NAME`) or all plugins.",
+                    move |ed, args| {
+                        let infos: Vec<Result<String, String>> = match args.arg {
+                            // A plugin the host does not know yet (just installed): load it.
+                            Some(name)
+                                if !h.names().iter().any(|n| n == name)
+                                    && dir.join(name).exists() =>
+                            {
+                                vec![h.load(ed, &dir.join(name))]
+                            }
+                            Some(name) => vec![h.reload(ed, name)],
+                            None => h
+                                .reload_all(ed, &dir)
+                                .into_iter()
+                                .filter(|i| i.status != HealthStatus::Disabled)
+                                .map(|i| {
+                                    if i.loadable() {
+                                        Ok(i.name.clone())
+                                    } else {
+                                        Err(failure(&i))
+                                    }
+                                })
+                                .collect(),
+                        };
+                        let ok = infos.iter().filter(|r| r.is_ok()).count();
+                        let errors: Vec<String> =
+                            infos.into_iter().filter_map(Result::err).collect();
+                        match errors.first() {
+                            None => ed.notify(Level::Info, format!("reloaded {ok} plugin(s)")),
+                            Some(e) => ed.notify(
+                                Level::Error,
+                                format!("reloaded {ok}, failed {}: {e}", errors.len()),
+                            ),
                         }
-                        Some(name) => vec![h.reload(ed, name)],
-                        None => h
-                            .reload_all(ed, &dir)
+                        Ok(())
+                    },
+                )
+                .category(category::DEVELOPER)
+                .param(Param::optional("NAME", "Only this plugin.").complete(Complete::Plugin));
+            ed.commands_mut()
+                .register(
+                    "checkhealth",
+                    "Health report of all plugins, or one: `:checkhealth NAME`.",
+                    move |ed, args| {
+                        host.recheck(ed);
+                        let mut infos = host.plugins();
+                        if let Some(name) = args.arg {
+                            infos.retain(|i| i.name == name);
+                            if infos.is_empty() {
+                                return Err(format!("E900: no plugin named {name}"));
+                            }
+                        }
+                        let lines = package::report(&infos)
                             .into_iter()
-                            .filter(|i| i.status != HealthStatus::Disabled)
-                            .map(|i| {
-                                if i.loadable() {
-                                    Ok(i.name.clone())
-                                } else {
-                                    Err(failure(&i))
-                                }
+                            .map(|(key, text)| {
+                                let style = match key {
+                                    "title" => Style::BOLD,
+                                    "ok" => Style::default().fg(Color::Green),
+                                    "warn" => Style::default().fg(Color::Yellow),
+                                    "error" => Style::default().fg(Color::Red),
+                                    _ => Style::default(),
+                                };
+                                (style, text)
                             })
-                            .collect(),
-                    };
-                    let ok = infos.iter().filter(|r| r.is_ok()).count();
-                    let errors: Vec<String> = infos.into_iter().filter_map(Result::err).collect();
-                    match errors.first() {
-                        None => ed.notify(Level::Info, format!("reloaded {ok} plugin(s)")),
-                        Some(e) => ed.notify(
-                            Level::Error,
-                            format!("reloaded {ok}, failed {}: {e}", errors.len()),
-                        ),
-                    }
-                    Ok(())
-                },
-            );
-            ed.commands_mut().register(
-                "checkhealth",
-                "Health report of all plugins, or one: `:checkhealth NAME`.",
-                move |ed, args| {
-                    host.recheck(ed);
-                    let mut infos = host.plugins();
-                    if let Some(name) = args.arg {
-                        infos.retain(|i| i.name == name);
-                        if infos.is_empty() {
-                            return Err(format!("E900: no plugin named {name}"));
-                        }
-                    }
-                    let lines = package::report(&infos)
-                        .into_iter()
-                        .map(|(key, text)| {
-                            let style = match key {
-                                "title" => Style::BOLD,
-                                "ok" => Style::default().fg(Color::Green),
-                                "warn" => Style::default().fg(Color::Yellow),
-                                "error" => Style::default().fg(Color::Red),
-                                _ => Style::default(),
-                            };
-                            (style, text)
-                        })
-                        .collect();
-                    ed.open_modal(Box::new(TextView::new("Plugin health", lines)));
-                    Ok(())
-                },
-            );
+                            .collect();
+                        ed.open_modal(Box::new(TextView::new("Plugin health", lines)));
+                        Ok(())
+                    },
+                )
+                .category(category::PLUGINS)
+                .param(Param::optional("NAME", "Only this plugin.").complete(Complete::Plugin));
         });
     }
 
@@ -460,7 +471,16 @@ unsafe impl Send for EditorPtr {}
 /// Registration requested by the plugin during a call; installed after the call returns,
 /// when the host has the plugin's handle again.
 enum Request {
-    Command { name: String, description: String },
+    Command {
+        name: String,
+        description: String,
+    },
+    /// Help for a command the plugin registered; `owner` is the plugin's owner name.
+    Describe {
+        name: String,
+        owner: String,
+        info: wit::CommandInfo,
+    },
     Subscribe(EventKind),
 }
 
@@ -577,6 +597,11 @@ fn install(plugin: &Rc<RefCell<Instance>>, editor: &mut Editor, req: Request) {
                     })?
                 });
         }
+        Request::Describe { name, owner, info } => {
+            if let Some(cmd) = editor.commands_mut().get_owned_mut(&name, &owner) {
+                describe_command(cmd, info);
+            }
+        }
         Request::Subscribe(kind) => {
             let p = plugin.clone();
             editor.subscribe(kind, move |ed, event| {
@@ -587,6 +612,43 @@ fn install(plugin: &Rc<RefCell<Instance>>, editor: &mut Editor, req: Request) {
             });
         }
     }
+}
+
+/// Copy WIT command help onto `cmd`.
+fn describe_command(cmd: &mut vox_editor::Command, info: wit::CommandInfo) {
+    if let Some(c) = info.category.filter(|c| !c.trim().is_empty()) {
+        cmd.category(&c);
+    }
+    cmd.params = info
+        .params
+        .into_iter()
+        .map(|p| vox_editor::Param {
+            name: p.name,
+            description: p.description,
+            required: p.required,
+            repeated: p.repeated,
+            complete: match p.complete {
+                wit::Completion::None => Complete::None,
+                wit::Completion::File => Complete::File,
+                wit::Completion::Dir => Complete::Dir,
+                wit::Completion::Command => Complete::Command,
+                wit::Completion::Plugin => Complete::Plugin,
+                wit::Completion::SettingKey => Complete::SettingKey,
+                wit::Completion::Version => Complete::Version,
+                wit::Completion::Values(v) => Complete::Values(v),
+            },
+        })
+        .collect();
+    cmd.returns = info.returns;
+    cmd.force = info.force;
+    cmd.examples = info
+        .examples
+        .into_iter()
+        .map(|e| vox_editor::Example {
+            line: e.line,
+            note: e.note,
+        })
+        .collect();
 }
 
 /// WIT level → core level.
@@ -639,6 +701,12 @@ impl bindings::vox::plugin::editor::Host for HostState {
     /// WIT `register-command`: queue a new command; installed after the call.
     fn register_command(&mut self, name: String, description: String) {
         self.requests.push(Request::Command { name, description });
+    }
+
+    /// WIT `describe-command`: queue help for a command; added after the call.
+    fn describe_command(&mut self, name: String, info: wit::CommandInfo) {
+        let owner = owner::plugin(&self.name);
+        self.requests.push(Request::Describe { name, owner, info });
     }
 
     /// WIT `map-key`: add a key mapping now, using the user's leader key.

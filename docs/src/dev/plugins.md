@@ -130,6 +130,7 @@ export_plugin!(Hello);
 | Function | Purpose |
 |---|---|
 | `register_command(name, description)` | add `:name`; vox calls `run_command(name, …)` |
+| `describe_command(name, &CommandInfo)` | help for `:help name` and completion (vox 0.17+) |
 | `map_key(mode, keys, binding)` | key mapping, same notation as the config file |
 | `subscribe(kind)` | receive `BufOpen`, `BufWrite`, `TextChanged`, `ModeChanged` in `on_event` |
 | `setting(key)` | this plugin's setting (`as_text()`, `as_integer()`, `as_bool()`) |
@@ -140,6 +141,30 @@ export_plugin!(Hello);
 | `file_path()`, `line_count()`, `line(i)` | read the buffer |
 | `insert_text(at, text)`, `delete_text(start, end)` | edit; one command's edits undo together |
 | `cursor()`, `set_cursor(pos)`, `current_mode()` | cursor and mode |
+
+## Command help
+
+After `register_command`, describe the command so `:help NAME` shows its parameters and
+examples, and the `:` prompt can complete its arguments:
+
+```rust
+use vox_plugin_sdk::{CommandInfo, Completion, ParamInfo, editor};
+
+editor::register_command("hello", "Say hello");
+editor::describe_command(
+    "hello",
+    &CommandInfo::new()
+        .category("Greetings")              // default: "Plugin: NAME"
+        .param(ParamInfo::optional("WHO", "Who to greet."))
+        .example("hello Ada", "Hello, Ada"),
+);
+```
+
+`ParamInfo::required` / `optional`, `.repeated()`, `.values(&[..])`, and
+`.complete(Completion::File)` (also `Dir`, `Command`, `Plugin`, `SettingKey`, `Version`)
+describe parameters; `.force(..)` says what `:name!` does; `.returns(..)` what the command
+replies with. `describe-command` was added to the 0.2 API in vox 0.17; a plugin that calls it
+does not load in older vox versions.
 
 ## Settings
 

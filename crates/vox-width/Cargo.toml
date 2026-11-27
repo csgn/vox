@@ -8,4 +8,4 @@ workspace = true
 
 [dependencies]
 unicode-width = "0.2.3"
-vox-view = { version = "0.16.3", path = "../vox-view" }
+vox-view = { version = "0.17.0", path = "../vox-view" }

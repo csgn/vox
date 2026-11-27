@@ -124,13 +124,18 @@ strip = true
             format!(
                 r#"//! {name}: a vox plugin.
 
-use vox_plugin_sdk::{{Level, Plugin, editor, export_plugin}};
+use vox_plugin_sdk::{{CommandInfo, Level, Plugin, editor, export_plugin}};
 
 struct {ty};
 
 impl Plugin for {ty} {{
     fn init() -> Result<(), String> {{
         editor::register_command("{name}", "Say the greeting");
+        // Help shown by `:help {name}`.
+        editor::describe_command(
+            "{name}",
+            &CommandInfo::new().example("{name}", "show the `greeting` setting"),
+        );
         editor::log(Level::Info, "{name} loaded");
         Ok(())
     }}

@@ -107,6 +107,7 @@ impl Editor {
         };
         self.parked.push(current);
         self.buffer_id = next.id;
+        self.unit_focus = None;
         self.view = next.view;
         if matches!(self.mode, Mode::Visual { .. } | Mode::Insert) {
             self.mode = Mode::Normal;
@@ -155,6 +156,7 @@ impl Editor {
             self.parked.push(old);
         }
         self.buffer_id = id;
+        self.unit_focus = None;
         self.view = Viewport::default();
         self.mode = Mode::Normal;
         self.set_cursor(Position::default());

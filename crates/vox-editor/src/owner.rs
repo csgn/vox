@@ -9,6 +9,8 @@ pub const CONFIG: &str = "config";
 pub const DEFAULTS: &str = "defaults";
 /// Developer mode's default mappings.
 pub const DEVMODE: &str = "devmode";
+/// Agent mode's commands and mappings, removed in text mode.
+pub const AGENT: &str = "agent";
 /// Added through the API without a more specific owner (the default).
 pub const USER: &str = "user";
 

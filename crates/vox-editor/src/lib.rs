@@ -2,6 +2,7 @@
 //! configuration, and rendering to a [`Surface`]. `std` only: terminal, clipboard, text
 //! storage, char widths, and config file parsing are provided by adapter crates.
 
+pub mod agent;
 mod buffer;
 mod builtin;
 pub mod command;
@@ -9,6 +10,7 @@ pub mod complete;
 pub mod config;
 mod editor;
 pub mod event;
+mod focus;
 pub mod help;
 pub mod keymap;
 mod keys;
@@ -21,6 +23,7 @@ mod register;
 mod render;
 pub mod scope;
 pub mod settings;
+pub mod structure;
 mod surface;
 pub mod ui;
 pub mod update;

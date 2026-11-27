@@ -108,6 +108,12 @@ pub struct Editor {
     pub(crate) next_buffer_id: usize,
     /// Open buffers other than the active one.
     pub(crate) parked: Vec<crate::buffer::Buffer>,
+    /// The focused unit (see `focus.rs`).
+    pub(crate) unit_focus: Option<crate::structure::Unit>,
+    /// Finds units for focus mode.
+    pub(crate) structure: Box<dyn crate::structure::Structure>,
+    /// Text or agent editor (see `agent.rs`).
+    pub(crate) editor_mode: crate::agent::EditorMode,
     pub(crate) width: Box<dyn CharWidth>,
     commands: Commands,
     keymap: Keymap,
@@ -254,6 +260,9 @@ impl Editor {
             buffer_id: 1,
             next_buffer_id: 2,
             parked: Vec::new(),
+            unit_focus: None,
+            structure: Box::new(crate::structure::Heuristic),
+            editor_mode: Default::default(),
             side: None,
             bottom: None,
             modal: None,
@@ -986,6 +995,7 @@ impl Editor {
     /// for what `f` changed.
     fn with_change_events(&mut self, f: impl FnOnce(&mut Self)) {
         let (mode, rev) = (self.mode_kind(), self.doc.revision());
+        let (lines, line, buffer) = (self.doc.line_count(), self.cursor.line, self.buffer_id);
         let msg = self.message.clone();
         self.event_depth += 1;
         f(self);
@@ -1002,6 +1012,9 @@ impl Editor {
             self.history.push((level, m.clone()));
         }
         if self.doc.revision() != rev {
+            if self.buffer_id == buffer {
+                self.follow_focus(lines, line);
+            }
             self.emit(&Event::TextChanged);
         }
         let now = self.mode_kind();
@@ -1141,10 +1154,13 @@ impl Editor {
     /// Normal/visual mode: collect keys until they form a complete command, then run it.
     fn handle_normal(&mut self, key: Key) {
         if key.code == KeyCode::Esc {
-            self.pending.clear();
+            // Esc ends visual mode, then a pending command, then focus.
             if matches!(self.mode, Mode::Visual { .. }) {
                 self.mode = Mode::Normal;
+            } else if self.pending.is_empty() {
+                self.unit_focus = None;
             }
+            self.pending.clear();
             return;
         }
         self.pending.push(key);
@@ -1780,7 +1796,7 @@ impl Editor {
         self.key_timeout = Duration::from_millis(cfg.timeout_ms);
         self.ui = cfg.ui;
         self.leader = cfg.leader.clone();
-        self.config = cfg.clone();
+        let previous = std::mem::replace(&mut self.config, cfg.clone());
         self.plugin_config = cfg.plugins.clone();
         self.default_mappings();
         self.remove_owned(owner::CONFIG);
@@ -1792,6 +1808,10 @@ impl Editor {
         if cfg.developer_mode != self.developer_mode {
             self.set_developer_mode(cfg.developer_mode);
         }
+        // Only a changed setting switches, so `vox --agent` survives a config reload.
+        if cfg.editor_mode != previous.editor_mode {
+            self.set_editor_mode(cfg.editor_mode);
+        }
     }
 
     /// vox's default mappings (owner `defaults`), made again with the current leader. Config
@@ -1800,6 +1820,10 @@ impl Editor {
         self.remove_owned(owner::DEFAULTS);
         self.with_owner(owner::DEFAULTS, |ed| {
             ed.map_key(MapMode::Normal, "<leader>p", ":plugins");
+            ed.map_key(MapMode::Normal, "<leader>f", ":narrow out");
+            ed.map_key(MapMode::Normal, "<leader>F", ":narrow in");
+            ed.map_key(MapMode::Visual, "<leader>f", ":narrow selection");
+            ed.map_key(MapMode::Normal, "<leader>m", ":mode toggle");
         });
     }
 

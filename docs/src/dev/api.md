@@ -47,6 +47,12 @@ NAME` shows all of it; `:commands info NAME` returns it as data.
 `buffers()` lists `BufferInfo { id, name, modified, active, lines }`. `document()` and the
 cursor always refer to the buffer shown; plugins see that one.
 
+**Focus and modes:** `editor.units_at(line)` returns the `Unit`s around a line (innermost
+first, the file last) from the `Structure` in use (`set_structure` replaces the built-in
+`Heuristic`, e.g. with a parser). `set_focus(Some(unit))`, `focus_out()`, `focus_in()`,
+`focus_kind(kind)`, `focused_unit()`. `editor_mode()` / `set_editor_mode(EditorMode::Agent)`;
+register agent-only things with owner `owner::AGENT` so text mode removes them.
+
 **Completion:** `editor.complete(line)` returns what can follow a command line: the start
 of the word to replace, the candidates (text and description), and the usage and current
 parameter of the command. The `:` prompt uses it; so can anything that needs completion

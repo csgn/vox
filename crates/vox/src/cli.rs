@@ -23,6 +23,8 @@ pub struct Cli {
     pub file: Option<PathBuf>,
     /// More files, opened as buffers behind the first.
     pub more: Vec<PathBuf>,
+    /// `--agent`: start in agent mode.
+    pub agent: bool,
     /// `vox run`: run commands without a terminal instead of starting the editor.
     pub run: Option<Run>,
 }
@@ -61,6 +63,7 @@ Options:
                         DIR is the project folder; without it, the nearest folder upward
                         containing .vox/ is used, else the current folder.
   --vanilla             Start with no config and no plugins.
+  --agent               Start in agent mode (AI help on the focused unit); see :mode.
   -h, --help            Print this help.
   -V, --version         Print the version.
 
@@ -94,6 +97,7 @@ pub fn parse(args: Vec<OsString>, is_dir: impl Fn(&Path) -> bool) -> Result<Cli,
     let mut mode = Mode::Global;
     let mut file = None;
     let mut more = Vec::new();
+    let mut agent = false;
     let mut it = args.into_iter().peekable();
     let mut run = None;
     if it.peek().and_then(|a| a.to_str()) == Some("run") {
@@ -115,6 +119,7 @@ pub fn parse(args: Vec<OsString>, is_dir: impl Fn(&Path) -> bool) -> Result<Cli,
             Some("-h" | "--help") => return Err(Exit::Help),
             Some("-V" | "--version") => return Err(Exit::Version),
             Some("--vanilla") => set_mode(&mut mode, Mode::Vanilla)?,
+            Some("--agent") if run.is_none() => agent = true,
             Some("--local-config") => {
                 let dir = match it.peek() {
                     Some(next) if is_dir(Path::new(next)) => it.next().map(PathBuf::from),
@@ -163,6 +168,7 @@ pub fn parse(args: Vec<OsString>, is_dir: impl Fn(&Path) -> bool) -> Result<Cli,
         mode,
         file,
         more,
+        agent,
         run,
     })
 }
@@ -182,6 +188,7 @@ mod tests {
             mode,
             file: file.map(PathBuf::from),
             more: Vec::new(),
+            agent: false,
             run: None,
         })
     }
@@ -197,6 +204,7 @@ mod tests {
             mode,
             file: file.map(PathBuf::from),
             more: Vec::new(),
+            agent: false,
             run: Some(Run {
                 commands: commands.iter().map(|c| c.to_string()).collect(),
                 stdin,

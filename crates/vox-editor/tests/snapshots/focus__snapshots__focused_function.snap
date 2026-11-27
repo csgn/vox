@@ -1,0 +1,24 @@
+---
+source: crates/vox-editor/tests/focus.rs
+expression: ed.render().to_string()
+---
+"  1 use std::io;                                            "
+"  2                                                         "
+"  3 impl Shape {                                            "
+"  4     fn area(&self) -> u32 {                             "
+"  5         if self.w > 0 {                                 "
+"  6             self.w * self.h                             "
+"  7         } else {                                        "
+"  8             0                                           "
+"  9         }                                               "
+" 10     }                                                   "
+" 11                                                         "
+" 12     fn name(&self) -> &str {                            "
+" 13         "shape"                                         "
+" 14     }                                                   "
+" 15 }                                                       "
+"~                                                           "
+"~                                                           "
+"~                                                           "
+" NORMAL AGENT   [No Name]  FOCUS function name (L12–14 12:5 "
+"focus: function name (L12–14)                               "

@@ -52,6 +52,10 @@ Vim rules kept: `dw` on the last word of a line stops at the line end; `cw` on a
 | `v` / `V` | visual charwise / linewise |
 | `/` | search |
 | `:` | command line |
+| `<leader>f` / `<leader>F` | [focus](focus.md) a larger / smaller unit (block, function, class, file) |
+| `Esc` | end focus (after leaving visual mode or a pending command) |
+| `<leader>m` | switch between [text and agent mode](agent-mode.md) |
+| `<leader>p` | plugin manager |
 | `<C-w>h/j/k/l/w`, `<C-w>c` | move focus between text and panels, close a panel (see [Panels](interface.md)) |
 | `Ctrl-d` / `Ctrl-u` | half page down / up |
 | `Ctrl-f` / `Ctrl-b`, `PageDown` / `PageUp` | page down / up |

@@ -165,8 +165,13 @@ fn other_owners_mappings_are_read_only() {
     ed.with_owner("plugin:x", |ed| {
         ed.map_key(vox_editor::MapMode::Normal, "X", ":q")
     });
-    // Rows: the default <leader>p mapping, then plugin:x's X.
-    feed(&mut ed, ":settings keys<CR>jd");
+    // Rows: config mappings (none here), then the other owners' in keymap order.
+    let row = ed
+        .keymap()
+        .iter()
+        .position(|(_, _, _, owner)| owner == "plugin:x")
+        .unwrap();
+    feed(&mut ed, &format!(":settings keys<CR>{}d", "j".repeat(row)));
     assert_eq!(
         ed.modal_title().as_deref(),
         Some("Key mappings"),

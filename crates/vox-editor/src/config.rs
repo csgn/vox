@@ -208,6 +208,8 @@ pub struct Config {
     pub developer_mode: bool,
     /// Look for a newer vox release at start-up. Default true.
     pub check_updates: bool,
+    /// Text or agent editor. Default text.
+    pub editor_mode: crate::agent::EditorMode,
     /// Per-plugin values (`[plugins.NAME]`): settings and `enabled`. Checked against each
     /// plugin's manifest when it loads.
     pub plugins: BTreeMap<String, BTreeMap<String, Value>>,
@@ -222,6 +224,7 @@ impl Default for Config {
             ui: UiConfig::default(),
             developer_mode: false,
             check_updates: true,
+            editor_mode: crate::agent::EditorMode::Text,
             plugins: BTreeMap::new(),
         }
     }
@@ -278,6 +281,12 @@ impl Config {
                 ("ui", Value::Table(t)) => parse_ui(t, &mut cfg.ui, &mut errors),
                 ("developer_mode", Value::Bool(b)) => cfg.developer_mode = *b,
                 ("check_updates", Value::Bool(b)) => cfg.check_updates = *b,
+                ("editor_mode", Value::String(s)) => match crate::agent::EditorMode::parse(s) {
+                    Some(m) => cfg.editor_mode = m,
+                    None => errors.push(format!(
+                        "`editor_mode` must be \"text\" or \"agent\", not \"{s}\""
+                    )),
+                },
                 ("plugins", Value::Table(t)) => {
                     for (name, v) in t {
                         match v {
@@ -302,11 +311,11 @@ impl Config {
                 }
                 (
                     "leader" | "timeout_ms" | "keymap" | "ui" | "developer_mode" | "check_updates"
-                    | "plugins",
+                    | "editor_mode" | "plugins",
                     other,
                 ) => {
                     let want = match key.as_str() {
-                        "leader" => "a string",
+                        "leader" | "editor_mode" => "a string",
                         "timeout_ms" => "an integer",
                         "developer_mode" | "check_updates" => "true/false",
                         "plugins" => "a table",

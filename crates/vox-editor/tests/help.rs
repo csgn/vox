@@ -216,7 +216,7 @@ mod snapshots {
     fn browser_wide() {
         let mut ed = editor();
         ed.resize(120, 30);
-        feed(&mut ed, ":commands<CR>jjjjll");
+        feed(&mut ed, ":commands<CR>jjjjjll");
         insta::assert_snapshot!(ed.render().to_string());
     }
 

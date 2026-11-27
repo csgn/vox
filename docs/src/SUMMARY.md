@@ -6,6 +6,8 @@
 - [Getting started](user/getting-started.md)
 - [Keybindings](user/keybindings.md)
 - [Commands](user/commands.md)
+- [Focus mode](user/focus.md)
+- [Editor modes: text and agent](user/agent-mode.md)
 - [Configuration](user/configuration.md)
 - [Settings dialog](user/settings.md)
 - [Project setups](user/scopes.md)

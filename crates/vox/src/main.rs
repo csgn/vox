@@ -85,6 +85,9 @@ fn main() -> ExitCode {
     editor.set_config_writer(vox_config_file::write_edits);
     editor.set_file_format(vox_config_file::parse, vox_config_file::format);
     load_config(&mut editor, &active);
+    if cli.agent {
+        editor.set_editor_mode(vox_editor::agent::EditorMode::Agent);
+    }
     load_plugins(&mut editor, &active);
     vox_editor::plugin::manage::lock_status_notice(&mut editor);
     editor.set_update_source(update_source());

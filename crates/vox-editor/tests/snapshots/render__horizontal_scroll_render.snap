@@ -3,5 +3,5 @@ source: crates/vox-editor/tests/render.rs
 expression: screen
 ---
 "  1 stuvwxyzabcdefgh"
-" NORMAL  [No Name]1:"
+" NORMAL  [No N 1:60 "
 "                    "

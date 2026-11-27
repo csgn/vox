@@ -5,6 +5,25 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-11-27 — M19 editor modes and focus
+
+### Added
+- Focus mode: work on one unit — selection, block, function, class, or file — with the rest
+  of the file dimmed and `FOCUS function NAME (L4–10)` in the status line. `<leader>f`
+  focuses the smallest unit at the cursor and widens on repeat, `<leader>F` narrows, visual
+  `<leader>f` focuses the selection, `Esc` / `:widen` ends it; `:narrow KIND|out|in`. The
+  focused range follows edits; switching buffers ends it.
+- Units are found without a parser (`structure::Heuristic`: braces with strings and comments
+  skipped, `:`-indented blocks, keywords such as `fn`, `def`, `class`, `impl`); the
+  `Structure` trait lets a parser replace it (`Editor::set_structure`).
+- Editor modes: `text` (default) and `agent` (`AGENT` in the status line; AI help arrives in
+  M20). `:mode text|agent|toggle`, `<leader>m`, `vox --agent`, `editor_mode` in
+  `config.toml` and `:settings`. Agent-only commands and mappings (owner `agent`) are removed
+  in text mode.
+
+### Changed
+- The status line keeps the cursor position visible on narrow screens.
+
 ## [0.20.0] - 2026-11-27 — M18 buffers
 
 ### Added

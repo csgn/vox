@@ -24,6 +24,8 @@ none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
 | `:bd [N\|NAME]`, `:bd!` (`:buffer delete`) | close a buffer (default: this one); `!` drops unsaved changes |
 | `:buffer list` | the open buffers as data (id, name, modified, active, lines) |
 | `:wall`, `:wa` | save every buffer with unsaved changes |
+| `:narrow [KIND\|out\|in]`, `:widen` | [focus](focus.md) a unit (`selection`, `block`, `function`, `class`, `file`) / end focus |
+| `:mode [text\|agent\|toggle]` | [editor mode](agent-mode.md); no argument shows it |
 | `:notify [info\|warn\|error] TEXT` | show a notification |
 | `:messages`, `:mes` | message history in the bottom panel |
 | `:help [COMMAND]`, `:h`, `:?COMMAND` | [help](#help) for a command or group; no argument lists all commands |

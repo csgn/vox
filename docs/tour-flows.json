@@ -1063,5 +1063,36 @@
         "text": "`:q` looks at every buffer: E37 for this one, E162 naming another with unsaved changes."
       }
     ]
+  },
+  {
+    "id": "focus",
+    "title": "Focusing a function",
+    "summary": "`<leader>f` twice inside an `if`.",
+    "steps": [
+      {
+        "fn": "vox-editor::Editor::default_mappings",
+        "text": "`<leader>f` is a default mapping to `:narrow out`."
+      },
+      {
+        "fn": "vox-editor::Editor::focus_out",
+        "text": "Without focus it takes the innermost unit at the cursor; with focus, the next larger unit around it."
+      },
+      {
+        "fn": "vox-editor::Editor::units_at",
+        "text": "Asks the `Structure` in use for the units around the cursor line, innermost first."
+      },
+      {
+        "fn": "vox-editor::Heuristic::units",
+        "text": "Matches braces (skipping strings and comments), finds `:`-indented blocks, and names each range from its first line: function, class, or block."
+      },
+      {
+        "fn": "vox-editor::Editor::follow_focus",
+        "text": "After each edit the focused range moves or grows with the lines added or removed."
+      },
+      {
+        "fn": "vox-editor::Editor::render_text",
+        "text": "Lines outside the focus are drawn dimmed; the status line shows `FOCUS function NAME (Lx–y)`."
+      }
+    ]
   }
 ]

@@ -110,6 +110,8 @@ pub(crate) fn register(c: &mut Commands) {
     .returns("A list, one table per command: name, description, owner, aliases, category, usage, params, returns, force, examples.");
     crate::help::register(c);
     crate::buffer::register(c);
+    crate::focus::register(c);
+    crate::agent::register(c);
     c.register(
         "keymaps",
         "List your key mappings in the side panel.",

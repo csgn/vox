@@ -36,6 +36,8 @@ pub mod category {
     pub const PLUGINS: &str = "Plugins";
     /// Scopes and project set-up.
     pub const SCOPE: &str = "Scope";
+    /// Focus mode: working on one unit.
+    pub const FOCUS: &str = "Focus";
     /// Log, developer mode, reloading.
     pub const DEVELOPER: &str = "Developer";
     /// Updating vox.

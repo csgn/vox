@@ -41,6 +41,12 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
 - `buffer.rs`: open files. The active buffer is the editor's own `doc` / `cursor` / `view`;
   the others are parked (`Buffer`) and swapped in by `switch_buffer`, so the rest of the
   editor only ever sees one document. `open_buffer`, `add_buffer`, `close_buffer`, `buffers()`.
+- `structure.rs`: `Structure` trait (units around a line, innermost first) and the
+  `Heuristic` implementation (braces, indentation, keywords). `focus.rs`: the focused `Unit`
+  on `Editor` (`unit_focus`), `:narrow` / `:widen`, `follow_focus` keeps it on its text after
+  edits (called from `with_change_events`); `render.rs` dims lines outside it.
+- `agent.rs`: `EditorMode { Text, Agent }`, `:mode`; leaving agent mode removes owner
+  `agent`'s commands and mappings.
 - `complete.rs`: `Editor::complete(line) -> Completion` (pure): command names, subcommands,
   then the current parameter's `Complete` source (files via `std::fs`, plugins, setting
   keys, values). `prompt.rs`: the `:`/`/` prompt's keys — `Tab` cycling, the menu, history —

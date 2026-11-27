@@ -129,8 +129,13 @@ impl Editor {
                     s.put_in(line, 0, &num, Style::DIM, w);
                     let visible = visible_slice(w, &text, self.view.left, text_width);
                     let rest = Rect::new(area.x + gutter as u16, line.y, text_width as u16, 1);
+                    // Outside the focused unit, text is dimmed.
+                    let style = match self.focused_unit() {
+                        Some(u) if !u.contains(idx) => Style::DIM,
+                        _ => Style::default(),
+                    };
                     if gutter < area.w as usize {
-                        s.put_in(rest, 0, &visible, Style::default(), w);
+                        s.put_in(rest, 0, &visible, style, w);
                     }
                 }
                 None => s.put_in(line, 0, "~", Style::DIM, w),
@@ -198,12 +203,25 @@ impl Editor {
         };
         let pos = format!("{}:{} ", self.cursor.line + 1, self.cursor.col + 1);
         let dev = if self.developer_mode() { " DEV " } else { "" };
+        let agent = match self.editor_mode() {
+            crate::agent::EditorMode::Agent => " AGENT ",
+            crate::agent::EditorMode::Text => "",
+        };
+        let focus = self
+            .focused_unit()
+            .map_or(String::new(), |u| format!("  FOCUS {}", u.label()));
         let scope = match self.scope().kind {
             crate::scope::ScopeKind::Global => "",
             crate::scope::ScopeKind::Local => " LOCAL ",
             crate::scope::ScopeKind::Vanilla => " VANILLA ",
         };
-        let left = format!(" {mode}{dev}{scope}  {name}{modified}{which}");
+        let left = format!(" {mode}{agent}{dev}{scope}  {name}{modified}{which}{focus}");
+        // Keep at least one space before the position: cut the left part if needed.
+        let room = (s.width() as usize).saturating_sub(self.str_width(&pos) + 1);
+        let mut left = left;
+        while self.str_width(&left) > room {
+            left.pop();
+        }
         let pad = (s.width() as usize).saturating_sub(self.str_width(&left) + self.str_width(&pos));
         let text = format!("{left}{}{pos}", " ".repeat(pad));
         s.fill_row(row, Style::REVERSED);

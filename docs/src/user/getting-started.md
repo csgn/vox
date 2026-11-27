@@ -7,7 +7,7 @@ curl -fsSL https://raw.githubusercontent.com/csgn/vox/master/install.sh | sh
 ```
 
 Builds the latest release with `cargo` (needs `git` and [Rust](https://rustup.rs)) into
-`~/.cargo/bin`. Options: `VOX_VERSION=v0.20.0`, `VOX_INSTALL_ROOT=DIR` (installs to `DIR/bin`).
+`~/.cargo/bin`. Options: `VOX_VERSION=v0.21.0`, `VOX_INSTALL_ROOT=DIR` (installs to `DIR/bin`).
 
 Or from a checkout:
 
@@ -17,6 +17,7 @@ cargo build --release
 ```
 
 - `vox` with no argument opens an empty unnamed buffer. Save it with `:w NAME`.
+- `vox --agent FILE` starts in [agent mode](agent-mode.md).
 - `vox a.txt b.txt` opens both, each in a buffer (`:ls`, `:bn`); the first is shown.
 - `vox FILE` where `FILE` does not exist opens an empty buffer bound to that path; `:w` creates it.
 - `vox --local-config [DIR] FILE` uses the project's own config and plugins instead of your

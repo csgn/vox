@@ -56,8 +56,9 @@ register agent-only things with owner `owner::AGENT` so text mode removes them.
 **AI backend:** implement `vox_editor::assist::Assistant` (`fn ask(&self, req:
 &AssistRequest) -> Result<AssistReply, String>`, called on a background thread) and give it
 to the editor with `set_assistant(Arc::new(..))`. The request has the instruction, the path,
-the whole text, the target lines (`start..=end`, `target()`), its kind, and the cursor; the
-reply is the new text for the target lines. `ask_ai(instruction)` starts a request;
+the whole text, the target lines (`start..=end`, `target()`), its kind, the cursor, and the
+`ai_model` / `ai_effort` settings; the reply is the new text for the target lines. The `vox`
+binary sets `vox_assistant::Claude` (runs the `claude` CLI). `ask_ai(instruction)` starts a request;
 `proposal()`, `decide(accept, all)`, and `jump_hunk(forward)` handle the answer.
 
 **Completion:** `editor.complete(line)` returns what can follow a command line: the start

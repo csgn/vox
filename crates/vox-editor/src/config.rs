@@ -212,6 +212,10 @@ pub struct Config {
     pub editor_mode: crate::agent::EditorMode,
     /// How AI changes land: review (default) or direct.
     pub ai_apply: crate::assist::ApplyMode,
+    /// Model the AI backend asks; empty (default): the backend's default.
+    pub ai_model: String,
+    /// How hard the model works: low, medium (default), high, xhigh, max.
+    pub ai_effort: String,
     /// Per-plugin values (`[plugins.NAME]`): settings and `enabled`. Checked against each
     /// plugin's manifest when it loads.
     pub plugins: BTreeMap<String, BTreeMap<String, Value>>,
@@ -228,6 +232,8 @@ impl Default for Config {
             check_updates: true,
             editor_mode: crate::agent::EditorMode::Text,
             ai_apply: crate::assist::ApplyMode::Review,
+            ai_model: String::new(),
+            ai_effort: "medium".into(),
             plugins: BTreeMap::new(),
         }
     }
@@ -290,6 +296,14 @@ impl Config {
                         "`ai_apply` must be \"review\" or \"direct\", not \"{s}\""
                     )),
                 },
+                ("ai_model", Value::String(s)) => cfg.ai_model = s.clone(),
+                ("ai_effort", Value::String(s)) if crate::assist::EFFORTS.contains(&s.as_str()) => {
+                    cfg.ai_effort = s.clone()
+                }
+                ("ai_effort", Value::String(s)) => errors.push(format!(
+                    "`ai_effort` must be one of {}, not \"{s}\"",
+                    crate::assist::EFFORTS.join(", ")
+                )),
                 ("editor_mode", Value::String(s)) => match crate::agent::EditorMode::parse(s) {
                     Some(m) => cfg.editor_mode = m,
                     None => errors.push(format!(
@@ -320,11 +334,13 @@ impl Config {
                 }
                 (
                     "leader" | "timeout_ms" | "keymap" | "ui" | "developer_mode" | "check_updates"
-                    | "editor_mode" | "ai_apply" | "plugins",
+                    | "editor_mode" | "ai_apply" | "ai_model" | "ai_effort" | "plugins",
                     other,
                 ) => {
                     let want = match key.as_str() {
-                        "leader" | "editor_mode" | "ai_apply" => "a string",
+                        "leader" | "editor_mode" | "ai_apply" | "ai_model" | "ai_effort" => {
+                            "a string"
+                        }
                         "timeout_ms" => "an integer",
                         "developer_mode" | "check_updates" => "true/false",
                         "plugins" => "a table",
@@ -538,6 +554,27 @@ mod tests {
                 "`plugins.bad` must be a table, not a string",
                 "`plugins.worse.enabled` must be true/false, not a string"
             ]
+        );
+    }
+
+    #[test]
+    fn ai_settings() {
+        let v = table(&[
+            ("ai_model", s("claude-haiku-5-5")),
+            ("ai_effort", s("high")),
+        ]);
+        let (cfg, errors) = Config::from_value(&v);
+        assert!(errors.is_empty(), "{errors:?}");
+        assert_eq!(
+            (cfg.ai_model.as_str(), cfg.ai_effort.as_str()),
+            ("claude-haiku-5-5", "high")
+        );
+        let d = Config::default();
+        assert_eq!((d.ai_model.as_str(), d.ai_effort.as_str()), ("", "medium"));
+        let (_, errors) = Config::from_value(&table(&[("ai_effort", s("huge"))]));
+        assert_eq!(
+            errors,
+            ["`ai_effort` must be one of low, medium, high, xhigh, max, not \"huge\""]
         );
     }
 

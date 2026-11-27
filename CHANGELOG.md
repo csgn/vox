@@ -5,6 +5,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-11-27 — M21 Claude backend
+
+### Added
+- Agent mode's `:ai` / `<leader>a` asks Claude by running Claude Code headless
+  (`claude -p`, no tools, no saved session; new adapter crate `vox-assistant`). It uses the
+  `claude` CLI's login, e.g. a Claude Pro or Max plan: no API key.
+- `ai_model` (empty: the CLI's default; `opus`, `sonnet`, `haiku`, or a full name) and
+  `ai_effort` (`low`…`max`, default `medium`) in the config and `:settings`;
+  `AssistRequest` carries both.
+- The answer is structured JSON. A missing `claude`, CLI errors (not logged in, usage
+  limits), refusals, and unreadable answers are shown as messages; 10-minute timeout.
+
 ## [0.22.2] - 2026-11-27 — key hints
 
 ### Added

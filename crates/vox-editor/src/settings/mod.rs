@@ -213,6 +213,18 @@ pub fn vox_settings() -> Vec<SettingSpec> {
             "How AI changes land: as a diff to accept or decline, or at once (one undo step)",
         ),
         spec(
+            "ai_model",
+            SettingKind::String,
+            Text(d.ai_model.clone()),
+            "Model the AI backend asks (e.g. opus, sonnet, haiku); empty: its default",
+        ),
+        spec(
+            "ai_effort",
+            choice(&crate::assist::EFFORTS),
+            Text(d.ai_effort.clone()),
+            "How hard the model works on an answer (more: slower, costs more)",
+        ),
+        spec(
             "check_updates",
             SettingKind::Bool,
             Bool(d.check_updates),
@@ -316,6 +328,10 @@ impl Config {
             "ai_apply".into(),
             Value::String(self.ai_apply.name().into()),
         );
+        if !self.ai_model.is_empty() {
+            top.insert("ai_model".into(), s(&self.ai_model));
+        }
+        top.insert("ai_effort".into(), s(&self.ai_effort));
         top.insert(
             "editor_mode".into(),
             Value::String(self.editor_mode.name().into()),

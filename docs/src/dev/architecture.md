@@ -47,6 +47,8 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
   edits (called from `with_change_events`); `render.rs` dims lines outside it.
 - `agent.rs`: `EditorMode { Text, Agent }`, `:mode`; leaving agent mode removes owner
   `agent`'s commands and mappings.
+- `vox-assistant` (adapter): `Claude: Assistant` runs `claude -p` (Claude Code, headless, no
+  tools) with the prompt on stdin and reads its JSON result (`structured_output.text`).
 - `assist.rs`: the `Assistant` trait (`ask(&AssistRequest) -> AssistReply`, run in a
   background job), `diff` (line LCS → `Hunk`s), the pending `Proposal`, `:ai` commands and
   keys (owner `agent`, registered by `register_agent` when agent mode starts). `render.rs`

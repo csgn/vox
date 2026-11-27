@@ -32,7 +32,14 @@ pub struct AssistRequest {
     pub kind: UnitKind,
     /// Cursor position.
     pub cursor: Position,
+    /// Model to ask (`ai_model`); empty: the backend's default.
+    pub model: String,
+    /// How hard the model works (`ai_effort`): one of [`EFFORTS`].
+    pub effort: String,
 }
+
+/// Values of `ai_effort`, least to most work.
+pub const EFFORTS: [&str; 5] = ["low", "medium", "high", "xhigh", "max"];
 
 impl AssistRequest {
     /// The lines the answer replaces.
@@ -222,9 +229,10 @@ impl Editor {
     /// Ask the AI to change the target lines (see [`Editor::ai_target`]) as `instruction`
     /// says. Runs in the background; the answer becomes a proposal or is applied.
     pub fn ask_ai(&mut self, instruction: &str) -> Result<(), String> {
-        let assistant = self.assistant.clone().ok_or(
-            "E900: no AI backend is configured (the Claude backend comes in a later vox version)",
-        )?;
+        let assistant = self
+            .assistant
+            .clone()
+            .ok_or("E900: no AI backend is configured")?;
         if self.proposal.is_some() {
             return Err("E900: accept or decline the pending AI change first (ga / gx)".into());
         }
@@ -244,6 +252,8 @@ impl Editor {
             end,
             kind,
             cursor: self.cursor,
+            model: self.config().ai_model.clone(),
+            effort: self.config().ai_effort.clone(),
         };
         let (buffer, revision) = (self.buffer_id, self.doc.revision());
         let title = format!("AI: {instruction}");

@@ -66,6 +66,7 @@ fn main() -> ExitCode {
         clock: Box::new(std::time::Instant::now),
     };
     let mut editor = Editor::with_services(doc, services);
+    editor.set_assistant(std::sync::Arc::new(vox_assistant::Claude::default()));
 
     let global = vox_config_file::global_dir().map(Scope::global);
     let active = match cli.mode {

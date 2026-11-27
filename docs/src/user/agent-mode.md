@@ -7,9 +7,27 @@ vox has two editor modes:
   say what to change, and the AI's change appears in the buffer as a diff that you accept or
   decline. There is no chat panel; the editor stays the UI.
 
-Agent mode shows `AGENT` in the status line. The AI itself is a backend that vox talks to;
-until the Claude backend arrives (see the [roadmap](../dev/roadmap.md)), `:ai` says that no
-backend is configured.
+Agent mode shows `AGENT` in the status line. The AI is Claude, asked through Claude Code
+(the `claude` command), so it runs on your Claude subscription (Pro or Max) or whatever
+`claude` is logged in with. No API key is needed.
+
+## Setting up Claude
+
+1. Install Claude Code ([claude.com/claude-code](https://claude.com/claude-code)) so that
+   `claude` is on your `PATH`.
+2. Run `claude` once and log in with your Claude account.
+
+That's all. Each `:ai` runs `claude -p` headless in the background: no tools, no saved
+session, the answer as JSON. It counts against your plan's usage limits like any Claude Code
+use. If `claude` is missing, not logged in, or out of usage, `:ai` shows its message.
+
+| Setting | Default | |
+|---|---|---|
+| `ai_model` | `""` → `claude`'s default | which model answers: an alias (`opus`, `sonnet`, `haiku`, `fable`) or a full name like `claude-sonnet-5-5` |
+| `ai_effort` | `"medium"` | `low`, `medium`, `high`, `xhigh`, `max`: how hard the model works; more is slower and uses more of your plan |
+
+Both are in `config.toml` and `:settings`. Each question sends the whole file and the target
+to Claude.
 
 ## Asking
 

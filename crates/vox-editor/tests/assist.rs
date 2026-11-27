@@ -99,6 +99,7 @@ fn request_is_the_focused_unit() {
     assert_eq!(req.instruction, "shout");
     assert_eq!(req.target().lines().count(), 4);
     assert_eq!(req.text, CODE);
+    assert_eq!((req.model.as_str(), req.effort.as_str()), ("", "medium"));
     // Without focus: the cursor line.
     feed(&mut ed, "gX<Esc>6G:ai x<CR>");
     wait(&mut ed);
@@ -183,6 +184,25 @@ fn text_changed_while_waiting() {
     wait(&mut ed);
     assert!(ed.proposal().is_none());
     assert!(ed.message().unwrap().contains("text changed while waiting"));
+}
+
+#[test]
+fn model_and_effort_come_from_the_config() {
+    let f = fake(upper_a);
+    let mut ed = editor(Some(f.clone()));
+    ed.apply_config(&Config {
+        ai_model: "claude-sonnet-5-5".into(),
+        ai_effort: "high".into(),
+        editor_mode: EditorMode::Agent,
+        ..Config::default()
+    });
+    feed(&mut ed, ":ai x<CR>");
+    wait(&mut ed);
+    let req = f.last.lock().unwrap().clone().unwrap();
+    assert_eq!(
+        (req.model.as_str(), req.effort.as_str()),
+        ("claude-sonnet-5-5", "high")
+    );
 }
 
 #[test]

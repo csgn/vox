@@ -30,7 +30,7 @@ Built one milestone at a time; each ships with tests, docs, and a changelog entr
 | M18 | 0.20.0 | Buffers: several open files (`:e`, `:ls`, `:b`, `:bn`/`:bp`, `:bd`, `:wa`), `vox a b`; `:q` checks every buffer | done |
 | M19 | 0.21.0 | Editor modes and focus: `text` / `agent` mode (`:mode`, key, `vox --agent`, `editor_mode`); focus on one unit (selection, block, function, class, file), the rest dimmed | done |
 | M20 | 0.22.0 | Asking the AI: `<leader>a` / `:ai` dialog on the focused unit; the reply shown as an inline diff to accept or decline (or applied directly, per scope); backend trait with a test backend | done |
-| M21 | 0.23.0 | Claude backend: an adapter implementing the assistant trait with the Claude API | planned |
+| M21 | 0.23.0 | Claude backend: an adapter implementing the assistant trait by running Claude Code (`claude -p`) on the user's subscription | done |
 | M22 | 0.24.0 | Project explorer as a plugin. Contract `vox:plugin@0.3.0`: `project-root()`, read-only `list-dir(path)` refused outside the project root; plugin side panel `panel-open(title)` / `panel-set-lines(lines)` / `panel-close`, host moves the selection with `j k`, other keys arrive as event `panel-key(key, line)`. Plugin `plugins/explorer` (installed with `:plugin add`): tree of the project root (local scope's project, else the working directory), `l`/`Enter` expand a folder or open a file, `h` collapse; hidden files and `.git` left out unless setting `show_hidden = true`; `:explorer` (toggle), `:explorer reveal` (show the current file) | planned |
 
 ## Scopes
@@ -144,7 +144,13 @@ cursor, view) and swapped in on switch. `:e FILE` opens or switches; `:ls` / `:b
 - A core `Assistant` trait (std-only) runs as a background job; tests use a fake backend.
 
 ### M21 — Claude backend
-An adapter crate implements `Assistant` with the Claude API. Planned in detail after M20.
+Adapter crate `vox-assistant`: `Claude` implements `Assistant` by running Claude Code
+headless (`claude -p --output-format json --json-schema … --tools ""`, prompt on stdin, run
+outside any project), so it uses the user's Claude login (Pro/Max) — no API key. `ai_model`
+(empty: the CLI's default; aliases like `sonnet` work) and `ai_effort` (default `medium`) per
+scope. The answer is structured JSON `{"text"}`; a missing CLI, CLI errors (not logged in,
+usage limits), refusals, and unreadable answers become messages; 10-minute timeout. Tested
+with a fake `claude` script; an ignored live test runs the real CLI.
 
 ## Later (only if needed)
 Explorer file operations (create, rename, delete, move), MCP server on top of `vox run` (other agents driving vox), remote control of a running vox (`vox run --attach` over a Unix socket, buffer commands; only if Claude needs the open buffer), plugin registry, splits, fuzzy finder,

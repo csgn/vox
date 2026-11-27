@@ -1110,7 +1110,23 @@
       },
       {
         "fn": "vox-editor::Editor::ask_ai",
-        "text": "Builds the request (instruction, whole text, target lines) and runs the `Assistant` in a background job."
+        "text": "Builds the request (instruction, whole text, target lines, `ai_model`, `ai_effort`) and runs the `Assistant` in a background job."
+      },
+      {
+        "fn": "vox-assistant::Claude::ask",
+        "text": "The binary's backend runs Claude Code headless (`claude -p`) on the user's Claude login: no API key."
+      },
+      {
+        "fn": "vox-assistant::args",
+        "text": "JSON output with a `{\"text\"}` schema, no tools, no saved session, the configured model and effort."
+      },
+      {
+        "fn": "vox-assistant::prompt",
+        "text": "On stdin: the whole file, then the range and the instruction."
+      },
+      {
+        "fn": "vox-assistant::parse_output",
+        "text": "CLI errors (not logged in, usage limits) and refusals become messages; otherwise `structured_output.text` is the new text for the range."
       },
       {
         "fn": "vox-editor::Editor::take_answer",

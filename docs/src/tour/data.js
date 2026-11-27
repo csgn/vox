@@ -3,6 +3,7 @@ window.VOX_TOUR = {
  "crates": {
   "vox": {
    "deps": [
+    "vox-assistant",
     "vox-clipboard",
     "vox-config-file",
     "vox-core",
@@ -22,11 +23,31 @@ window.VOX_TOUR = {
     },
     {
      "path": "crates/vox/src/main.rs",
-     "lines": 284
+     "lines": 285
     }
    ],
    "used_by": [],
    "layer": "binary"
+  },
+  "vox-assistant": {
+   "deps": [
+    "vox-editor"
+   ],
+   "third_party": [
+    "serde_json"
+   ],
+   "doc": "AI backend for vox: implements [`vox_editor::assist::Assistant`] by running Claude Code (`claude -p`) headless. It uses the login of the installed `claude` CLI (e.g. a Claude Pro or Max plan), so no API key is needed.",
+   "binary": false,
+   "files": [
+    {
+     "path": "crates/vox-assistant/src/lib.rs",
+     "lines": 349
+    }
+   ],
+   "used_by": [
+    "vox"
+   ],
+   "layer": "adapter"
   },
   "vox-clipboard": {
    "deps": [
@@ -123,7 +144,7 @@ window.VOX_TOUR = {
     },
     {
      "path": "crates/vox-editor/src/assist.rs",
-     "lines": 539
+     "lines": 549
     },
     {
      "path": "crates/vox-editor/src/buffer.rs",
@@ -143,7 +164,7 @@ window.VOX_TOUR = {
     },
     {
      "path": "crates/vox-editor/src/config.rs",
-     "lines": 601
+     "lines": 638
     },
     {
      "path": "crates/vox-editor/src/editor.rs",
@@ -255,7 +276,7 @@ window.VOX_TOUR = {
     },
     {
      "path": "crates/vox-editor/src/settings/mod.rs",
-     "lines": 448
+     "lines": 464
     },
     {
      "path": "crates/vox-editor/src/structure.rs",
@@ -296,6 +317,7 @@ window.VOX_TOUR = {
    ],
    "used_by": [
     "vox",
+    "vox-assistant",
     "vox-clipboard",
     "vox-config-file",
     "vox-plugin-host",
@@ -452,6 +474,7 @@ window.VOX_TOUR = {
    "sig": "fn main() -> ExitCode",
    "doc": "Parse arguments, open the file, load the scope's config and plugins, run the editor (or the commands of `vox run`).",
    "calls": [
+    "vox-editor::Editor::set_assistant",
     "vox-editor::Editor::set_scope",
     "vox-editor::Editor::set_interactive",
     "vox-editor::Editor::set_config_writer",
@@ -466,6 +489,7 @@ window.VOX_TOUR = {
     "vox-core::Document::new",
     "vox-core::Document::open",
     "vox-editor::Editor::with_services",
+    "vox-assistant::Claude::default",
     "vox-config-file::global_dir",
     "vox-editor::Scope::vanilla",
     "vox-editor::scope::find_project_root",
@@ -487,7 +511,7 @@ window.VOX_TOUR = {
    "qual": "run_commands",
    "crate": "vox",
    "file": "crates/vox/src/main.rs",
-   "line": 121,
+   "line": 122,
    "public": false,
    "owner": null,
    "trait": null,
@@ -513,7 +537,7 @@ window.VOX_TOUR = {
    "qual": "print_messages",
    "crate": "vox",
    "file": "crates/vox/src/main.rs",
-   "line": 178,
+   "line": 179,
    "public": false,
    "owner": null,
    "trait": null,
@@ -533,7 +557,7 @@ window.VOX_TOUR = {
    "qual": "update_source",
    "crate": "vox",
    "file": "crates/vox/src/main.rs",
-   "line": 187,
+   "line": 188,
    "public": false,
    "owner": null,
    "trait": null,
@@ -554,7 +578,7 @@ window.VOX_TOUR = {
    "qual": "load_config",
    "crate": "vox",
    "file": "crates/vox/src/main.rs",
-   "line": 197,
+   "line": 198,
    "public": false,
    "owner": null,
    "trait": null,
@@ -575,7 +599,7 @@ window.VOX_TOUR = {
    "qual": "load_plugins",
    "crate": "vox",
    "file": "crates/vox/src/main.rs",
-   "line": 207,
+   "line": 208,
    "public": false,
    "owner": null,
    "trait": null,
@@ -598,7 +622,7 @@ window.VOX_TOUR = {
    "qual": "register_plugin_new",
    "crate": "vox",
    "file": "crates/vox/src/main.rs",
-   "line": 247,
+   "line": 248,
    "public": false,
    "owner": null,
    "trait": null,
@@ -613,6 +637,135 @@ window.VOX_TOUR = {
    ],
    "called_by": [
     "vox::main"
+   ]
+  },
+  {
+   "id": "vox-assistant::Claude::default",
+   "name": "default",
+   "qual": "Claude::default",
+   "crate": "vox-assistant",
+   "file": "crates/vox-assistant/src/lib.rs",
+   "line": 30,
+   "public": true,
+   "owner": "Claude",
+   "trait": "Default",
+   "decl_only": false,
+   "sig": "fn default() -> Self",
+   "doc": "Runs `claude` from `PATH`.",
+   "calls": [],
+   "called_by": [
+    "vox::main"
+   ]
+  },
+  {
+   "id": "vox-assistant::Claude::new",
+   "name": "new",
+   "qual": "Claude::new",
+   "crate": "vox-assistant",
+   "file": "crates/vox-assistant/src/lib.rs",
+   "line": 37,
+   "public": true,
+   "owner": "Claude",
+   "trait": null,
+   "decl_only": false,
+   "sig": "pub fn new(program: &str) -> Self",
+   "doc": "Run `program` as the Claude CLI.",
+   "calls": [],
+   "called_by": []
+  },
+  {
+   "id": "vox-assistant::Claude::run",
+   "name": "run",
+   "qual": "Claude::run",
+   "crate": "vox-assistant",
+   "file": "crates/vox-assistant/src/lib.rs",
+   "line": 44,
+   "public": false,
+   "owner": "Claude",
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn run(&self, args: &[String], input: &str) -> Result<(bool, String, String), String>",
+   "doc": "Run the CLI with `args`, `input` on stdin; returns exit success, stdout, stderr.",
+   "calls": [
+    "vox-editor::lock::read"
+   ],
+   "called_by": [
+    "vox-assistant::Claude::ask"
+   ]
+  },
+  {
+   "id": "vox-assistant::Claude::ask",
+   "name": "ask",
+   "qual": "Claude::ask",
+   "crate": "vox-assistant",
+   "file": "crates/vox-assistant/src/lib.rs",
+   "line": 92,
+   "public": true,
+   "owner": "Claude",
+   "trait": "Assistant",
+   "decl_only": false,
+   "sig": "fn ask(&self, req: &AssistRequest) -> Result<AssistReply, String>",
+   "doc": "Ask Claude for the new text of the request's range.",
+   "calls": [
+    "vox-assistant::Claude::run",
+    "vox-assistant::args",
+    "vox-assistant::prompt",
+    "vox-assistant::parse_output"
+   ],
+   "called_by": []
+  },
+  {
+   "id": "vox-assistant::args",
+   "name": "args",
+   "qual": "args",
+   "crate": "vox-assistant",
+   "file": "crates/vox-assistant/src/lib.rs",
+   "line": 100,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn args(req: &AssistRequest) -> Vec<String>",
+   "doc": "Command-line arguments: headless, JSON result with a `{\"text\"}` schema, no tools, no saved session, and the configured model and effort.",
+   "calls": [],
+   "called_by": [
+    "vox-assistant::Claude::ask"
+   ]
+  },
+  {
+   "id": "vox-assistant::prompt",
+   "name": "prompt",
+   "qual": "prompt",
+   "crate": "vox-assistant",
+   "file": "crates/vox-assistant/src/lib.rs",
+   "line": 132,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn prompt(req: &AssistRequest) -> String",
+   "doc": "The prompt sent on stdin: the whole file, then the range and the instruction.",
+   "calls": [],
+   "called_by": [
+    "vox-assistant::Claude::ask"
+   ]
+  },
+  {
+   "id": "vox-assistant::parse_output",
+   "name": "parse_output",
+   "qual": "parse_output",
+   "crate": "vox-assistant",
+   "file": "crates/vox-assistant/src/lib.rs",
+   "line": 146,
+   "public": false,
+   "owner": null,
+   "trait": null,
+   "decl_only": false,
+   "sig": "fn parse_output(ok: bool, out: &str, err: &str) -> Result<AssistReply, String>",
+   "doc": "The new text from the CLI's JSON result, or why there is none.",
+   "calls": [],
+   "called_by": [
+    "vox-assistant::Claude::ask"
    ]
   },
   {
@@ -2391,7 +2544,7 @@ window.VOX_TOUR = {
    "qual": "AssistRequest::target",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 39,
+   "line": 46,
    "public": true,
    "owner": "AssistRequest",
    "trait": null,
@@ -2407,7 +2560,7 @@ window.VOX_TOUR = {
    "qual": "Assistant::ask",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 59,
+   "line": 66,
    "public": true,
    "owner": "Assistant",
    "trait": null,
@@ -2416,7 +2569,9 @@ window.VOX_TOUR = {
    "doc": "Answer `req`, or say why not.",
    "calls": [],
    "called_by": [],
-   "implemented_by": []
+   "implemented_by": [
+    "vox-assistant::Claude::ask"
+   ]
   },
   {
    "id": "vox-editor::ApplyMode::name",
@@ -2424,7 +2579,7 @@ window.VOX_TOUR = {
    "qual": "ApplyMode::name",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 74,
+   "line": 81,
    "public": true,
    "owner": "ApplyMode",
    "trait": null,
@@ -2440,7 +2595,7 @@ window.VOX_TOUR = {
    "qual": "ApplyMode::parse",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 82,
+   "line": 89,
    "public": true,
    "owner": "ApplyMode",
    "trait": null,
@@ -2458,7 +2613,7 @@ window.VOX_TOUR = {
    "qual": "Hunk::covers",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 104,
+   "line": 111,
    "public": false,
    "owner": "Hunk",
    "trait": null,
@@ -2474,7 +2629,7 @@ window.VOX_TOUR = {
    "qual": "assist::diff",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 122,
+   "line": 129,
    "public": true,
    "owner": null,
    "trait": null,
@@ -2492,7 +2647,7 @@ window.VOX_TOUR = {
    "qual": "assist::end_of",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 168,
+   "line": 175,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2513,7 +2668,7 @@ window.VOX_TOUR = {
    "qual": "assist::replace_lines",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 173,
+   "line": 180,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2537,7 +2692,7 @@ window.VOX_TOUR = {
    "qual": "Editor::set_assistant",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 201,
+   "line": 208,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2545,7 +2700,9 @@ window.VOX_TOUR = {
    "sig": "pub fn set_assistant(&mut self, assistant: Arc<dyn Assistant>)",
    "doc": "Set the AI backend used by `:ai`.",
    "calls": [],
-   "called_by": []
+   "called_by": [
+    "vox::main"
+   ]
   },
   {
    "id": "vox-editor::Editor::proposal",
@@ -2553,7 +2710,7 @@ window.VOX_TOUR = {
    "qual": "Editor::proposal",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 206,
+   "line": 213,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2569,7 +2726,7 @@ window.VOX_TOUR = {
    "qual": "Editor::ai_target",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 212,
+   "line": 219,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2590,7 +2747,7 @@ window.VOX_TOUR = {
    "qual": "Editor::ask_ai",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 224,
+   "line": 231,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2599,6 +2756,7 @@ window.VOX_TOUR = {
    "doc": "Ask the AI to change the target lines (see [`Editor::ai_target`]) as `instruction` says. Runs in the background; the answer becomes a proposal or is applied.",
    "calls": [
     "vox-editor::Editor::ai_target",
+    "vox-editor::Editor::config",
     "vox-editor::Editor::spawn_job",
     "vox-core::Document::line_count",
     "vox-core::Document::line",
@@ -2613,7 +2771,7 @@ window.VOX_TOUR = {
    "qual": "Editor::take_answer",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 258,
+   "line": 268,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2637,7 +2795,7 @@ window.VOX_TOUR = {
    "qual": "Editor::hunk_at_cursor",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 304,
+   "line": 314,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2655,7 +2813,7 @@ window.VOX_TOUR = {
    "qual": "Editor::decide",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 316,
+   "line": 326,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2680,7 +2838,7 @@ window.VOX_TOUR = {
    "qual": "Editor::jump_hunk",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 358,
+   "line": 368,
    "public": true,
    "owner": "Editor",
    "trait": null,
@@ -2699,7 +2857,7 @@ window.VOX_TOUR = {
    "qual": "Editor::check_proposal",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 378,
+   "line": 388,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2720,7 +2878,7 @@ window.VOX_TOUR = {
    "qual": "Editor::register_agent",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 390,
+   "line": 400,
    "public": false,
    "owner": "Editor",
    "trait": null,
@@ -2743,7 +2901,7 @@ window.VOX_TOUR = {
    "qual": "assist::register",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 411,
+   "line": 421,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2764,7 +2922,7 @@ window.VOX_TOUR = {
    "qual": "assist::need_proposal",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 460,
+   "line": 470,
    "public": false,
    "owner": null,
    "trait": null,
@@ -2782,7 +2940,7 @@ window.VOX_TOUR = {
    "qual": "assist::ai",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 468,
+   "line": 478,
    "public": false,
    "owner": null,
    "trait": null,
@@ -4410,7 +4568,7 @@ window.VOX_TOUR = {
    "qual": "Config::default",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 221,
+   "line": 225,
    "public": true,
    "owner": "Config",
    "trait": "Default",
@@ -4432,7 +4590,7 @@ window.VOX_TOUR = {
    "qual": "Config::from_value",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 239,
+   "line": 245,
    "public": true,
    "owner": "Config",
    "trait": null,
@@ -4456,7 +4614,7 @@ window.VOX_TOUR = {
    "qual": "config::parse_ui",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 343,
+   "line": 359,
    "public": false,
    "owner": null,
    "trait": null,
@@ -4480,7 +4638,7 @@ window.VOX_TOUR = {
    "qual": "config::place",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/config.rs",
-   "line": 417,
+   "line": 433,
    "public": false,
    "owner": null,
    "trait": null,
@@ -5826,6 +5984,7 @@ window.VOX_TOUR = {
    "doc": "The config last applied.",
    "calls": [],
    "called_by": [
+    "vox-editor::Editor::ask_ai",
     "vox-editor::Editor::take_answer"
    ]
   },
@@ -9080,6 +9239,7 @@ window.VOX_TOUR = {
     "vox-editor::Lockfile::from_value"
    ],
    "called_by": [
+    "vox-assistant::Claude::run",
     "vox-editor::builtin::copy_lock_entries",
     "vox-editor::manage::record",
     "vox-editor::manage::remove",
@@ -11780,7 +11940,7 @@ window.VOX_TOUR = {
    "qual": "settings::mode_name",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/settings/mod.rs",
-   "line": 225,
+   "line": 237,
    "public": true,
    "owner": null,
    "trait": null,
@@ -11801,7 +11961,7 @@ window.VOX_TOUR = {
    "qual": "settings::parse_mode",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/settings/mod.rs",
-   "line": 234,
+   "line": 246,
    "public": true,
    "owner": null,
    "trait": null,
@@ -11820,7 +11980,7 @@ window.VOX_TOUR = {
    "qual": "Config::to_value",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/settings/mod.rs",
-   "line": 245,
+   "line": 257,
    "public": true,
    "owner": "Config",
    "trait": null,
@@ -11838,7 +11998,7 @@ window.VOX_TOUR = {
    "qual": "settings::get",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/settings/mod.rs",
-   "line": 335,
+   "line": 351,
    "public": true,
    "owner": null,
    "trait": null,
@@ -11854,7 +12014,7 @@ window.VOX_TOUR = {
    "qual": "settings::to_config_value",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/settings/mod.rs",
-   "line": 343,
+   "line": 359,
    "public": true,
    "owner": null,
    "trait": null,
@@ -16052,6 +16212,16 @@ window.VOX_TOUR = {
    "doc": "What to do instead of starting the editor."
   },
   {
+   "id": "vox-assistant::Claude",
+   "name": "Claude",
+   "kind": "struct",
+   "crate": "vox-assistant",
+   "file": "crates/vox-assistant/src/lib.rs",
+   "line": 23,
+   "public": true,
+   "doc": "The Claude backend: runs the `claude` CLI."
+  },
+  {
    "id": "vox-clipboard::SystemClipboard",
    "name": "SystemClipboard",
    "kind": "struct",
@@ -16187,7 +16357,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 51,
+   "line": 58,
    "public": true,
    "doc": "The AI's answer: new text for the requested lines."
   },
@@ -16197,7 +16367,7 @@ window.VOX_TOUR = {
    "kind": "trait",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 57,
+   "line": 64,
    "public": true,
    "doc": "An AI backend. Called on a background thread."
   },
@@ -16207,7 +16377,7 @@ window.VOX_TOUR = {
    "kind": "enum",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 64,
+   "line": 71,
    "public": true,
    "doc": "How an AI answer lands in the buffer."
   },
@@ -16217,7 +16387,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 93,
+   "line": 100,
    "public": true,
    "doc": "One change: `old` lines starting at line `at` become `new`."
   },
@@ -16227,7 +16397,7 @@ window.VOX_TOUR = {
    "kind": "struct",
    "crate": "vox-editor",
    "file": "crates/vox-editor/src/assist.rs",
-   "line": 111,
+   "line": 118,
    "public": true,
    "doc": "An AI answer waiting to be accepted or declined."
   },
@@ -18724,7 +18894,23 @@ window.VOX_TOUR = {
     },
     {
      "fn": "vox-editor::Editor::ask_ai",
-     "text": "Builds the request (instruction, whole text, target lines) and runs the `Assistant` in a background job."
+     "text": "Builds the request (instruction, whole text, target lines, `ai_model`, `ai_effort`) and runs the `Assistant` in a background job."
+    },
+    {
+     "fn": "vox-assistant::Claude::ask",
+     "text": "The binary's backend runs Claude Code headless (`claude -p`) on the user's Claude login: no API key."
+    },
+    {
+     "fn": "vox-assistant::args",
+     "text": "JSON output with a `{\"text\"}` schema, no tools, no saved session, the configured model and effort."
+    },
+    {
+     "fn": "vox-assistant::prompt",
+     "text": "On stdin: the whole file, then the range and the instruction."
+    },
+    {
+     "fn": "vox-assistant::parse_output",
+     "text": "CLI errors (not logged in, usage limits) and refusals become messages; otherwise `structured_output.text` is the new text for the range."
     },
     {
      "fn": "vox-editor::Editor::take_answer",

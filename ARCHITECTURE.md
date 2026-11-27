@@ -8,7 +8,7 @@ vox (bin) ──────>│ vox-editor ──> vox-view                  �
    │             │      └──────> vox-core                   │
    │             └──────────────────────▲───────────────────┘
    │                                    │ implement core traits
-   └──> adapters: vox-storage ─ vox-width ─ vox-clipboard ─ vox-term ─ vox-config-file ─ vox-plugin-host
+   └──> adapters: vox-storage ─ vox-width ─ vox-clipboard ─ vox-term ─ vox-config-file ─ vox-plugin-host ─ vox-assistant
 
    plugins (.wasm) ──> vox-plugin-sdk (for plugin authors) ── contract: wit/vox.wit
 ```
@@ -24,6 +24,7 @@ vox (bin) ──────>│ vox-editor ──> vox-view                  �
 | `vox-term` | adapter | terminal: raw mode, key input → `Key`, draws `Surface` (row diff), run loop with mapping timeout | crossterm |
 | `vox-config-file` | adapter | reads `config.toml` into `Value`; writes settings edits keeping comments (`write_edits`) | toml, toml_edit |
 | `vox-plugin-host` | adapter | runs WebAssembly plugins (time/memory limits, no system access) after core's health checks; passes settings; maps plugin requests to the `Editor` API; `:checkhealth` | wasmtime, wasmtime-wasi |
+| `vox-assistant` | adapter | `Claude: Assistant` — runs Claude Code (`claude -p`) headless for agent mode's `:ai`, on the user's Claude login | serde_json |
 | `vox-plugin-sdk` | plugin SDK | Rust glue for plugin authors, from `wit/vox.wit` (not linked into vox) | wit-bindgen |
 | `vox` | binary | parses the command line (`--local-config`, `--vanilla`), picks the scope, builds `Services`, loads the scope's config and plugins, runs `vox-term` | none directly |
 

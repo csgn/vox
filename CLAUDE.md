@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-vox: Vim-like modal terminal editor in Rust (edition 2024) with sandboxed Rust→WASM plugins. Not a Neovim clone: scope is Vim-style editing, a small developer API, and easy-to-manage plugins (see `docs/src/dev/roadmap.md`). Next: buffers, then text/agent editor modes with focus and Colab-style inline AI edits (M18–M21); Claude comes as a backend in M21.
+vox: Vim-like modal terminal editor in Rust (edition 2024) with sandboxed Rust→WASM plugins. Not a Neovim clone: scope is Vim-style editing, a small developer API, and easy-to-manage plugins (see `docs/src/dev/roadmap.md`). Agent mode asks Claude by running the `claude` CLI headless (adapter `vox-assistant`; uses the user's Claude login, no API key); next: M22 project explorer plugin.
 
 ## Commands
 
@@ -27,7 +27,7 @@ cargo insta review   # or INSTA_UPDATE=always cargo test — after intended UI c
 
 See `ARCHITECTURE.md` for the crate table. Key points:
 
-- **Core** (`vox-core`, `vox-view`, `vox-editor`) is `std`-only. Third-party crates live only in **adapter** crates (`vox-storage`, `vox-width`, `vox-clipboard`, `vox-term`, `vox-config-file`, `vox-plugin-host`) or the `vox` binary, each implementing a core trait. Core API never exposes third-party types. Enforced by `scripts/check-deps.sh`. Procedure for new deps: `docs/src/dev/dependencies.md`. Things like the plugin manifest, `vox.lock`, sha256, and version parsing are therefore hand-written inside `vox-editor/src/plugin/`.
+- **Core** (`vox-core`, `vox-view`, `vox-editor`) is `std`-only. Third-party crates live only in **adapter** crates (`vox-storage`, `vox-width`, `vox-clipboard`, `vox-term`, `vox-config-file`, `vox-plugin-host`, `vox-assistant`) or the `vox` binary, each implementing a core trait. Core API never exposes third-party types. Enforced by `scripts/check-deps.sh`. Procedure for new deps: `docs/src/dev/dependencies.md`. Things like the plugin manifest, `vox.lock`, sha256, and version parsing are therefore hand-written inside `vox-editor/src/plugin/`.
 - Crates/types are named by purpose (`vox-storage`), never after the wrapped library.
 - `vox` binary parses CLI, picks the scope, builds `Services` (`crates/vox-editor/src/editor.rs`) with adapter impls, loads config + plugins, runs the `vox-term` loop.
 - `Editor::handle_key` is independent of the event loop; `Editor::render() -> Surface` is pure. Both are tested without a terminal.

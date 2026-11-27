@@ -27,6 +27,10 @@ Built one milestone at a time; each ships with tests, docs, and a changelog entr
 | M15 | 0.17.0 | Command metadata and help: commands declare category, parameters, result, examples; `:help CMD` / `:?CMD` dialog; `help` in `vox run` | done |
 | M16 | 0.18.0 | Command browser: `:commands` as a tree (category → command → subcommand) with sub-panels, breadcrumb path, filter, run, help | done |
 | M17 | 0.19.0 | Prompt and completion: `:` and `/` prompt in the status line, a floating box, or a modal (configurable); completion menu while typing, `Tab` completes; argument hints; prompt history | done |
+| M18 | 0.20.0 | Buffers: several open files (`:e`, `:ls`, `:b`, `:bn`/`:bp`, `:bd`, `:wa`), `vox a b`; `:q` checks every buffer | planned |
+| M19 | 0.21.0 | Editor modes and focus: `text` / `agent` mode (`:mode`, key, `vox --agent`, `editor_mode`); focus on one unit (selection, block, function, class, file), the rest dimmed | planned |
+| M20 | 0.22.0 | Asking the AI: `<leader>a` / `:ai` dialog on the focused unit; the reply shown as an inline diff to accept or decline (or applied directly, per scope); backend trait with a test backend | planned |
+| M21 | 0.23.0 | Claude backend: an adapter implementing the assistant trait with the Claude API | planned |
 
 ## Scopes
 
@@ -105,8 +109,41 @@ milestones, in this order, because the browser and completion both need the meta
 - Completion is a pure function of the editor state (`Editor::complete(line, cursor)`),
   tested without a terminal and reusable by `vox run` / Claude later.
 
-After M17: Claude integration (see below).
+## Next: editor modes (M18–M21)
+
+vox gets two editor modes. **text** is the Vim-style editor with no AI anywhere. **agent** is
+the same editor plus inline AI help, in the style of Colab: while coding, press a key, a small
+dialog asks what to do, the AI's change appears in the buffer as a diff, and you accept or
+decline it. There is no chat panel: the editor stays the UI.
+
+### M18 — buffers
+`Editor.doc` stays the active document; other open files are kept as buffers (document,
+cursor, view) and swapped in on switch. `:e FILE` opens or switches; `:ls` / `:buffers`,
+`:buffer N|NAME`, `:bnext`, `:bprevious`, `:bdelete[!]`, `:wall`, `:buffer list` (data).
+`:q` refuses while any buffer has unsaved changes. The status line shows `[N/M]`.
+
+### M19 — editor modes and focus
+- Mode: `:mode text|agent|toggle`, `<leader>m`, `vox --agent`, `editor_mode` per scope (also
+  in `:settings`). Agent-only commands and keys have their own owner and are removed in text
+  mode. The status line shows `AGENT`.
+- Focus: you (and later the AI) work on one unit — selection, block, function, class, or file.
+  `<leader>f` focuses the smallest unit at the cursor and widens on repeat, `<leader>F`
+  narrows, `:narrow KIND`, `:widen`. Everything outside is dimmed. Units come from a core
+  `Structure` trait with a heuristic (braces, indentation, keywords like `fn`/`def`/`class`);
+  tree-sitter can replace it later.
+
+### M20 — asking the AI and reviewing its change
+- `<leader>a` / `:ai INSTRUCTION` opens a small dialog; the request carries the focused unit
+  (else the selection, else the line) and the file for context. The reply may only change
+  that unit.
+- The reply is shown inline: removed lines `-` and added lines `+` in place. `ga` / `gx`
+  accept / decline a hunk, `gA` / `gX` all, `]c` / `[c` move between hunks. Accepting is one
+  undo step. `ai_apply = "review" | "direct"` per scope.
+- A core `Assistant` trait (std-only) runs as a background job; tests use a fake backend.
+
+### M21 — Claude backend
+An adapter crate implements `Assistant` with the Claude API. Planned in detail after M20.
 
 ## Later (only if needed)
-Claude integration (MCP server on top of `vox run`), remote control of a running vox (`vox run --attach` over a Unix socket, buffer commands; only if Claude needs the open buffer), plugin registry, plugin-defined panels, splits, fuzzy finder,
+MCP server on top of `vox run` (other agents driving vox), remote control of a running vox (`vox run --attach` over a Unix socket, buffer commands; only if Claude needs the open buffer), plugin registry, plugin-defined panels, splits, fuzzy finder,
 tree-sitter highlighting, themes, LSP, git signs, macros, marks, named registers.

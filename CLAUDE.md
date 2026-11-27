@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-vox: Vim-like modal terminal editor in Rust (edition 2024) with sandboxed Rust→WASM plugins. Not a Neovim clone: scope is Vim-style editing, a small developer API, and easy-to-manage plugins (see `docs/src/dev/roadmap.md`). Claude integration is postponed.
+vox: Vim-like modal terminal editor in Rust (edition 2024) with sandboxed Rust→WASM plugins. Not a Neovim clone: scope is Vim-style editing, a small developer API, and easy-to-manage plugins (see `docs/src/dev/roadmap.md`). Next: buffers, then text/agent editor modes with focus and Colab-style inline AI edits (M18–M21); Claude comes as a backend in M21.
 
 ## Commands
 

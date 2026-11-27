@@ -7,8 +7,8 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-vox-core = { version = "0.22.0", path = "../vox-core" }
-vox-editor = { version = "0.22.0", path = "../vox-editor" }
+vox-core = { version = "0.22.1", path = "../vox-core" }
+vox-editor = { version = "0.22.1", path = "../vox-editor" }
 wasmtime = "51.0.0"
 wasmtime-wasi = "51.0.0"
 

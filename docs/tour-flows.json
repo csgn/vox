@@ -753,7 +753,7 @@
       },
       {
         "fn": "vox-editor::Editor::set_developer_mode",
-        "text": "Adds three mappings owned by `devmode` (`<leader>dl`, `<leader>dr`, `<leader>dc`) and logs the change. Turning it off removes exactly those."
+        "text": "Registers the `:log` commands and three mappings owned by `devmode` (`<leader>dl`, `<leader>dr`, `<leader>dc`) and logs the change. Turning it off removes exactly those and closes open log views."
       },
       {
         "fn": "vox-editor::builtin::log",

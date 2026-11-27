@@ -269,6 +269,29 @@ mod devmode {
     }
 
     #[test]
+    fn log_commands_exist_only_in_developer_mode() {
+        let (mut ed, _) = editor("abc");
+        for name in ["log", "log refresh", "log clear"] {
+            assert!(ed.commands().get(name).is_none(), "{name} without devmode");
+        }
+        assert!(ed.execute("log").unwrap_err().starts_with("E492"));
+        feed(&mut ed, ":devmode on<CR>");
+        for name in ["log", "log refresh", "log clear"] {
+            let c = ed.commands().get(name).expect(name);
+            assert_eq!(c.owner, owner::DEVMODE, "{name}");
+        }
+        feed(&mut ed, ":log<CR>");
+        assert!(ed.has_panel(PanelSlot::Bottom));
+        ed.execute("devmode off").unwrap();
+        assert!(!ed.has_panel(PanelSlot::Bottom), "log view closed");
+        assert!(ed.commands().get("log").is_none());
+        // Common commands stay.
+        for name in ["devmode", "mode", "settings"] {
+            assert!(ed.commands().get(name).is_some(), "{name}");
+        }
+    }
+
+    #[test]
     fn config_turns_it_on() {
         let (mut ed, _) = editor("abc");
         ed.apply_config(&Config {
@@ -283,7 +306,7 @@ mod devmode {
         let (mut ed, _) = editor("abc");
         ed.log(Level::Debug, "test", "quiet detail");
         ed.log(Level::Warn, "test", "first warning");
-        feed(&mut ed, ":log warn<CR>");
+        feed(&mut ed, ":devmode on<CR>:log warn<CR>");
         let screen = log_view_lines(&mut ed);
         assert!(screen.contains("first warning") && !screen.contains("quiet detail"));
         ed.log(Level::Error, "other", "arrives later");

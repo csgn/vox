@@ -5,6 +5,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.22.1] - 2026-11-27 — log commands in developer mode only
+
+### Changed
+- `:log`, `:log clear`, `:log refresh` exist only in developer mode (owner `devmode`), like
+  `:ai` in agent mode. Turning developer mode off removes them and closes open log views.
+  `:devmode` and `:reload config|plugins` stay available in every mode.
+
 ## [0.22.0] - 2026-11-27 — M20 asking the AI
 
 ### Added

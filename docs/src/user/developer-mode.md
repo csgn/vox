@@ -12,7 +12,12 @@ developer_mode = true
 or for this session with `:devmode` (toggle), `:devmode on`, `:devmode off`. The status line
 shows `DEV` while it is on.
 
-## Shortcuts (developer mode only)
+## Commands and shortcuts (developer mode only)
+
+Developer mode is separate from the [editor mode](agent-mode.md) (`text` / `agent`); both
+can be on. Like `:ai` in agent mode, the `:log` commands exist only while developer mode is
+on: `:log`, `:log clear`, `:log refresh`. Turning it off removes them and closes an open log.
+`:devmode`, `:reload config`, and `:reload plugins` work in every mode.
 
 | Keys | Command | Action |
 |---|---|---|
@@ -20,8 +25,7 @@ shows `DEV` while it is on.
 | `<leader>dr` | `:reload plugins` | reload all plugins |
 | `<leader>dc` | `:reload config` | re-read `config.toml` |
 
-They are ordinary mappings, so you can change them in `[keymap.normal]`. The commands work
-without developer mode too.
+They are ordinary mappings, so you can change them in `[keymap.normal]`.
 
 ## The log
 

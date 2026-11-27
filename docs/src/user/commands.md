@@ -38,8 +38,8 @@ none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
 | `:keymaps` | your key mappings in the side panel |
 | `:close` | close the modal or the focused panel |
 | `:focus editor\|side\|bottom` | move focus |
-| `:log [LEVEL] [SOURCE]` | open the log ([Developer mode](developer-mode.md)) |
-| `:log clear`, `:log refresh` | clear / refresh the log |
+| `:log [LEVEL] [SOURCE]` | developer mode: open the log ([Developer mode](developer-mode.md)) |
+| `:log clear`, `:log refresh` | developer mode: clear / refresh the log |
 | `:devmode [on\|off]` | toggle developer mode |
 | `:reload config` | re-read the config file |
 | `:reload plugins [NAME]` | reload all plugins or one |

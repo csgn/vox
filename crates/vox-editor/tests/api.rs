@@ -348,13 +348,7 @@ fn subcommands_share_a_root() {
 #[test]
 fn builtin_subcommands() {
     let mut ed = editor("x");
-    for name in [
-        "log clear",
-        "log refresh",
-        "scope setup",
-        "scope init",
-        "scope pick",
-    ] {
+    for name in ["scope setup", "scope init", "scope pick"] {
         assert!(ed.commands().get(name).is_some(), "{name}");
     }
     assert!(
@@ -362,7 +356,7 @@ fn builtin_subcommands() {
         "no hyphenated names"
     );
     ed.log(vox_editor::Level::Info, "test", "x");
-    feed(&mut ed, ":log clear<CR>");
+    feed(&mut ed, ":devmode on<CR>:log clear<CR>");
     assert!(
         ed.log_entries().entries().all(|e| e.message != "x"),
         "cleared"
@@ -414,6 +408,7 @@ fn execute_returns_reply_or_error() {
     assert_eq!(ed.execute("answer!"), Err("E1: no".into()));
     assert_eq!(ed.execute("notify hi"), Ok(None));
     assert!(ed.execute("nope").unwrap_err().starts_with("E492"));
+    ed.set_developer_mode(true);
     assert!(ed.execute("log nope").is_ok(), "log takes a source name");
     assert!(
         ed.execute("plugin nope")

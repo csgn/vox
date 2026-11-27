@@ -126,31 +126,6 @@ pub(crate) fn register(c: &mut Commands) {
             Param::required("TARGET", "Where keys go next.").values(&["editor", "side", "bottom"]),
         );
     c.register(
-        "log",
-        "Show the log in the bottom panel: `:log [debug|info|warn|error] [SOURCE]`.",
-        log,
-    )
-    .category(DEVELOPER)
-    .param(
-        Param::optional("LEVEL", "Lowest level shown (default debug).")
-            .values(&["debug", "info", "warn", "error"]),
-    )
-    .param(Param::optional(
-        "SOURCE",
-        "Only entries from this source, e.g. `editor` or `plugin:NAME`.",
-    ))
-    .example("log warn", "warnings and errors only");
-    c.register("log refresh", "Refresh open log views.", |ed, _| {
-        ed.refresh_log_views();
-        Ok(())
-    })
-    .category(DEVELOPER);
-    c.register("log clear", "Clear the log.", |ed, _| {
-        ed.clear_log();
-        Ok(())
-    })
-    .category(DEVELOPER);
-    c.register(
         "devmode",
         "Developer mode: `:devmode on|off`, no argument toggles.",
         devmode,
@@ -207,6 +182,38 @@ pub(crate) fn register(c: &mut Commands) {
         scope_pick,
     )
     .category(SCOPE);
+}
+
+/// Developer mode's commands: `:log`, `:log refresh`, `:log clear`. Registered by
+/// [`Editor::set_developer_mode`] with owner [`crate::owner::DEVMODE`].
+pub(crate) fn register_dev(c: &mut Commands) {
+    use crate::command::Param;
+    use crate::command::category::DEVELOPER;
+    c.register(
+        "log",
+        "Show the log in the bottom panel: `:log [debug|info|warn|error] [SOURCE]`.",
+        log,
+    )
+    .category(DEVELOPER)
+    .param(
+        Param::optional("LEVEL", "Lowest level shown (default debug).")
+            .values(&["debug", "info", "warn", "error"]),
+    )
+    .param(Param::optional(
+        "SOURCE",
+        "Only entries from this source, e.g. `editor` or `plugin:NAME`.",
+    ))
+    .example("log warn", "warnings and errors only");
+    c.register("log refresh", "Refresh open log views.", |ed, _| {
+        ed.refresh_log_views();
+        Ok(())
+    })
+    .category(DEVELOPER);
+    c.register("log clear", "Clear the log.", |ed, _| {
+        ed.clear_log();
+        Ok(())
+    })
+    .category(DEVELOPER);
 }
 
 /// `:write [FILE]` / `:w`.

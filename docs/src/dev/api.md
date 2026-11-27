@@ -128,7 +128,7 @@ into a `Value`. A new setting means: a field in `Config`, a case in `from_value`
 | `next_deadline()`, `tick()` | time-based work (run loop) |
 | `with_owner(owner, f)`, `remove_owned(owner)` | ownership, unloading |
 | `log(level, source, text)`, `log_entries()` | developer log |
-| `set_developer_mode(on)`, `developer_mode()` | developer mode |
+| `set_developer_mode(on)`, `developer_mode()` | developer mode (adds/removes the `:log` commands) |
 | `config()`, `save_config_edits(edits)`, `set_config_writer(w)` | read and change the config |
 | `set_plugin_settings(name, specs)`, `plugin_settings()` | plugin settings schemas (from the plugin host) |
 | `plugin_infos()`, `set_plugin_infos(infos)` | status of every plugin (set by the plugin host) |

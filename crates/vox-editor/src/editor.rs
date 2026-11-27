@@ -864,6 +864,26 @@ impl Editor {
         }
     }
 
+    /// Close every panel or modal showing the log.
+    fn close_log_views(&mut self) {
+        for slot in [PanelSlot::Side, PanelSlot::Bottom] {
+            let panel = match slot {
+                PanelSlot::Side => &mut self.side,
+                PanelSlot::Bottom => &mut self.bottom,
+            };
+            if panel.as_mut().is_some_and(|v| v.as_log_view().is_some()) {
+                self.close_panel(slot);
+            }
+        }
+        if self
+            .modal
+            .as_mut()
+            .is_some_and(|v| v.as_log_view().is_some())
+        {
+            self.close_modal();
+        }
+    }
+
     /// Set the active scope and the user's global scope (if known). Only informs `:scope`,
     /// the status line, and project set-up; loading config and plugins is done by the
     /// binary from the scope's paths.
@@ -968,17 +988,21 @@ impl Editor {
         self.developer_mode
     }
 
-    /// Turn developer mode on or off. On: adds `<leader>dl` (log), `<leader>dr` (reload
-    /// plugins), `<leader>dc` (reload config).
+    /// Turn developer mode on or off. On: adds the `:log` commands, `<leader>dl` (log),
+    /// `<leader>dr` (reload plugins), `<leader>dc` (reload config). Off: removes them and
+    /// closes open log views.
     pub fn set_developer_mode(&mut self, on: bool) {
         self.remove_owned(owner::DEVMODE);
         self.developer_mode = on;
         if on {
             self.with_owner(owner::DEVMODE, |ed| {
+                crate::builtin::register_dev(ed.commands_mut());
                 ed.map_key(MapMode::Normal, "<leader>dl", ":log");
                 ed.map_key(MapMode::Normal, "<leader>dr", ":reload plugins");
                 ed.map_key(MapMode::Normal, "<leader>dc", ":reload config");
             });
+        } else {
+            self.close_log_views();
         }
         self.log(
             Level::Info,

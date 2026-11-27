@@ -12,7 +12,7 @@ mod views;
 
 pub use form::Form;
 pub use layout::{
-    CompletionMode, ManagerPlace, NotifyPosition, PromptPlace, SidePosition, UiConfig,
+    CompletionMode, KeyHints, ManagerPlace, NotifyPosition, PromptPlace, SidePosition, UiConfig,
 };
 pub(crate) use layout::{Layout, compute};
 pub use notify::{JobStatus, Level, Notification};

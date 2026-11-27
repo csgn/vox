@@ -444,3 +444,124 @@ fn running_job_shows_progress_until_done() {
     assert!(!screen.contains("installing demo"), "box gone when done");
     assert!(screen.contains("installed demo"));
 }
+
+mod key_hints {
+    use super::*;
+    use vox_editor::ui::{KeyHints, UiConfig};
+
+    fn wait(ed: &mut Editor, now: &Rc<Cell<Instant>>, ms: u64) {
+        now.set(now.get() + Duration::from_millis(ms));
+        ed.tick();
+    }
+
+    fn with_hints(ed: &mut Editor, hints: KeyHints) {
+        ed.apply_config(&Config {
+            ui: UiConfig {
+                key_hints: hints,
+                ..UiConfig::default()
+            },
+            ..Config::default()
+        });
+    }
+
+    #[test]
+    fn leader_shows_next_keys_after_the_delay_and_waits() {
+        let (mut ed, now) = editor("abc");
+        ed.set_developer_mode(true);
+        feed(&mut ed, "\\");
+        assert!(ed.key_hints().is_none(), "not before the delay");
+        assert_eq!(
+            ed.next_deadline(),
+            Some(now.get() + Duration::from_millis(300)),
+            "wakes up for the hints"
+        );
+        wait(&mut ed, &now, 300);
+        let (title, r) = ed.key_hints().unwrap();
+        assert_eq!(title, "<leader>");
+        assert!(r.contains(&("p".into(), ":plugins".into())), "{r:?}");
+        assert!(r.contains(&("d".into(), "+3".into())), "group: {r:?}");
+        assert_eq!(ed.next_deadline(), None, "no timeout while shown");
+        wait(&mut ed, &now, 5000);
+        assert!(ed.has_pending_keys(), "waits for a key");
+        feed(&mut ed, "d");
+        let (title, r) = ed.key_hints().unwrap();
+        assert_eq!(title, "<leader>d", "deeper level shown at once");
+        let keys: Vec<_> = r.iter().map(|(k, _)| k.as_str()).collect();
+        assert_eq!(keys, ["c", "l", "r"]);
+        feed(&mut ed, "l");
+        assert!(ed.key_hints().is_none());
+        assert!(ed.has_panel(PanelSlot::Bottom), "mapping ran");
+    }
+
+    #[test]
+    fn esc_closes_without_running_anything() {
+        let (mut ed, now) = editor("abc\ndef");
+        feed(&mut ed, "\\");
+        wait(&mut ed, &now, 300);
+        assert!(ed.key_hints().is_some());
+        feed(&mut ed, "<Esc>");
+        assert!(ed.key_hints().is_none() && !ed.has_pending_keys());
+        feed(&mut ed, "j");
+        assert_eq!(ed.cursor().line, 1, "keys work normally after");
+    }
+
+    #[test]
+    fn fast_typing_never_shows_them() {
+        let (mut ed, now) = editor("abc");
+        feed(&mut ed, "\\");
+        wait(&mut ed, &now, 100);
+        feed(&mut ed, "p");
+        assert!(ed.key_hints().is_none());
+        assert!(ed.has_modal(), "plugin manager opened");
+    }
+
+    #[test]
+    fn off_keeps_the_mapping_timeout() {
+        let (mut ed, now) = editor("abc");
+        with_hints(&mut ed, KeyHints::Off);
+        feed(&mut ed, "\\");
+        wait(&mut ed, &now, 1000);
+        assert!(ed.key_hints().is_none());
+        assert!(!ed.has_pending_keys(), "timed out as before");
+    }
+
+    #[test]
+    fn not_in_insert_mode() {
+        let (mut ed, now) = editor("abc");
+        ed.map_key(vox_editor::MapMode::Insert, "jk", "<Esc>");
+        feed(&mut ed, "ij");
+        wait(&mut ed, &now, 300);
+        assert!(ed.key_hints().is_none());
+        wait(&mut ed, &now, 1000);
+        assert_eq!(
+            ed.document().line(0).as_deref(),
+            Some("jabc"),
+            "j typed after the timeout"
+        );
+    }
+
+    #[test]
+    fn rows_that_do_not_fit_are_counted() {
+        let (mut ed, now) = editor("abc");
+        ed.resize(60, 7); // body of 5 rows: 3 inside the box
+        feed(&mut ed, "\\");
+        wait(&mut ed, &now, 300);
+        let screen = ed.render().to_string();
+        assert!(screen.contains("… 2 more"), "{screen}");
+    }
+
+    #[test]
+    fn snapshots() {
+        for (name, hints) in [
+            ("key_hints_bottom_right", KeyHints::BottomRight),
+            ("key_hints_modal", KeyHints::Modal),
+        ] {
+            let (mut ed, now) = editor("abc");
+            with_hints(&mut ed, hints);
+            ed.set_developer_mode(true);
+            feed(&mut ed, "\\");
+            wait(&mut ed, &now, 300);
+            insta::assert_snapshot!(name, ed.render().to_string());
+        }
+    }
+}

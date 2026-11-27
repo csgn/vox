@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use crate::keymap::MapMode;
 use crate::ui::{
-    CompletionMode, ManagerPlace, NotifyPosition, PromptPlace, SidePosition, UiConfig,
+    CompletionMode, KeyHints, ManagerPlace, NotifyPosition, PromptPlace, SidePosition, UiConfig,
 };
 
 /// Parses a file's text (e.g. TOML) into a [`Value`]; provided by an adapter.
@@ -388,6 +388,15 @@ fn parse_ui(t: &BTreeMap<String, Value>, ui: &mut UiConfig, errors: &mut Vec<Str
             }
             .map(|m| ui.completion = m)
             .ok_or_else(|| "`ui.completion` must be \"auto\", \"tab\", or \"off\"".to_string()),
+            "key_hints" => match v {
+                Value::String(s) => KeyHints::parse(s),
+                _ => None,
+            }
+            .map(|m| ui.key_hints = m)
+            .ok_or_else(|| {
+                "`ui.key_hints` must be \"bottom-right\", \"modal\", or \"off\"".to_string()
+            }),
+            "key_hints_delay_ms" => int(0, 600_000).map(|n| ui.key_hints_delay_ms = n as u64),
             "commands" => place(v)
                 .map(|p| ui.commands = p)
                 .ok_or_else(|| "`ui.commands` must be \"modal\" or \"side\"".to_string()),
@@ -542,6 +551,8 @@ mod tests {
                 ("notify_position", s("bottom-right")),
                 ("modal_width", Value::Integer(5)),
                 ("colour", s("x")),
+                ("key_hints", s("modal")),
+                ("key_hints_delay_ms", Value::Integer(50)),
             ]),
         )]);
         let (cfg, errors) = Config::from_value(&v);
@@ -549,6 +560,8 @@ mod tests {
         assert_eq!(cfg.ui.side_width, 30);
         assert_eq!(cfg.ui.notify_position, NotifyPosition::BottomRight);
         assert_eq!(cfg.ui.modal_width, UiConfig::default().modal_width);
+        assert_eq!(cfg.ui.key_hints, KeyHints::Modal);
+        assert_eq!(cfg.ui.key_hints_delay_ms, 50);
         assert_eq!(
             errors,
             [

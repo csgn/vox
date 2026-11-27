@@ -93,6 +93,36 @@ impl CompletionMode {
     }
 }
 
+/// Where the key hints (the keys that can follow a pending mapping prefix) are shown.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum KeyHints {
+    /// A box in the bottom right corner, above the status line.
+    #[default]
+    BottomRight,
+    /// A centered box.
+    Modal,
+    /// Not shown.
+    Off,
+}
+
+impl KeyHints {
+    /// Config name: `bottom-right`, `modal`, `off`.
+    pub fn name(self) -> &'static str {
+        match self {
+            KeyHints::BottomRight => "bottom-right",
+            KeyHints::Modal => "modal",
+            KeyHints::Off => "off",
+        }
+    }
+
+    /// Parse a config name.
+    pub fn parse(s: &str) -> Option<Self> {
+        [Self::BottomRight, Self::Modal, Self::Off]
+            .into_iter()
+            .find(|p| p.name() == s)
+    }
+}
+
 /// UI settings (`[ui]` in the config file).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UiConfig {
@@ -120,6 +150,10 @@ pub struct UiConfig {
     pub searchline: PromptPlace,
     /// When the `:` prompt shows completions.
     pub completion: CompletionMode,
+    /// Where key hints are shown.
+    pub key_hints: KeyHints,
+    /// How long a mapping prefix waits before key hints appear, in milliseconds.
+    pub key_hints_delay_ms: u64,
 }
 
 impl Default for UiConfig {
@@ -137,6 +171,8 @@ impl Default for UiConfig {
             cmdline: PromptPlace::Statusline,
             searchline: PromptPlace::Statusline,
             completion: CompletionMode::Auto,
+            key_hints: KeyHints::BottomRight,
+            key_hints_delay_ms: 300,
         }
     }
 }

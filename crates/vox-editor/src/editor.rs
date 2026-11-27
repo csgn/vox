@@ -13,12 +13,13 @@ use std::time::Instant;
 use crate::config::Config;
 use crate::event::{Event, EventHandler, EventKind, ModeKind};
 use crate::keymap::{self, Binding, Keymap, Lookup, MapMode};
-use crate::keys::{Key, KeyCode};
+use crate::keys::{Key, KeyCode, format_keys};
 use crate::log::Log;
 use crate::owner;
 use crate::scope::Scope;
 use crate::ui::{
-    self, Focus, Layout, Level, Notification, Outcome, PanelSlot, SidePosition, UiConfig, View,
+    self, Focus, KeyHints, Layout, Level, Notification, Outcome, PanelSlot, SidePosition, UiConfig,
+    View,
 };
 
 use crate::normal::{self, Action, Cmd, InsertAt, Motion, Operator, Parse, Scroll, Target};
@@ -179,6 +180,8 @@ pub struct Editor {
     clock: Box<dyn Fn() -> Instant>,
     /// When the first still-pending mapping key was typed.
     pending_since: Option<Instant>,
+    /// Key hints are on screen: the pending prefix waits for a key instead of timing out.
+    hints_shown: bool,
     /// Nesting depth of public entry points; only the outermost sends change events.
     event_depth: u32,
     /// A command ran since open views were last refreshed.
@@ -283,6 +286,7 @@ impl Editor {
             history: Vec::new(),
             clock: services.clock,
             pending_since: None,
+            hints_shown: false,
             event_depth: 0,
             views_stale: false,
             interactive: true,
@@ -385,6 +389,13 @@ impl Editor {
 
     /// Handle one key press.
     pub fn handle_key(&mut self, key: Key) {
+        let hints = std::mem::take(&mut self.hints_shown);
+        if hints && key.code == KeyCode::Esc && self.hint_prefix() {
+            // Esc closes the key hints and drops the prefix.
+            self.map_pending.clear();
+            self.pending_since = None;
+            return;
+        }
         self.with_change_events(|ed| {
             if ed.modal.is_some() {
                 ed.view_key(None, key);
@@ -406,7 +417,54 @@ impl Editor {
             (false, None) => Some((self.clock)()),
             (false, since) => since,
         };
+        // Going one level deeper keeps the hints open.
+        self.hints_shown = hints && self.hint_prefix();
         self.follow_cursor();
+    }
+
+    /// Whether the pending keys are a mapping prefix that key hints may be shown for:
+    /// normal or visual mode, hints not `off`, and no mapping matches them exactly.
+    fn hint_prefix(&self) -> bool {
+        self.ui.key_hints != KeyHints::Off
+            && !self.map_pending.is_empty()
+            && matches!(self.mode, Mode::Normal | Mode::Visual { .. })
+            && self
+                .map_mode()
+                .is_some_and(|m| self.keymap.lookup(m, &self.map_pending) == Lookup::Prefix)
+    }
+
+    /// The key hints on screen, if any: the pending keys (`<leader>` for the leader) and,
+    /// per key that can follow, what it does: `:cmd`, keys, or `+N` for longer mappings.
+    pub fn key_hints(&self) -> Option<(String, Vec<(String, String)>)> {
+        if !self.hints_shown || !self.hint_prefix() {
+            return None;
+        }
+        let mode = self.map_mode()?;
+        let leader = crate::keys::parse_keys(&self.leader);
+        let title = match self.map_pending.strip_prefix(leader.as_slice()) {
+            Some(rest) if !leader.is_empty() => format!("<leader>{}", format_keys(rest)),
+            _ => format_keys(&self.map_pending),
+        };
+        let rows = self
+            .keymap
+            .next_keys(mode, &self.map_pending)
+            .into_iter()
+            .map(|(key, binding, more)| {
+                let what = match binding {
+                    Some(Binding::Command(c)) => format!(":{c}"),
+                    Some(Binding::Keys(k)) if k.is_empty() => "(disabled)".into(),
+                    Some(Binding::Keys(k)) => format_keys(k),
+                    None => String::new(),
+                };
+                let desc = match (what.is_empty(), more) {
+                    (_, 0) => what,
+                    (true, n) => format!("+{n}"),
+                    (false, n) => format!("{what} (+{n})"),
+                };
+                (format_keys(&[key]), desc)
+            })
+            .collect();
+        Some((title, rows))
     }
 
     /// Key for a focused panel: `<C-w>` window keys and `:` work as usual; the rest goes
@@ -660,7 +718,14 @@ impl Editor {
     /// When something time-based happens next (a notification expires or a pending mapping
     /// times out). The run loop should call [`Editor::tick`] then.
     pub fn next_deadline(&self) -> Option<Instant> {
-        let mapping = self.pending_since.map(|t| t + self.key_timeout);
+        let mapping = self.pending_since.filter(|_| !self.hints_shown).map(|t| {
+            let timeout = t + self.key_timeout;
+            if self.hint_prefix() {
+                timeout.min(t + Duration::from_millis(self.ui.key_hints_delay_ms))
+            } else {
+                timeout
+            }
+        });
         let note = self.notifications.iter().map(|n| n.expires).min();
         // While jobs run, check for their messages often.
         let jobs = (self.jobs_running > 0).then(|| (self.clock)() + Duration::from_millis(100));
@@ -785,9 +850,17 @@ impl Editor {
         }
         let now = (self.clock)();
         self.notifications.retain(|n| n.expires > now);
-        if self
-            .pending_since
-            .is_some_and(|t| now >= t + self.key_timeout)
+        let delay = Duration::from_millis(self.ui.key_hints_delay_ms);
+        if !self.hints_shown
+            && self.pending_since.is_some_and(|t| now >= t + delay)
+            && self.hint_prefix()
+        {
+            self.hints_shown = true;
+        }
+        if !self.hints_shown
+            && self
+                .pending_since
+                .is_some_and(|t| now >= t + self.key_timeout)
         {
             self.pending_since = None;
             self.timeout();

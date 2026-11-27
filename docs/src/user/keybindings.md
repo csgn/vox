@@ -62,6 +62,17 @@ Vim rules kept: `dw` on the last word of a line stops at the line end; `cw` on a
 | `Ctrl-d` / `Ctrl-u` | half page down / up |
 | `Ctrl-f` / `Ctrl-b`, `PageDown` / `PageUp` | page down / up |
 
+## Key hints
+
+Press the start of a mapping (`<leader>`, or `g`, `]` when mappings start with them) and
+pause: after `ui.key_hints_delay_ms` (300 ms) a box lists the keys that can follow and what
+each runs, e.g. `p  :plugins`; `+3` marks a group of longer mappings (`<leader>d` in
+[developer mode](developer-mode.md)). While the box is open vox waits for the next key
+instead of timing out; a group key shows its own keys at once. `Esc` closes the box and
+drops the typed keys. Typing faster than the delay never shows it. Normal and visual mode
+only. Where it shows: `ui.key_hints = "bottom-right"` (default), `"modal"` (centered), or
+`"off"` ([Interface settings](interface.md#settings)).
+
 ## Registers
 
 | Register | Meaning |

@@ -126,6 +126,7 @@ into a `Value`. A new setting means: a field in `Config`, a case in `from_value`
 | `notify(level, text)`, `history()` | notifications; message history |
 | `open_modal(view)`, `open_panel(slot, view)`, `close_focused()`, `focus(f)` | UI |
 | `next_deadline()`, `tick()` | time-based work (run loop) |
+| `key_hints()` | the key hints on screen: pending keys and the keys that can follow |
 | `with_owner(owner, f)`, `remove_owned(owner)` | ownership, unloading |
 | `log(level, source, text)`, `log_entries()` | developer log |
 | `set_developer_mode(on)`, `developer_mode()` | developer mode (adds/removes the `:log` commands) |
@@ -167,7 +168,7 @@ Views do not get `&mut Editor`. When they want something done they return
 command. So every action a view can trigger is also a normal, mappable command.
 
 Time: the editor never sleeps. `next_deadline()` says when something time-based is due
-(notification expiry, mapping timeout); the run loop waits at most until then and calls
+(notification expiry, mapping timeout, key hints appearing); the run loop waits at most until then and calls
 `tick()`. Tests inject a fake clock through `Services::clock`.
 
 ## Owners and reloading

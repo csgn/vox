@@ -93,6 +93,36 @@ impl Keymap {
         self.maps.is_empty()
     }
 
+    /// The keys that can follow `prefix` in `mode`, sorted: each with the binding of
+    /// `prefix` + that key (newest wins) and how many longer mappings start with it.
+    pub(crate) fn next_keys(
+        &self,
+        mode: MapMode,
+        prefix: &[Key],
+    ) -> Vec<(Key, Option<&Binding>, usize)> {
+        let mut out: Vec<(Key, Option<&Binding>, usize)> = Vec::new();
+        for (m, lhs, b, _) in &self.maps {
+            if *m != mode || lhs.len() <= prefix.len() || !lhs.starts_with(prefix) {
+                continue;
+            }
+            let key = lhs[prefix.len()];
+            let i = match out.iter().position(|(k, _, _)| *k == key) {
+                Some(i) => i,
+                None => {
+                    out.push((key, None, 0));
+                    out.len() - 1
+                }
+            };
+            if lhs.len() == prefix.len() + 1 {
+                out[i].1 = Some(b);
+            } else {
+                out[i].2 += 1;
+            }
+        }
+        out.sort_by_key(|(k, _, _)| crate::keys::format_keys(&[*k]));
+        out
+    }
+
     /// Match typed `keys` against the mappings of `mode`.
     pub(crate) fn lookup(&self, mode: MapMode, keys: &[Key]) -> Lookup<'_> {
         let mut exact = None;

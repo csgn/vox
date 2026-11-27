@@ -79,6 +79,8 @@ commands = "modal"            # or "side": where :commands opens
 cmdline = "statusline"        # or "float" / "modal": where the : prompt is typed
 searchline = "statusline"     # the same for the / prompt
 completion = "auto"           # or "tab" / "off": the : prompt's completion menu
+key_hints = "bottom-right"    # or "modal" / "off": keys that can follow <leader> etc.
+key_hints_delay_ms = 300      # pause before the key hints appear
 ```
 
 Panels shrink on small screens so the text stays usable.

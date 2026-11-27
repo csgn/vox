@@ -5,6 +5,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.22.2] - 2026-11-27 — key hints
+
+### Added
+- Key hints: pausing after the start of a mapping (`<leader>`, `g`, `]`, …) shows the keys
+  that can follow and what they run, in the bottom right corner (`ui.key_hints =
+  "bottom-right" | "modal" | "off"`, `ui.key_hints_delay_ms = 300`; also in `:settings`).
+  While shown, the mapping waits for a key instead of timing out; `Esc` cancels. Normal and
+  visual mode only. `Editor::key_hints()`.
+
 ## [0.22.1] - 2026-11-27 — log commands in developer mode only
 
 ### Changed

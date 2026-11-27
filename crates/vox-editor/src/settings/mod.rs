@@ -189,6 +189,18 @@ pub fn vox_settings() -> Vec<SettingSpec> {
             "When the : prompt shows completions (while typing, after Tab, never)",
         ),
         spec(
+            "ui.key_hints",
+            choice(&["bottom-right", "modal", "off"]),
+            Text("bottom-right".into()),
+            "Where the keys that can follow a mapping prefix (e.g. <leader>) are shown",
+        ),
+        spec(
+            "ui.key_hints_delay_ms",
+            int(0, 600_000),
+            Integer(d.ui.key_hints_delay_ms as i64),
+            "How long a mapping prefix waits before key hints appear (ms)",
+        ),
+        spec(
             "editor_mode",
             choice(&["text", "agent"]),
             Text("text".into()),
@@ -276,6 +288,11 @@ impl Config {
         ui.insert("cmdline".into(), s(self.ui.cmdline.name()));
         ui.insert("searchline".into(), s(self.ui.searchline.name()));
         ui.insert("completion".into(), s(self.ui.completion.name()));
+        ui.insert("key_hints".into(), s(self.ui.key_hints.name()));
+        ui.insert(
+            "key_hints_delay_ms".into(),
+            Value::Integer(self.ui.key_hints_delay_ms as i64),
+        );
         let mut keymap: BTreeMap<String, Value> = BTreeMap::new();
         for (mode, lhs, rhs) in &self.keymaps {
             let table = keymap

@@ -4,7 +4,7 @@ use vox_view::{display_col, visible_slice};
 
 use crate::editor::{Editor, Mode};
 use crate::surface::{Color, CursorShape, Rect, Style, Surface};
-use crate::ui::{Focus, NotifyPosition, PromptPlace, View};
+use crate::ui::{Focus, KeyHints, NotifyPosition, PromptPlace, View};
 
 /// Widest a notification box gets.
 const NOTIFY_WIDTH: u16 = 48;
@@ -65,6 +65,7 @@ impl Editor {
             }
         }
         self.render_notifications(&mut s, layout.body);
+        self.render_key_hints(&mut s, layout.body);
         let prompt_cursor = self.render_prompt(&mut s);
         self.place_cursor(
             &mut s,
@@ -544,6 +545,67 @@ impl Editor {
                 );
             }
             used += h;
+        }
+    }
+}
+
+/// Widest the key hints box gets.
+const HINTS_WIDTH: u16 = 48;
+
+impl Editor {
+    /// Draw the key hints ([`Editor::key_hints`]) in the bottom right corner of `body` or
+    /// centered (`ui.key_hints`): one row per key that can follow, then what it does. Rows
+    /// that do not fit end in `… N more`.
+    fn render_key_hints(&self, s: &mut Surface, body: Rect) {
+        let Some((title, rows)) = self.key_hints() else {
+            return;
+        };
+        let kw = rows
+            .iter()
+            .map(|(k, _)| self.str_width(k))
+            .max()
+            .unwrap_or(0);
+        let dw = rows
+            .iter()
+            .map(|(_, d)| self.str_width(d))
+            .max()
+            .unwrap_or(0);
+        let content = (kw + 2 + dw).max(self.str_width(&title) + 4) as u16;
+        let w = (content + 4).min(HINTS_WIDTH).min(body.w.saturating_sub(2));
+        let h = (rows.len() as u16 + 2).min(body.h);
+        if w < 8 || h < 3 {
+            return;
+        }
+        let (x, y) = match self.ui_config().key_hints {
+            KeyHints::Modal => (body.x + (body.w - w) / 2, body.y + (body.h - h) / 2),
+            _ => (body.x + body.w - w - 1, body.y + body.h - h),
+        };
+        let rect = Rect::new(x, y, w, h);
+        let style = Style::BOLD.fg(Color::Blue);
+        s.draw_box(rect, &title, style, self.width.as_ref());
+        let inner = rect.inner();
+        // One column of space on each side.
+        let inner = Rect::new(inner.x + 1, inner.y, inner.w.saturating_sub(2), inner.h);
+        let fit = inner.h as usize;
+        let shown = if rows.len() > fit {
+            fit - 1
+        } else {
+            rows.len()
+        };
+        for (i, (key, desc)) in rows.iter().take(shown).enumerate() {
+            s.put_in(inner, i as u16, key, Style::BOLD, self.width.as_ref());
+            let gap = kw as u16 + 2;
+            let d = Rect::new(inner.x + gap, inner.y, inner.w.saturating_sub(gap), inner.h);
+            let ds = if desc.starts_with('+') {
+                Style::default().fg(Color::Blue)
+            } else {
+                Style::default()
+            };
+            s.put_in(d, i as u16, desc, ds, self.width.as_ref());
+        }
+        if shown < rows.len() {
+            let more = format!("… {} more", rows.len() - shown);
+            s.put_in(inner, shown as u16, &more, Style::DIM, self.width.as_ref());
         }
     }
 }

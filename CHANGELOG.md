@@ -5,6 +5,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-11-27 — M20 asking the AI
+
+### Added
+- Agent mode: `<leader>a` / `:ai INSTRUCTION` asks the AI to change the target — the visual
+  selection, else the focused unit, else the cursor line — with the whole file as context.
+  The request runs in the background with a progress box.
+- The answer is shown in the buffer as a diff: removed lines `-` (red), added lines `+`
+  (green). `ga` / `gx` accept / decline the change at the cursor, `gA` / `gX` all,
+  `]c` / `[c` move between changes; `:ai accept|decline [all]`, `:ai next|prev`. Accepted
+  changes are one undo step. Editing, switching buffers, or leaving agent mode drops a
+  pending change; an answer for text that changed meanwhile is not used.
+- `ai_apply = "review" | "direct"` (config and `:settings`): direct applies the answer at
+  once as one undo step.
+- `assist::Assistant` trait, `Editor::set_assistant`, `ask_ai`, `proposal`, `decide`,
+  `jump_hunk`; `assist::diff`. No backend is built in yet (Claude comes in M21): `:ai` says
+  so.
+
 ## [0.21.0] - 2026-11-27 — M19 editor modes and focus
 
 ### Added

@@ -1,0 +1,18 @@
+---
+source: crates/vox-editor/tests/assist.rs
+expression: s.to_string()
+---
+"  1 fn area(w: u32, h: u32) -> u32 {                        "
+"  2-    let a = w * h;                                      "
+"   +    LET A = W * H;                                      "
+"  3     a                                                   "
+"  4-}                                                       "
+"   +} // done                                               "
+"  5                                                         "
+"  6 fn main() {}                                            "
+"~                                                           "
+"~                                                           "
+"~                                                           "
+"~                                                           "
+" NORMAL AGENT   [No Name]  FOCUS function area (L1–4)   2:1 "
+"AI: 2 change(s) — ga accept · gx decline · gA / gX all · ]c "

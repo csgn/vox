@@ -210,6 +210,8 @@ pub struct Config {
     pub check_updates: bool,
     /// Text or agent editor. Default text.
     pub editor_mode: crate::agent::EditorMode,
+    /// How AI changes land: review (default) or direct.
+    pub ai_apply: crate::assist::ApplyMode,
     /// Per-plugin values (`[plugins.NAME]`): settings and `enabled`. Checked against each
     /// plugin's manifest when it loads.
     pub plugins: BTreeMap<String, BTreeMap<String, Value>>,
@@ -225,6 +227,7 @@ impl Default for Config {
             developer_mode: false,
             check_updates: true,
             editor_mode: crate::agent::EditorMode::Text,
+            ai_apply: crate::assist::ApplyMode::Review,
             plugins: BTreeMap::new(),
         }
     }
@@ -281,6 +284,12 @@ impl Config {
                 ("ui", Value::Table(t)) => parse_ui(t, &mut cfg.ui, &mut errors),
                 ("developer_mode", Value::Bool(b)) => cfg.developer_mode = *b,
                 ("check_updates", Value::Bool(b)) => cfg.check_updates = *b,
+                ("ai_apply", Value::String(s)) => match crate::assist::ApplyMode::parse(s) {
+                    Some(m) => cfg.ai_apply = m,
+                    None => errors.push(format!(
+                        "`ai_apply` must be \"review\" or \"direct\", not \"{s}\""
+                    )),
+                },
                 ("editor_mode", Value::String(s)) => match crate::agent::EditorMode::parse(s) {
                     Some(m) => cfg.editor_mode = m,
                     None => errors.push(format!(
@@ -311,11 +320,11 @@ impl Config {
                 }
                 (
                     "leader" | "timeout_ms" | "keymap" | "ui" | "developer_mode" | "check_updates"
-                    | "editor_mode" | "plugins",
+                    | "editor_mode" | "ai_apply" | "plugins",
                     other,
                 ) => {
                     let want = match key.as_str() {
-                        "leader" | "editor_mode" => "a string",
+                        "leader" | "editor_mode" | "ai_apply" => "a string",
                         "timeout_ms" => "an integer",
                         "developer_mode" | "check_updates" => "true/false",
                         "plugins" => "a table",

@@ -53,6 +53,13 @@ first, the file last) from the `Structure` in use (`set_structure` replaces the 
 `focus_kind(kind)`, `focused_unit()`. `editor_mode()` / `set_editor_mode(EditorMode::Agent)`;
 register agent-only things with owner `owner::AGENT` so text mode removes them.
 
+**AI backend:** implement `vox_editor::assist::Assistant` (`fn ask(&self, req:
+&AssistRequest) -> Result<AssistReply, String>`, called on a background thread) and give it
+to the editor with `set_assistant(Arc::new(..))`. The request has the instruction, the path,
+the whole text, the target lines (`start..=end`, `target()`), its kind, and the cursor; the
+reply is the new text for the target lines. `ask_ai(instruction)` starts a request;
+`proposal()`, `decide(accept, all)`, and `jump_hunk(forward)` handle the answer.
+
 **Completion:** `editor.complete(line)` returns what can follow a command line: the start
 of the word to replace, the candidates (text and description), and the usage and current
 parameter of the command. The `:` prompt uses it; so can anything that needs completion

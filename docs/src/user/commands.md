@@ -26,6 +26,8 @@ none, says which subcommands exist (`:reload` → `Use :reload config|plugins`).
 | `:wall`, `:wa` | save every buffer with unsaved changes |
 | `:narrow [KIND\|out\|in]`, `:widen` | [focus](focus.md) a unit (`selection`, `block`, `function`, `class`, `file`) / end focus |
 | `:mode [text\|agent\|toggle]` | [editor mode](agent-mode.md); no argument shows it |
+| `:ai [INSTRUCTION]` | agent mode: [ask the AI](agent-mode.md#asking) to change the target; no argument opens a dialog |
+| `:ai accept [all]`, `:ai decline [all]`, `:ai next`, `:ai prev` | agent mode: [review](agent-mode.md#reviewing) the AI's change |
 | `:notify [info\|warn\|error] TEXT` | show a notification |
 | `:messages`, `:mes` | message history in the bottom panel |
 | `:help [COMMAND]`, `:h`, `:?COMMAND` | [help](#help) for a command or group; no argument lists all commands |

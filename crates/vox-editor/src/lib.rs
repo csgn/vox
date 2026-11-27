@@ -3,6 +3,7 @@
 //! storage, char widths, and config file parsing are provided by adapter crates.
 
 pub mod agent;
+pub mod assist;
 mod buffer;
 mod builtin;
 pub mod command;

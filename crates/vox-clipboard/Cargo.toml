@@ -8,4 +8,4 @@ workspace = true
 
 [dependencies]
 arboard = { version = "3.7.0", default-features = false, features = ["wayland-data-control"] }
-vox-editor = { version = "0.21.0", path = "../vox-editor" }
+vox-editor = { version = "0.22.0", path = "../vox-editor" }

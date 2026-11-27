@@ -48,8 +48,12 @@ impl Editor {
             return;
         }
         self.editor_mode = mode;
-        if mode == EditorMode::Text {
-            self.remove_owned(owner::AGENT);
+        match mode {
+            EditorMode::Text => {
+                self.remove_owned(owner::AGENT);
+                self.proposal = None;
+            }
+            EditorMode::Agent => self.register_agent(),
         }
     }
 }

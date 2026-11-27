@@ -47,6 +47,10 @@ terminal <─ vox-term::Terminal::draw <─ Surface <─ Editor::render (pure) <
   edits (called from `with_change_events`); `render.rs` dims lines outside it.
 - `agent.rs`: `EditorMode { Text, Agent }`, `:mode`; leaving agent mode removes owner
   `agent`'s commands and mappings.
+- `assist.rs`: the `Assistant` trait (`ask(&AssistRequest) -> AssistReply`, run in a
+  background job), `diff` (line LCS → `Hunk`s), the pending `Proposal`, `:ai` commands and
+  keys (owner `agent`, registered by `register_agent` when agent mode starts). `render.rs`
+  `text_rows` interleaves removed (`-`) and added (`+`) lines with the buffer's lines.
 - `complete.rs`: `Editor::complete(line) -> Completion` (pure): command names, subcommands,
   then the current parameter's `Complete` source (files via `std::fs`, plugins, setting
   keys, values). `prompt.rs`: the `:`/`/` prompt's keys — `Tab` cycling, the menu, history —

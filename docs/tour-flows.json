@@ -1094,5 +1094,40 @@
         "text": "Lines outside the focus are drawn dimmed; the status line shows `FOCUS function NAME (Lx–y)`."
       }
     ]
+  },
+  {
+    "id": "ai",
+    "title": "Asking the AI and accepting its change",
+    "summary": "Agent mode: `<leader>a`, an instruction, `ga`.",
+    "steps": [
+      {
+        "fn": "vox-editor::Editor::register_agent",
+        "text": "Entering agent mode registers `:ai` and its keys (`<leader>a`, `ga`, `gx`, `]c` …) with owner `agent`, so text mode removes them again."
+      },
+      {
+        "fn": "vox-editor::assist::ai",
+        "text": "`:ai` without an instruction opens the Ask AI dialog, naming the target (selection, focused unit, or line)."
+      },
+      {
+        "fn": "vox-editor::Editor::ask_ai",
+        "text": "Builds the request (instruction, whole text, target lines) and runs the `Assistant` in a background job."
+      },
+      {
+        "fn": "vox-editor::Editor::take_answer",
+        "text": "Back on the editor's thread: if the text is unchanged, the answer is diffed against the target lines into hunks — a proposal to review, or applied at once with `ai_apply = \"direct\"`."
+      },
+      {
+        "fn": "vox-editor::assist::diff",
+        "text": "Line LCS; each run of differences becomes one hunk (lines removed, lines added)."
+      },
+      {
+        "fn": "vox-editor::Editor::text_rows",
+        "text": "Rendering puts each hunk's removed lines (`-`, red) and added lines (`+`, green) in place."
+      },
+      {
+        "fn": "vox-editor::Editor::decide",
+        "text": "`ga` replaces the hunk's lines as one undo step and moves the later hunks; when none are left the proposal is gone."
+      }
+    ]
   }
 ]

@@ -10,6 +10,17 @@ use crate::ui::{Focus, NotifyPosition, PromptPlace, View};
 const NOTIFY_WIDTH: u16 = 48;
 /// Most text lines in one notification.
 const NOTIFY_LINES: usize = 3;
+/// One row of the text area.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum TextRow {
+    /// Buffer line `.0`; `.1` if a pending AI change removes it.
+    Doc(usize, bool),
+    /// A line a pending AI change adds.
+    Added(String),
+    /// Past the end of the buffer (`~`).
+    End,
+}
+
 /// Most completion entries shown at once.
 const MENU_ROWS: usize = 10;
 /// Widest the statusline completion box gets.
@@ -111,7 +122,11 @@ impl Editor {
             }
         }
         let x = self.gutter_width() + self.cursor_dcol().saturating_sub(self.view.left);
-        let y = self.cursor.line.saturating_sub(self.view.top);
+        let rows = self.text_rows(editor.h as usize);
+        let y = rows
+            .iter()
+            .position(|r| matches!(r, TextRow::Doc(i, _) if *i == self.cursor.line))
+            .unwrap_or(self.cursor.line.saturating_sub(self.view.top));
         s.cursor = (editor.x + x as u16, editor.y + y as u16);
     }
 
@@ -120,28 +135,79 @@ impl Editor {
         let w = self.width.as_ref();
         let gutter = self.gutter_width();
         let text_width = (area.w as usize).saturating_sub(gutter);
-        for row in 0..area.h {
-            let idx = self.view.top + row as usize;
-            let line = Rect::new(area.x, area.y + row, area.w, 1);
-            match self.doc.line(idx) {
-                Some(text) => {
-                    let num = format!("{:>w$} ", idx + 1, w = gutter - 1);
-                    s.put_in(line, 0, &num, Style::DIM, w);
-                    let visible = visible_slice(w, &text, self.view.left, text_width);
-                    let rest = Rect::new(area.x + gutter as u16, line.y, text_width as u16, 1);
-                    // Outside the focused unit, text is dimmed.
-                    let style = match self.focused_unit() {
-                        Some(u) if !u.contains(idx) => Style::DIM,
-                        _ => Style::default(),
+        let rows = self.text_rows(area.h as usize);
+        for (row, kind) in rows.iter().enumerate() {
+            let line = Rect::new(area.x, area.y + row as u16, area.w, 1);
+            let rest = Rect::new(area.x + gutter as u16, line.y, text_width as u16, 1);
+            let (num, text, style) = match kind {
+                TextRow::Doc(idx, removed) => {
+                    let text = self.doc.line(*idx).unwrap_or_default();
+                    let style = if *removed {
+                        Style::default().fg(Color::Red)
+                    } else {
+                        // Outside the focused unit, text is dimmed.
+                        match self.focused_unit() {
+                            Some(u) if !u.contains(*idx) => Style::DIM,
+                            _ => Style::default(),
+                        }
                     };
-                    if gutter < area.w as usize {
-                        s.put_in(rest, 0, &visible, style, w);
-                    }
+                    let mark = if *removed { "-" } else { " " };
+                    let num = format!("{:>w$}{mark}", idx + 1, w = gutter - 1);
+                    (num, text, style)
                 }
-                None => s.put_in(line, 0, "~", Style::DIM, w),
+                TextRow::Added(text) => {
+                    let num = format!("{:>w$}+", "", w = gutter - 1);
+                    (num, text.clone(), Style::default().fg(Color::Green))
+                }
+                TextRow::End => {
+                    s.put_in(line, 0, "~", Style::DIM, w);
+                    continue;
+                }
+            };
+            let num_style = match kind {
+                TextRow::Doc(_, false) => Style::DIM,
+                _ => style,
+            };
+            s.put_in(line, 0, &num, num_style, w);
+            let visible = visible_slice(w, &text, self.view.left, text_width);
+            if gutter < area.w as usize {
+                s.put_in(rest, 0, &visible, style, w);
             }
         }
         self.render_selection(s, area, gutter, text_width);
+    }
+
+    /// What each text row shows, top to bottom: buffer lines from the top of the view, with
+    /// a pending AI change's removed lines marked and its new lines inserted after them.
+    pub(crate) fn text_rows(&self, height: usize) -> Vec<TextRow> {
+        let hunks: &[crate::assist::Hunk] = match &self.proposal {
+            Some(p) if p.buffer == self.buffer_id => &p.hunks,
+            _ => &[],
+        };
+        let mut rows = Vec::with_capacity(height);
+        let mut idx = self.view.top;
+        let mut next = hunks
+            .iter()
+            .position(|h| h.at >= idx)
+            .unwrap_or(hunks.len());
+        let count = self.doc.line_count();
+        while rows.len() < height {
+            if let Some(h) = hunks.get(next).filter(|h| h.at == idx) {
+                rows.extend((0..h.old.len()).map(|k| TextRow::Doc(idx + k, true)));
+                rows.extend(h.new.iter().map(|n| TextRow::Added(n.clone())));
+                idx += h.old.len();
+                next += 1;
+                continue;
+            }
+            rows.push(if idx < count {
+                TextRow::Doc(idx, false)
+            } else {
+                TextRow::End
+            });
+            idx += 1;
+        }
+        rows.truncate(height);
+        rows
     }
 
     /// Reverse-video the visual selection.

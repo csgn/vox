@@ -114,6 +114,12 @@ pub struct Editor {
     pub(crate) structure: Box<dyn crate::structure::Structure>,
     /// Text or agent editor (see `agent.rs`).
     pub(crate) editor_mode: crate::agent::EditorMode,
+    /// The AI backend (see `assist.rs`).
+    pub(crate) assistant: Option<std::sync::Arc<dyn crate::assist::Assistant>>,
+    /// An AI change waiting to be accepted or declined.
+    pub(crate) proposal: Option<crate::assist::Proposal>,
+    /// Document revision the proposal's line numbers belong to.
+    pub(crate) proposal_revision: u64,
     pub(crate) width: Box<dyn CharWidth>,
     commands: Commands,
     keymap: Keymap,
@@ -263,6 +269,9 @@ impl Editor {
             unit_focus: None,
             structure: Box::new(crate::structure::Heuristic),
             editor_mode: Default::default(),
+            assistant: None,
+            proposal: None,
+            proposal_revision: 0,
             side: None,
             bottom: None,
             modal: None,
@@ -1015,6 +1024,7 @@ impl Editor {
             if self.buffer_id == buffer {
                 self.follow_focus(lines, line);
             }
+            self.check_proposal();
             self.emit(&Event::TextChanged);
         }
         let now = self.mode_kind();
@@ -1811,6 +1821,9 @@ impl Editor {
         // Only a changed setting switches, so `vox --agent` survives a config reload.
         if cfg.editor_mode != previous.editor_mode {
             self.set_editor_mode(cfg.editor_mode);
+        } else if self.editor_mode == crate::agent::EditorMode::Agent {
+            // Agent keys use the leader, which may have changed.
+            self.register_agent();
         }
     }
 

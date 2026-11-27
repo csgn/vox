@@ -195,6 +195,12 @@ pub fn vox_settings() -> Vec<SettingSpec> {
             "Editor mode: text (no AI) or agent (AI help on the focused unit)",
         ),
         spec(
+            "ai_apply",
+            choice(&["review", "direct"]),
+            Text("review".into()),
+            "How AI changes land: as a diff to accept or decline, or at once (one undo step)",
+        ),
+        spec(
             "check_updates",
             SettingKind::Bool,
             Bool(d.check_updates),
@@ -289,6 +295,10 @@ impl Config {
         top.insert("timeout_ms".into(), Value::Integer(self.timeout_ms as i64));
         top.insert("developer_mode".into(), Value::Bool(self.developer_mode));
         top.insert("check_updates".into(), Value::Bool(self.check_updates));
+        top.insert(
+            "ai_apply".into(),
+            Value::String(self.ai_apply.name().into()),
+        );
         top.insert(
             "editor_mode".into(),
             Value::String(self.editor_mode.name().into()),

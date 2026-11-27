@@ -24,6 +24,9 @@ Built one milestone at a time; each ships with tests, docs, and a changelog entr
 | M12 | 0.14.0 | Command API: `Editor::execute` returns a result, `Editor::reply` lets commands return data (`Value`); non-interactive mode (missing arguments and confirmations are errors, views are refused); data commands: `plugin list`, `plugin info`, `settings list/get/set/unset`, `settings key list`, `commands list`, `scope show` | done |
 | M13 | 0.15.0 | Updater: at start-up check the newest `vX.Y.Z` tag of vox's repository (`git ls-remote`, background job), ask to install it (`cargo install --git --tag`); `:update check`, `:update install [VERSION]`, `check_updates = false` | done |
 | M14 | 0.16.0 | Headless CLI: `vox run [--local-config [DIR] \| --vanilla] [--json] [--file FILE] CMD... \| -` runs commands without a terminal, waits for background jobs, prints replies as text or JSON (`Value::to_json`), messages to stderr; exit status 0 / 1 (a command failed) / 2 (bad arguments) | done |
+| M15 | 0.17.0 | Command metadata and help: commands declare category, parameters, result, examples; `:help CMD` / `:?CMD` dialog; `help` in `vox run` | planned |
+| M16 | 0.18.0 | Command browser: `:commands` as a tree (category → command → subcommand) with sub-panels, breadcrumb path, filter, run, help | planned |
+| M17 | 0.19.0 | Prompt and completion: `:` and `/` prompt in the status line, a floating box, or a modal (configurable); completion menu while typing, `Tab` completes; argument hints; prompt history | planned |
 
 ## Scopes
 
@@ -35,6 +38,74 @@ Built one milestone at a time; each ships with tests, docs, and a changelog entr
 
 Exactly one scope is active. Without `DIR`, the project is the nearest folder upward that
 contains `.vox/` (like git).
+
+## Next: command UX (M15–M17)
+
+Before Claude integration, commands must be easy to find, type, and understand. Three
+milestones, in this order, because the browser and completion both need the metadata.
+
+### M15 — command metadata and help
+
+- `Command` gains optional metadata, all with defaults so existing registrations keep
+  working:
+  - `category`: where the command is shown (`File`, `Editing`, `Search`, `View`, `Plugins`,
+    `Settings`, `Developer`, `Help`). Plugin commands default to category `Plugin: NAME`;
+    user/config commands to `User`.
+  - `params`: name, description, required or optional, repeated or not, and a
+    *completion source*: `file`, `dir`, `command`, `plugin`, `setting-key`, `version`,
+    one of fixed values, or none. M17 uses the sources.
+  - `returns`: what the reply holds (for data commands), e.g. "table: name, version, …".
+  - `examples`: command lines with a short note.
+  - `usage` is generated from params: `plugin add SOURCE [--global]`.
+- Registration through a builder (`register(...).category(..).param(..)`); the plain
+  `register(name, description, handler)` stays.
+- Plugins: a new WIT function to describe a command (category, params, returns,
+  examples) after `register-command`; the SDK wraps it. Old plugins still load.
+- `:help CMD` (alias `:?CMD`, typed in the `:` prompt, e.g. `:?plugin add`) opens a help
+  dialog: breadcrumb path (`Commands › plugin › add`), description, usage, parameters table,
+  result, examples, aliases, owner, and the subcommands as a list — `Enter` opens a
+  subcommand's help, `Backspace`/`h` goes back to the parent (hint shown). A key runs the
+  command (asking for missing arguments).
+- `:help` with no argument opens M16's browser once it exists (until then, the list).
+- `:commands list` and `vox run help CMD` return the same metadata as data (`--json`).
+- All built-in commands get metadata; a test fails if a built-in has none.
+- Normal-mode `?` stays free for Vim's backward search; help is reached from the prompt.
+
+### M16 — command browser
+
+- `:commands` opens a tree instead of one flat list: **categories → root commands →
+  subcommands**. Each level is a sub-panel (columns side by side when wide, one at a time
+  when narrow) with a breadcrumb at the top: `Commands › Plugins › plugin › add`.
+- Keys: `j`/`k` move, `l`/`Enter` go in (or run a leaf), `h`/`Backspace` go back to the
+  parent, `?` opens the M15 help for the selection, `/` filters across all levels (shows
+  matches with their full path), `q`/`Esc` close. Hints in the footer.
+- The detail area shows the selection's description and usage.
+- Opens as a modal or in the side panel: `[ui] commands = "modal" | "side"` (like
+  `plugin_manager`).
+- A reusable tree/drill-down view in `ui/`, so `:keymaps`, `:settings`, and the plugin
+  manager can use it later.
+
+### M17 — prompt and completion
+
+- Prompt placement, configurable separately for commands and search:
+  `[ui] cmdline = "statusline" | "float" | "modal"` and `[ui] searchline = …` (default
+  `"statusline"`, as today). `float` is a one-line box centred near the top; `modal` is a
+  box with the input and the completion list. Also in `:settings`.
+- Completion menu while typing (`[ui] completion = "auto" | "tab" | "off"`):
+  - first word: commands and aliases; after a root: its subcommands; then arguments from
+    the parameter's completion source (files, plugins, setting keys, …);
+  - each entry shows its description; the selected one's usage is shown as a hint
+    (`plugin add SOURCE [--global]`, current parameter highlighted);
+  - prefix matches first, then fuzzy (subsequence) matches.
+- Keys: `Tab` completes the selection (or the common prefix), `Shift-Tab` goes back,
+  `Up`/`Down` (or `<C-n>`/`<C-p>`) move in the menu, `Enter` runs, `Esc` closes the menu
+  first, then the prompt. With the menu closed, `Up`/`Down` walk the prompt history
+  (kept per session).
+- `/` gets history only (no completion).
+- Completion is a pure function of the editor state (`Editor::complete(line, cursor)`),
+  tested without a terminal and reusable by `vox run` / Claude later.
+
+After M17: Claude integration (see below).
 
 ## Later (only if needed)
 Claude integration (MCP server on top of `vox run`), remote control of a running vox (`vox run --attach` over a Unix socket, buffer commands; only if Claude needs the open buffer), plugin registry, plugin-defined panels, splits, fuzzy finder,
